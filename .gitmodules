@@ -1,0 +1,4 @@
+[submodule "dragonfly"]
+	path = dragonfly
+	url = https://github.com/dictation-toolbox/dragonfly
+	branch = actions-only
