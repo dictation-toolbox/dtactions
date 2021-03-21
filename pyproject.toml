@@ -1,0 +1,31 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module="dtactions"
+author = "Aaron Walker"
+author-email = "lexiconcode@..."
+maintainer = "Quintijn Hoogenboom"
+maintainer-email = "q.hoogenboom@antenna.nl"
+home-page = "https://qh.antenna.nl/unimacro/"
+description-file = "README.md"
+
+requires=[ 
+		  "pywin32 >= 300",
+		  "debugpy",
+		  "wxpython == 4.0.7; python_version>='3.8'",
+		  "wxpython == 4.0.3; python_version<'3.7'"]
+	  
+		
+classifiers=[	"Development Status :: 4 - Beta",
+				"Topic :: Multimedia :: Sound/Audio :: Speech",
+				"Topic :: Scientific/Engineering :: Human Machine Interfaces",
+				]
+				
+requires-python = ">=3.8"
+dist-name="dtactions"
+keywords="dragon,speech,dictation,dictation-toolobx,unimacro,natlink,dtactions"
+
+[tool.flit.scripts]
+
