@@ -18,26 +18,32 @@ import os
 import os.path
 import time
 import win32gui
-from pathqh import path
+import pathlib     
+try:
+    from dtactions.__init__ import findInSitePackages
+except ModuleNotFoundError:
+    findInSitePackages = None
 
-thisDir = path('.')
-unimacroFolder = (thisDir/'..'/'..'/'unimacro'/'src'/'unimacro').normpath()
-if os.path.isdir(unimacroFolder):
-    if not unimacroFolder in sys.path:
-        sys.path.append(unimacroFolder)
-else:
-    raise IOError(f'Invalid unimacro folder: {unimacroFolder}')
+def getThisDir():
+    """get directory of this, if possible in site-packages
+    
+    Check for symlink and presence in site-packages directory
+    """
+    thisFile = __file__
+    thisDir = os.path.split(thisFile)[0]
+    if findInSitePackages:
+        thisDir = findInSitePackages(thisDir)
+    return thisDir
 
-import TestCaseWithHelpers
-import natlink
-import natlinkclipboard
+thisDir = getThisDir()
+dtactionsDir = os.path.normpath(os.path.join(thisDir, '..'))
 
-
-
-import actions
+# import TestCaseWithHelpers
+import unittest
+# import natlink
+from dtactions import natlinkclipboard
+from dtactions import unimacroactions as actions
 from actions import doAction as action
-import natlinkutilsqh
-import natlinkutils
 
 class TestError(Exception):
     pass
@@ -62,7 +68,7 @@ if not testFilesDir.isdir():
 # default .ini files pop up when you first run this test. just ignore them.
 # the recording of print presents problems.
 # All should go to testresult.txt in this same directory
-class UnittestClipboard(TestCaseWithHelpers.TestCaseWithHelpers):
+class UnittestClipboard(unittest.TestCase):
     def setUp(self):
         self.connect()  # switched off
 

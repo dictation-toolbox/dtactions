@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [tool.flit.metadata]
 module="dtactions"
 author = "Aaron Walker"
-author-email = "lexiconcode@..."
+author-email = "aaronwalker@protonmail.com"
 maintainer = "Quintijn Hoogenboom"
 maintainer-email = "q.hoogenboom@antenna.nl"
 home-page = "https://qh.antenna.nl/unimacro/"

@@ -57,7 +57,7 @@ The package is specified in `pyproject.toml` and built with [flit](https://pypi.
 
 Several scripts are specfied in pyproject.toml in the scripts section. Scripts are automatically generated
 and placed in the python distribution "Scripts" folder. Those scripts are then available in the system path for
-users to run. Note the `flit install --symlink` will install scripts as batchfiles; `pip install dtactions ...` will install
+users to run. Note the `flit install --symlink` will install scripts as batchfiles; `pip install dtactions` will install
 scripts as .exe files.
 
 Version numbers of the packages must be increased before your publish to [Test Python Packaging Index](https://test.pypi.org/)

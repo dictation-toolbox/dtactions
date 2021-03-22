@@ -4,7 +4,7 @@
 # Licensed under the LGPL.
 #
 # It is now improved and augmented for the Natlink project
-# by Quintijn Hoogenboom for wider use 15/7/2019.
+# by Quintijn Hoogenboom for wider use 15/7/2019, ..., March 2021
 # See also unittestClipboard.py in Unimacro/unimacro_test
 
 """
