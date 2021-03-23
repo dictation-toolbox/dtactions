@@ -1,16 +1,10 @@
 # (unimacro - natlink macro wrapper/extensions)
 # (c) copyright 2003 Quintijn Hoogenboom (quintijn@users.sourceforge.net)
-#                    Ben Staniford (ben_staniford@users.sourceforge.net)
-#                    Bart Jan van Os (bjvo@users.sourceforge.net)
-#
-# This file is part of a SourceForge project called "unimacro" see
-# http://unimacro.SourceForge.net).
 #
 # autohotkeyactions.py 
 #  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
-#  December 2013, adding AutoHotkey support
+#  December 2013/.../March 2021, adding AutoHotkey support
 #
-
 """This module contains actions via AutoHotkey
 
 1. the exe and scriptfolder are collected at first call and stored in
@@ -29,8 +23,8 @@
    are copied this way (copySampleAhkScripts function).
    
 GetAhkExe gets the correct ahkexe, or "" if AutoHotkey is not on your computer
-GetAhkScriptFolder get the correct scriptfolder (AutoHotkey in your Documents folder) and copies scripts as described
-     in 5. above
+GetAhkScriptFolder get the correct scriptfolder ((AutoHotkey in your Documents folder).autohotkey in your home directory)
+    and copies scripts as described in 5. above
      
 """
 import glob
@@ -43,15 +37,29 @@ from natlinkcore import natlinkcorefunctions
 from natlinkcore import natlinkstatus
 import win32gui
 
-# assume this module is in Unimacro
-unimacroDirectory = os.path.split(sys.modules[__name__].__dict__['__file__'])[0]
+## get thisDir and other basics...
+try:
+    from dtactions.__init__ import findInSitePackages
+except ModuleNotFoundError:
+    findInSitePackages = None
+
+def getThisDir():
+    """get directory of this, if possible in site-packages
     
-sampleAhkDirectory = os.path.join(unimacroDirectory, 'sample_ahk')
+    Check for symlink and presence in site-packages directory
+    """
+    thisFile = __file__
+    thisDir = os.path.split(thisFile)[0]
+    if findInSitePackages:
+        thisDir = findInSitePackages(thisDir)
+    return thisDir
+
+dtactions = thisDir = getThisDir()
+##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
+sampleAhkDirectory = os.path.join(dtactions, 'samples')
 
 ahkexe = None
 ahkscriptfolder = None
-
-status = natlinkstatus.NatlinkStatus()
 
 def ahk_is_active():
     if ahkexe is None:
@@ -61,18 +69,18 @@ def ahk_is_active():
 def do_ahk_script(script, hndle=None):
     """try autohotkey integration
     """
+    global ahkscriptfolder
     if ahkexe is None:
         GetAhkExe() 
     if not ahkexe:
         raise ValueError("cannot run AHK action, autohotkey.exe not found")
     if ahkscriptfolder is None:
         GetAhkScriptFolder()
-        
     if not ahkscriptfolder:
         raise IOError("no folder for AutoHotkey scripts found")
    
     #print 'AHK with script: %s'% script
-    if script.endswith(".ahk"):
+    if script.endswith(".ahk"): 
         scriptPath = os.path.join(ahkscriptfolder, script)
         if os.path.isfile(scriptPath):
             scriptText = open(scriptPath, 'r').read()
@@ -133,21 +141,8 @@ FileAppend, %wHndle%, ##WININFOfile##
 def GetAhkExe():
     """try to get executable of autohotkey.exe, if not there, empty string is put in ahkexe
     
-    now also use status, if set in configfunctions (in future config gui)
-    
     """
     global ahkexe
-    exedir = status.getAhkExeDir()
-    if exedir and os.path.isdir(exedir):
-        ahk = os.path.join(exedir, "autohotkey.exe")
-        if os.path.isfile(ahk):
-            ahkexe = ahk
-            return
-        else:
-            print('warning, AhkExeDir in natlinkstatus.ini does not contain "autohotkey.exe": %s'% exedir)
-            print('try default setting in PROGRAMFILES')
-            #print 'AutoHotkey found, %s'% ahkexe
-
     # no succes, go on with program files:
     pf = natlinkcorefunctions.getExtendedEnv("PROGRAMFILES")
     if pf.find('(x86)')>0:
@@ -179,33 +174,14 @@ def GetAhkScriptFolder():
         ## for repeated use:
         return ahkscriptfolder
 
-    scriptfolder = status.getAhkUserDir()
-    if scriptfolder:
-        if os.path.isdir(scriptfolder):
-            ahkscriptfolder = scriptfolder
-            copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
-            return scriptfolder
-        else:
-            print('warning: AhkUserDir set in natlinkstatus.ini, but no valid directory: %s'% scriptfolder)
-            print('take default in subfolder AutoHotkey from your PERSONAL directory')
-            return
-    # not proceed with PERSONAL:
-
-    personal = natlinkcorefunctions.getExtendedEnv("PERSONAL")
-    if not os.path.isdir(personal):
-        raise IOError('cannot find PERSONAL (documents) directory: %s\nPlease check environment variable "PERSONAL", this one should be the same as "~" or "HOME"'% personal)
-    
-    ahkscriptfolder = os.path.join(personal, "AutoHotkey")
-    if os.path.isdir(ahkscriptfolder):
-        copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
-        return ahkscriptfolder
-    print('try to create the folder %s'% ahkscriptfolder)
-    os.mkdir(ahkscriptfolder)
-    if os.path.isdir(ahkscriptfolder):
-        copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
-        return ahkscriptfolder
-    raise IOError("GetAhkScriptFolder, cannot create AutoHotkey scripts folder: %s\nPlease try to do so yourself."% ahkscriptfolder)
-
+    scriptfolder = os.path.expanduser("~\\.autohotkey")
+    if not os.path.isdir(scriptfolder):
+        os.mkdir(scriptfolder)
+    if not os.path.isdir(scriptfolder):
+        raise IOError(f'scriptFolder {scriptfolder} does not exist and cannot be created')
+    ahkscriptfolder = scriptfolder
+    copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
+    return scriptfolder
 
 def call_ahk_script_path(scriptPath):
     """call the specified ahk script
@@ -238,7 +214,7 @@ def copySampleAhkScripts(fromFolder, toFolder):
     if not os.path.isdir(fromFolder):
         print('No sample_ahk dir found (should be in Unimacro directory): "%s"'% fromFolder)
         return
-    globString = "%s\\*.ahk"% fromFolder
+    globString = f'{fromFolder}\\*.ahk'
     for f in glob.glob(globString):
         inputFile = f
         dirPart, filename = os.path.split(f)
