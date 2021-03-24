@@ -36,17 +36,18 @@ import time
 import datetime
 import subprocess  # for calling a ahk script
 
-import natlinkcore.inivars as inivars
-import unimacro.monitorfunctions
-import unimacro.messagefunctions
-import unimacro.autohotkeyactions as autohotkeyactions # for AutoHotkey support
+from natlinkcore import inivars
+from dtactions import monitorfunctions
+from dtactions import messagefunctions
+from dtactions import autohotkeyactions
+from dtactions import sendkeys
 # import natlinkcore.natlinkutils as natut
-# import unimacro.natlinkutilsqh as natqh
+# import unimacro.natlinkutilsqh as unimacroutils
 # from natlinkcore import natlink
-# import natlinkcore.natlink as natlinkcorefunctions # extended environment variables....
-# import natlinkcore.natlinkstatus as natlinkstatus
-import natlinkcore.utilsqh as utilsqh
-
+# from natlinkcore import natlinkcorefunctions # extended environment variables....
+# from natlinkcore import natlinkstatus
+from natlinkcore import utilsqh
+from dtactions.unimacro import unimacroutils
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
      
@@ -190,10 +191,10 @@ class Action:
         #         modInfo = autohotkeyactions.getModInfo()
         #         # print("modInfo through AHK: %s"% repr(modInfo))
         #    
-        # progNew = natqh.getProgName(modInfo)    
+        # progNew = unimacroutils.getProgName(modInfo)    
         # 
         # if progInfo is None:
-        #     progInfo = natqh.getProgInfo(modInfo=modInfo)
+        #     progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
         # #D('new progInfo: %s'% repr(progInfo))
         # prog, title, topchild, classname, hndle = progInfo
         # if sectionList == None:
@@ -349,23 +350,19 @@ class Action:
             if debug > 1: do_W(debug*0.2)
             # skip pause between actions
             #do_W(pauseBA)
-            if topLevel: # first (nonrecursive) call,
-                print('end of complete action')
+            # if topLevel: # first (nonrecursive) call,
+            #     print('end of complete action')
             return 1
         else:
             if debug:
                 print('empty keystrokes')
              #     
         
-    def doKeystroke(self, action, hardKeys=None, pauseBK=None,
-                         progInfo=None, sectionList=None):
+    def doKeystroke(self, keystrokes):
         global pendingMessage, checkForChanges
-        #print 'doing keystroke: {%s'% action[1:]
-        if not action:
+        #print 'doing keystroke: {%s'% keystrokes[1:]
+        if not keystrokes:
             return
-        ### bugfix as proposed by Frank Olaf:
-        #if not action.startswith("{shift}"):
-        #    action = "{shift}" + action
     
         if not ini:
             checkForChanges = 1
@@ -377,46 +374,31 @@ class Action:
                 return
         if checkForChanges:
             if debug > 5: D('checking for changes')
-            doCheckForChanges() # resetting the ini file if changes were made# 
+            self.doCheckForChanges() # resetting the ini file if changes were made# 
         if not ini:
             D('no valid inifile for keystrokes')
-        if type(hardKeys) != str:
-            hardKeys = [hardKeys]
-        elif hardKeys == 1:
-            hardKeys = ['all']
-        elif hardKeys == 0:
-            hardKeys = ['none']
-    
-        if debug > 5: D('doKeystroke, pauseBK: %s, hardKeys: %s'% (pauseBK, hardKeys))
-    
-        if pauseBK == None or hardKeys == None:
-            if sectionList == None:
-                sectionList = self.getSectionList(progInfo)
-            if pauseBK == None:
-                pauseBK = int(setting('pause between keystrokes', '0',
-                                      sectionList=sectionList))
-            if hardKeys == None:
-                hardKeys = setting('keystrokes with systemkeys', 'none', sectionList=sectionList)
-                if debug > 5: D('hardKeys setting: |%s|'% hardKeys)
-    
-                hardKeys = actionIsList.split(hardKeys)
-                if hardKeys:
-                    hardKeys = [k.strip() for k in hardKeys]
-                    if debug > 5: D('hardKeys as list: |%s|'% hardKeys)
-    
-            if debug > 5: D('new keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
-                            (action, hardKeys, pauseBK))
-    
+            self.hardKeys = ['none']
+            self.pauseBK = 0
+        # if type(hardKeys) != str:
+        #     hardKeys = [hardKeys]
+        # elif hardKeys == 1:
+        #     hardKeys = ['all']
+        # elif hardKeys == 0:
+        #     hardKeys = ['none']
+        else:    
+            if self.sectionList == None:
+                self.sectionList = self.getSectionList(self.progInfo)
+            self.pauseBK = int(self.setting('pause between keystrokes', '0',
+                                          sectionList=self.sectionList))
+            self.hardKeys = self.getHardkeySettings()
+            self.hardKeys = ['none']
             
-        elif debug > 5:
-            D('keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
-                            (action, hardKeys, pauseBK))
-        if pauseBK:
-           l = hasBraces.split(action)
+        if self.pauseBK:
+           l = hasBraces.split(keystrokes)
            for k in l:
                if not k:
                    continue
-               elif braceExact.match(action):
+               elif braceExact.match(keystrokes):
                    doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
                else:
                    for K in k:
@@ -425,16 +407,17 @@ class Action:
                                (pauseBK, k))
                # skip pausing between keystrokes
                #do_W(pauseBK)
-        elif braceExact.match(action):
+        elif braceExact.match(keystrokes):
             # exactly 1 {key}:
-            if debug > 5: D('exact action, hardKeys[0]: %s'% hardKeys[0])
+            if debug > 5: D('exact keystrokes, hardKeys[0]: %s'% hardKeys[0])
             if hardKeys[0] == 'none':
-                natut.playString(action)  # the fastest way
+                sendkeys.sendkeys(keystrokes)  # the fastest way
                 return
             elif hardKeys[0] == 'all':
-                natut.playString(action, natut.hook_f_systemkeys)
+                ### must be implemented later
+                sendkeys.sendkeys(keystrokes)
                 return
-            m = BracesExtractKey.match(action)
+            m = BracesExtractKey.match(keystrokes)
             if m:
                 # the key part is known and valid word
                 # eg tab, down etc
@@ -442,36 +425,40 @@ class Action:
                 for mod in 'shift+', 'ctrl+', 'alt+':
                     if keyPart.find(mod)>0: keyPart = keyPart.replace(mod, '')
                 if keyPart in hardKeys:
-                    if debug > 3: D('doing "hard": |%s|'% action)
-                    natut.playString(action, natut.hook_f_systemkeys)
+                    if debug > 3: D('doing "hard": |%s|'% keystrokes)
+                    ### TODOQH, later hard keys
+                    sendkeys.sendkeys(keystrokes)
                     return
                 else:
-                    if debug > 3: D('doing "soft" (%s): |%s|'% (action, hardKeys))
-                    natut.playString(action)  # fastest way
+                    if debug > 3: D('doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
+                    sendkeys.sendkeys(keystrokes)
                     return
             else:
-                if debug > 3: D('doing "soft" (%s): |%s|'% (action, hardKeys))
-                natut.playString(action)
+                if debug > 3: D('doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
+                sendkeys.sendkeys(keystrokes)
                 return
             
         # now proceed with more complex keystroke possibilities:
-        if hardKeys[0]  == 'all':
-            natut.playString(action, natut.hook_f_systemkeys)
+        if self.hardKeys[0]  == 'all':
+            ## TODOQH, hard keys
+            # natut.playString(keystrokes, natut.hook_f_systemkeys)
+            sendkeys.sendkeys(keystrokes)
             return
-        elif hardKeys[0]  == 'none':
-            natut.playString(action)
+        elif self.hardKeys[0]  == 'none':
+            sendkeys.sendkeys(keystrokes)
             return
-        if hasBraces.search(action):
-            keystrokeList = hasBraces.split(action)
+        if hasBraces.search(keystrokes):
+            keystrokeList = hasBraces.split(keystrokes)
             for k in keystrokeList:
                 if debug > 5: D('part of keystrokes: |%s|' % k)
                 if not k: continue
                 #print 'recursing? : %s (%s)'% (k, keystrokeList)
-                doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
+                sendkeys.sendkeys(keystrokes)
+                # self.doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
         else:
-            if debug > 5: D('no braces keystrokes: |%s|' % action)
-            natut.playString(action)
-            
+            if debug > 5: D('no braces keystrokes: |%s|' % keystrokes)
+            sendkeys.sendkeys(keystrokes)
+            ##T
     def getMetaAction(self, ma, sectionList=None, progInfo=None):
         """return the action that is found in the ini file.
         
@@ -520,7 +507,7 @@ class Action:
     
     def getSectionList(self, progInfo=None):
         if not progInfo:
-            progInfo = natqh.getProgInfo()
+            progInfo = unimacroutils.getProgInfo()
         prog, title, topchild, classname, hndle = progInfo
         if debug > 5:
             D('search for prog: %s and title: %s' % (prog, title))
@@ -633,7 +620,7 @@ class Action:
         if not ini:
             return ''
         if sectionList == None:
-            if progInfo == None: progInfo = natqh.getProgInfo()
+            if progInfo == None: progInfo = unimacroutils.getProgInfo()
             prog, title, topchild, classname, hndle = progInfo
             sectionList = ini.getSectionsWithPrefix(prog, title) + \
                           ini.getSectionsWithPrefix('default', title)
@@ -643,6 +630,27 @@ class Action:
         return value
     
     setting = getFromIni
+
+    def getHardkeySettings(self):
+        """get from ini the keystrokes that should be done as "hardKeys"
+        
+        hardKeys are (with Natlink) implemented as SendSystemKeys
+        """
+        if not self.sectionList:
+            raise ValueError(f'action, getHardkeySettings, sectionList should be filled')
+        hardKeys = self.setting('keystrokes with systemkeys', 'none', sectionList=self.sectionList)
+        if debug > 5: D(f'hardKeys setting: {self.hardKeys}')
+    
+        hardKeys = actionIsList.split(hardKeys)
+        if hardKeys:
+            hardKeys = [k.strip() for k in hardKeys]
+            if debug > 5: D('hardKeys as list: |%s|'% hardKeys)
+    
+            if debug > 5: D('new keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
+                            (keystrokes, hardKeys, pauseBK))
+    if debug > 5: D('doKeystroke, pauseBK: %s, hardKeys: %s'% (pauseBK, hardKeys))
+
+
     
     def get_external_module(self, prog):
         """try to from natlinkcore import actions_prog and put in external_actions_modules
@@ -692,7 +700,7 @@ class Action:
     
     def doCheckForChanges(self, previousIni=None):
         global  ini, iniFileDate, topchildDict, childtopDict
-        newDate = natqh.getFileDate(inifile)
+        newDate = unimacroutils.getFileDate(inifile)
         if newDate > iniFileDate:
             D('----------reloading ini file')
             try:
@@ -739,10 +747,10 @@ class Action:
     def showActions(self, progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
         progInfo = progInfo or self.progInfo
         if not self.progInfo:
-            progInfo = natqh.getProgInfo()
+            progInfo = unimacroutils.getProgInfo()
             
         prog, title, topchild, classname, hndle = progInfo
-        language = natqh.getLanguage()
+        language = unimacroutils.getLanguage()
         
         sectionList = self.getSectionList(progInfo)
     
@@ -783,7 +791,7 @@ class Action:
     
     def editActions(self, comingFrom=None, name=None):
         global checkForChanges, iniFileDate, topchildDict, childtopDict
-        iniFileDate = natqh.getFileDate(inifile)
+        iniFileDate = unimacroutils.getFileDate(inifile)
         checkForChanges = 1
         topchildDict = None
         childtopDict = None
@@ -800,14 +808,14 @@ class Action:
         use prog for program specific positions
         """
         global checkForChanges, iniFileDate
-        iniFileDate = natqh.getFileDate(inifile)
+        iniFileDate = unimacroutils.getFileDate(inifile)
         checkForChanges = 1
         if prog:
             section = 'positions %s'% prog
         else:
             section = 'positions'
         ini.set(section, name, pos)
-        natqh.Wait(0.1)
+        unimacroutils.Wait(0.1)
         ini.write()
     
     def getPosition(name, prog=None):
@@ -823,7 +831,7 @@ class Action:
     # -----------------------------------------------------------
     
     def do_TEST(self, *args, **kw):
-        # x, y = natqh.testmonitorinfo(args[0], args[1])
+        # x, y = unimacroutils.testmonitorinfo(args[0], args[1])
         # print 'in do_test: ', x, y
         import ctypes
         tup = natlink.getCurrentModule()
@@ -888,31 +896,31 @@ class Action:
         if not scrorwind in [0,1,2,3,4,5]:
             raise UnimacroError('Mouse action not supported with relativeTo: %s' % scrorwind)
         # first parameter 1: relative:
-        natqh.doMouse(0,scrorwind,x,y,mouse,nClick)  # abs, rel to window, x, y, click
+        unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick)  # abs, rel to window, x, y, click
         return 1
     
     def do_CLICK(self, mouse='left', nClick=1, **kw):
         scrorwind = 2
         x, y, = 0, 0
         # click at current position:
-        natqh.doMouse(0,scrorwind,x,y,mouse,nClick) 
+        unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
         return 1
     
     
     def do_ENDMOUSE(self, **kw):
-        natqh.endMouse()
+        unimacroutils.endMouse()
         return 1
         
     def do_CANCELMOUSE(self, **kw):
-        natqh.cancelMouse()
+        unimacroutils.cancelMouse()
         return 1
     
     def do_MDOWN(self, button='left', **kw):
-        natqh.mousePushDown(button)
+        unimacroutils.mousePushDown(button)
         return 1
     
     def do_RM(self, **kw):
-        natqh.rememberMouse()
+        unimacroutils.rememberMouse()
         return 1
      
     def do_MOUSEISMOVING(self, **kw):
@@ -1005,7 +1013,7 @@ class Action:
         beeps if it was moving before, if it is steady just click
         returns 0 if it keeps moving
         """
-        natqh.doMouse(0,scrorwind,x,y,mouse,nClick) 
+        unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
         return 1
     
     
@@ -1015,36 +1023,36 @@ class Action:
         if not scrorwind in [0,1,3,5]:
             raise UnimacroError('Mouse action not supported with relativeTo: %s' % scrorwind)
         # first parameter 1: relative:
-        natqh.doMouse(1,scrorwind,x,y,mouse,nClick)  # relative, rel to window, x, y,click
+        unimacroutils.doMouse(1,scrorwind,x,y,mouse,nClick)  # relative, rel to window, x, y,click
         return 1
         
     def do_PRMP(self, all=0, **kw):
         # print relative mouse position
-        natqh.printMousePosition(1,all)  # relative
+        unimacroutils.printMousePosition(1,all)  # relative
         return 1
         
     
     def do_PMP(self, all=0, **kw):
         # print absolute mouse position
-        natqh.printMousePosition(0,all)  # absolute
+        unimacroutils.printMousePosition(0,all)  # absolute
         return 1
     
     def do_PALLMP(self, **kw):
         # print all mouse positions
-        natqh.printMousePosition(0,1)  # absolute
-        natqh.printMousePosition(1,1)  # relative
+        unimacroutils.printMousePosition(0,1)  # absolute
+        unimacroutils.printMousePosition(1,1)  # relative
         
     
     # Get the NatSpeak main menu:
     def do_NSM(self, **kw):
         modInfo = natlink.getCurrentModule()
-        prog = natqh.getProgName(modInfo)
+        prog = unimacroutils.getProgName(modInfo)
         if prog == 'natspeak':
             if modInfo[1].find('DragonPad') >= 0:
                 natut.playString('{alt+n}')
                 return 1
         natlink.recognitionMimic(["NaturallySpeaking"])
-        return natqh.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
+        return unimacroutils.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
     
     
     # shorthand for sendsystemkeys:
@@ -1089,8 +1097,8 @@ class Action:
     def do_SCLIP(self, *s, **kw):
         """send keystrokes through the clipboard
         """
-        natqh.saveClipboard()
-        natqh.Wait()    
+        unimacroutils.saveClipboard()
+        unimacroutils.Wait()    
         ## actions should be able to catch , in string, now , seems to be separator for
         ## function parameters.
         ## assume , = ", "
@@ -1102,35 +1110,35 @@ class Action:
         #        print "SCLIP:", i, t
         total = total.replace("{enter}", "\n")
         # print 'SCLIP: %s type: %s'% (total, type(total))
-        natqh.setClipboard(total, format=13)
-        natqh.Wait()
+        unimacroutils.setClipboard(total, format=13)
+        unimacroutils.Wait()
         #print 'send through clipboard: %s'% total5N
         doAction("<<paste>>")
-        natqh.Wait()
-        natqh.restoreClipboard() 
+        unimacroutils.Wait()
+        unimacroutils.restoreClipboard() 
     
     
     def do_RW(self, **kw):
-        natqh.rememberWindow()
+        unimacroutils.rememberWindow()
         return 1
     
     def do_CW(self, **kw):
         """obsolete..."""
-        natqh.clearWindowHandle()
+        unimacroutils.clearWindowHandle()
         return 1
     
     def do_RTW(self, **kw):
-        natqh.returnToWindow()
+        unimacroutils.returnToWindow()
         return 1
     
     def do_SELECTWORD(self, count=1, direction=None, **kw):
         """select the word under the cursor"""
         print('try to select %s word(s) under cursor (direction: %s)'% (count, direction))
-        natqh.saveClipboard()
+        unimacroutils.saveClipboard()
         if not direction in ['left', 'right']:
             # try if at end of word:
             doKeystroke("{extright}{shift+extleft}{ctrl+c}{extright}{extleft}")
-            t = natqh.getClipboard()
+            t = unimacroutils.getClipboard()
             if t in utilsqh.letters:
                 direction = 'right'
                 print('make direction right')
@@ -1142,10 +1150,10 @@ class Action:
         elif direction == 'right':
             doKeystroke("{extright}{ctrl+extleft}{shift+ctrl+extright %s}"% count)
     
-        natqh.Wait()
+        unimacroutils.Wait()
         doAction("<<copy>>")
-        natqh.visibleWait()
-        t = natqh.getClipboard()
+        unimacroutils.visibleWait()
+        t = unimacroutils.getClipboard()
         if len(t) == 1 and t in utilsqh.letters:
             pass
         elif direction == 'left':
@@ -1156,8 +1164,8 @@ class Action:
             while t and t.endswith(' '):
                 doKeystroke("{shift+extleft}")
                 t = t[:-1]
-        natqh.restoreClipboard()
-        #print 'SELECTWORD, selected word: |%s| (leave on clipboard: %s'% (repr(t), repr(natqh.getClipboard()))
+        unimacroutils.restoreClipboard()
+        #print 'SELECTWORD, selected word: |%s| (leave on clipboard: %s'% (repr(t), repr(unimacroutils.getClipboard()))
         return t
     
     
@@ -1170,38 +1178,38 @@ class Action:
         
         after found, check also if title is stable
         """
-        return natqh.waitForNewWindow(nWait, waitingTime, **kw)
-    ##    natqh.ForceGotBegin()
+        return unimacroutils.waitForNewWindow(nWait, waitingTime, **kw)
+    ##    unimacroutils.ForceGotBegin()
     
     # wait for Window Title
     def do_WWT(self, titleName, nWait=20, waitingTime=0.05, **kw):
         """wait for specified window title, on succes return 1
         """
-        return natqh.waitForWindowTitle(titleName, nWait, waitingTime, **kw)
+        return unimacroutils.waitForWindowTitle(titleName, nWait, waitingTime, **kw)
       
     # waiting function:
     def do_W(self, t=None, **kw):
         t = t or 0.1
         if debug > 7: D('waiting: %s'%t)
         elif debug and t > 2: D('waiting: %s'%t)
-        natqh.Wait(t)
+        unimacroutils.Wait(t)
         return 1
             
     do_WAIT = do_W
     # Long Wait:
     def do_LW(self, **kw):
-        natqh.longWait()
+        unimacroutils.longWait()
         return 1
     do_LONGWAIT = do_LW
     # Visible Wait:
     def do_VW(self, **kw):
-        natqh.visibleWait()
+        unimacroutils.visibleWait()
         return 1
     do_VISIBLEWAIT = do_VW
     
     # Short Wait:
     def do_SW(self, **kw):
-        natqh.shortWait()
+        unimacroutils.shortWait()
         return 1
     do_SHORTWAIT = do_SW
     
@@ -1224,12 +1232,12 @@ class Action:
     ##     """reformat selection, cleaning newlines
     
     ##     """
-    ##     natqh.saveClipboard()
+    ##     unimacroutils.saveClipboard()
     ##     doKeystroke('{ctrl+c}')
-    ##     t = natqh.getClipboard()
-    ##     natqh.restoreClipboard()
+    ##     t = unimacroutils.getClipboard()
+    ##     unimacroutils.restoreClipboard()
     ##     if t:
-    ##         T = natqh.cleanParagraphs(t)
+    ##         T = unimacroutils.cleanParagraphs(t)
     ##         doKeystroke(T)
     ##     else:
     ##         print 'reformat selection (RS) requires a selection first'
@@ -1373,11 +1381,11 @@ class Action:
             return
         u = chr(Code)
         # output through the clipboard with special code:
-        natqh.saveClipboard()
+        unimacroutils.saveClipboard()
         #win32con.CF_UNICODETEXT = 13
-        natqh.setClipboard(u, format=13)
+        unimacroutils.setClipboard(u, format=13)
         natut.playString('{ctrl+v}')
-        natqh.restoreClipboard()    
+        unimacroutils.restoreClipboard()    
         return 1
                     
     
@@ -1390,7 +1398,7 @@ class Action:
     def do_DOCUMENT(self, number=None, **kw):
         """switch to document (program specific) with number"""
     ##    print 'action: goto task: %s'% number
-        prog, title, topchild, classname, hndle = natqh.getProgInfo()
+        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
         if not prog:
             print('action DOCUMENT, no program in foreground: %s (%S)'% (prog, title))
             return
@@ -1417,9 +1425,9 @@ class Action:
             my = mouseY1 + (count-1)*mouseYdiff
     ##        print 'mx, my:', mx, my
             #print 'task to %s, %s'% (mx, my)
-            natqh.doMouse(0, 0, mx, my)
-    ##        natqh.shortWait()
-    ##        natqh.buttonClick()
+            unimacroutils.doMouse(0, 0, mx, my)
+    ##        unimacroutils.shortWait()
+    ##        unimacroutils.buttonClick()
         else:
             print('call action DOCUMENT with a number!')
             return
@@ -1432,7 +1440,7 @@ class Action:
         prog, title, topchild, classname, hndle = kw['progInfo']
         if prog == 'explorer' and not title:
             doKeystroke('{esc}')
-            natqh.shortWait()
+            unimacroutils.shortWait()
         if number:
             try:
                 count = int(number)
@@ -1455,10 +1463,10 @@ class Action:
             my = mouseY1 + (count-1)*mouseYdiff
             # print 'mx, my:', mx, my
             #print 'task to %s, %s'% (mx, my)
-            natqh.doMouse(0, 0, mx, my)
-            # natqh.longWait()
-    ##        natqh.shortWait()
-    ##        natqh.buttonClick()
+            unimacroutils.doMouse(0, 0, mx, my)
+            # unimacroutils.longWait()
+    ##        unimacroutils.shortWait()
+    ##        unimacroutils.buttonClick()
         else:
             print('call action TASK with a number!')
         return 1
@@ -1474,20 +1482,20 @@ class Action:
         except ValueError:
             x = y = 0
         if x and y:
-            natqh.doMouse(0,0,x,y,click)
-            natqh.Wait()
+            unimacroutils.doMouse(0,0,x,y,click)
+            unimacroutils.Wait()
         else:
             print('invalid mouse position for clock, do "task position clock" from grammar _general')
         return 1
      
     def do_CLIPSAVE(self, **kw):
         """saves and empties the clipboard"""
-        natqh.saveClipboard()
+        unimacroutils.saveClipboard()
         return 1
     
     def do_CLIPRESTORE(self, **kw):
         """saves and empties the clipboard"""
-        natqh.restoreClipboard()
+        unimacroutils.restoreClipboard()
         return 1
     
     def do_CLIPISNOTEMPTY(self, **kw):
@@ -1496,15 +1504,15 @@ class Action:
         should be done after a CLIPEMPTY
         restores the clipboard if 0
         """
-        t = natqh.getClipboard()
+        t = unimacroutils.getClipboard()
         if t:
             return 1
         D('empty clipboard found, restore and return')
-        natqh.restoreClipboard()
+        unimacroutils.restoreClipboard()
         
     def do_GETCLIPBOARD(self, **kw):
         """returns the contents of the clipboars"""
-        return natqh.getClipboard()
+        return unimacroutils.getClipboard()
        
     def do_COPYNAME(self, **kw):
         """returns the name of a file or folder if windows explorer or #32770
@@ -1524,7 +1532,7 @@ class Action:
     def IfWindowTitleDoAction(self, title, action, **kw):
         """do an action only if the title matches the window title
         """
-        if natqh.matchTitle(title):
+        if unimacroutils.matchTitle(title):
             # print 'title: %s, yes, action: %s'% (title, action)
             doAction(action)
         # else:
@@ -1542,14 +1550,14 @@ class Action:
      
         """
         if not progInfo:
-            progInfo = natqh.getProgInfo(modInfo=modInfo)
+            progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
         
         prog, title, topchild, classname, hndle = progInfo
             
         progNew = prog
         prevHandle = hndle
         doAction(action1, progInfo=progInfo, comingFrom=comingFrom)
-        natqh.shortWait()
+        unimacroutils.shortWait()
         count = 0
         while count < 20:
             count += 1
@@ -1559,13 +1567,13 @@ class Action:
             except:
                 modInfo = autohotkeyactions.getModInfo()
                 print("modinfo through AHK: %s"% repr(modInfo))
-            progNew = natqh.getProgName(modInfo)
+            progNew = unimacroutils.getProgName(modInfo)
                 
             if progNew != prog: break
             hndle = modInfo[2]
             if hndle != prevHandle:
     
-                if not natqh.isTopWindow(hndle):
+                if not unimacroutils.isTopWindow(hndle):
                     # child:
                     print('do action2: %s'% action2)
                     doAction(action2)
@@ -1574,7 +1582,7 @@ class Action:
                     doAction(action2)
                 break
             
-            natqh.shortWait()
+            unimacroutils.shortWait()
         else:
             # no break occurred, false return:
             return 0 
@@ -1594,7 +1602,7 @@ class Action:
             #print 'topchildDict: %s'% topchildDict
         if topchildDict == {}:
             return
-        prog, title, topchild, classname, hndle = natqh.getProgInfo(modInfo)
+        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo(modInfo)
         result = matchProgTitleWithDict(prog, title, topchildDict, matchPart=1)
         if result: return result
         className = win32gui.GetClassName(hndle)
@@ -1614,7 +1622,7 @@ class Action:
             #print 'childtopDict: %s'% childtopDict
         if childtopDict == {}:
             return
-        prog, title, topchild, classname, hndle = natqh.getProgInfo(modInfo)
+        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo(modInfo)
         return matchProgTitleWithDict(prog, title, childtopDict, matchPart=1)
     
     def matchProgTitleWithDict(self, prog, title, Dict, matchPart=None):
@@ -1649,7 +1657,7 @@ class Action:
                 nAlert = 1
             for i in range(nAlert):
                 natlink.execScript('PlaySound "'+baseDirectory+'\\ding.wav"')
-        natqh.Wait(0.1)
+        unimacroutils.Wait(0.1)
         if micState != 'off':
             natlink.setMicState(micState)
         return 1
@@ -1671,7 +1679,7 @@ class Action:
         return 1
     
         #
-        #dllFile = os.path.join(natqh.getOriginalUnimacroDirectory(), "dlls", "DNSKeys.dll")
+        #dllFile = os.path.join(unimacroutils.getOriginalUnimacroDirectory(), "dlls", "DNSKeys.dll")
         #letter = str(letter)
         #if letter.lower() == "{tab}":
         #    letter = '\t'
@@ -1868,10 +1876,10 @@ class Action:
             do_ALERT(alert)
     
         if micState != 'on':
-            natqh.Wait(0.05)
+            unimacroutils.Wait(0.05)
             natlink.setMicState('on')
         newMicState = natlink.getMicState()
-        natqh.Wait(0.1)
+        unimacroutils.Wait(0.1)
         ttt = tt
         for i in range(3):
             try:
@@ -1883,19 +1891,19 @@ class Action:
                       'tt: %s\n' \
                       'icon: %s\n' \
                       'title: %s\n'% (tt, icon, title))
-            natqh.Wait(0.1)
+            unimacroutils.Wait(0.1)
             newMicState = natlink.getMicState()
             result = (newMicState == 'sleeping')
             if newMicState != 'off': break   # ok, either on or sleeping
             # try again (maximum 3 times)
-            natqh.Wait(0.05)
+            unimacroutils.Wait(0.05)
             natlink.setMicState('on')
             ttt = checkTextInMessage("Please do not switch off the microphone\nwhile (re)answering the question:\n\n")+tt
         else:
             raise UserWarning("microphone should not be switched off while answering the YesNo question\n(and you got 3 chances to answer correct)")
         if micState != newMicState:
             natlink.setMicState(micState)
-            natqh.Wait(0.05)
+            unimacroutils.Wait(0.05)
         return result
     
     
@@ -1910,11 +1918,11 @@ class Action:
     # def findCursor():
     #     """find the previous entered cursor text"""
     #     doAction('<<startsearch>>; "%s"; VW; <<searchgo>>'% cursorText)
-    #     prog, title, topchild, classname, hndle = natqh.getProgInfo()
+    #     prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
     #     if prog == 'emacs':
     #         doAction("{shift+left %s}"% len(cursorText))
     #     doAction("CLIPSAVE; <<cut>>")
-    #     t = natqh.getClipboard()
+    #     t = unimacroutils.getClipboard()
     #     if t == cursorText:
     #         doAction("CLIPRESTORE")
     #         return 1
@@ -2046,7 +2054,7 @@ class Action:
             appTitle = ini.get("bringup %s"% app, "title") or None
             appClass = ini.get("bringup %s"% app, "class") or None
             ## TODOQH
-            prog, title, topchild, classname, hndle = natqh.getProgInfo()
+            prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
             progFull, titleFull, hndle = natlink.getCurrentModule()
         
             if self.windowCorrespondsToApp(app, appName, prog, title):
@@ -2061,11 +2069,11 @@ class Action:
                     do_RW()
                     hndle = bringups[app][2]
                     if debug: D('hndle to switch to: %s'% hndle)
-                    if not natqh.SetForegroundWindow(hndle):
+                    if not unimacroutils.SetForegroundWindow(hndle):
                         print('could not bring to foreground: %s, exit action'% hndle)
                         
                     if do_WTC():
-                        prog, title, topchild, classname, hndle = natqh.getProgInfo()
+                        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
                         if prog == appName:
                             return 1
                 except:
@@ -2074,7 +2082,7 @@ class Action:
                     if debug: D('delete %s from bringups'% app)
                     del bringups[app]
                     
-        result = natqh.AppBringUp(appName, appPath, appArgs, appWindowStyle, appDirectory)
+        result = unimacroutils.AppBringUp(appName, appPath, appArgs, appWindowStyle, appDirectory)
 
         if extra:
             doAction(extra)
@@ -2218,7 +2226,7 @@ class Action:
         waitSteps = 10
         while i < waitSteps:
             i += 1
-            prog, title, topchild, classname, hndle = natqh.getProgInfo()
+            prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
             if self.windowCorrespondsToApp('dragonpad', 'natspeak', prog, title):
                 break
             do_W(sleepTime)
@@ -2235,9 +2243,9 @@ class Action:
             do_AHK("showmessageswindow.ahk")
             return 1
         
-        if natqh.switchToWindowWithTitle('Messages from python macros'):
+        if unimacroutils.switchToWindowWithTitle('Messages from python macros'):
             return 1
-        if not natqh.switchToWindowWithTitle('Messages from python macros'):
+        if not unimacroutils.switchToWindowWithTitle('Messages from python macros'):
             raise UnimacroError("cannot bring messages window to front")
         return 1
     

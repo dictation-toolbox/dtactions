@@ -20,22 +20,12 @@ import time
 import win32gui
 import pathlib     
 try:
-    from dtactions.__init__ import findInSitePackages
+    from dtactions.__init__ import getThisDir
 except ModuleNotFoundError:
-    findInSitePackages = None
+    print(f'Run this module after "build_package" and "flit install --symlink"\n')
+    raise
 
-def getThisDir():
-    """get directory of this, if possible in site-packages
-    
-    Check for symlink and presence in site-packages directory
-    """
-    thisFile = __file__
-    thisDir = os.path.split(thisFile)[0]
-    if findInSitePackages:
-        thisDir = findInSitePackages(thisDir)
-    return thisDir
-
-thisDir = getThisDir()
+thisDir = getThisDir(__file__)
 dtactionsDir = os.path.normpath(os.path.join(thisDir, '..'))
 
 # import TestCaseWithHelpers

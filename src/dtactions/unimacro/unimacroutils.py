@@ -10,7 +10,7 @@
 
 """
 #
-import unimacro.monitorfunctions as monitorfunctions  # elaborated version QH
+from dtactions import monitorfunctions  # elaborated version QH
 import time
 import re
 import types
@@ -26,26 +26,26 @@ import win32con
 import win32clipboard
 import pywintypes
 
-from natlinkcore import natlink
-import natlinkcore.natlinkutils as natut
-from natlinkcore import natlinkmain
-import natlinkcore.natlinkstatus as natlinkstatus
-import natlinkcore.natlink as natlinkcorefunctions
-status = natlinkstatus.NatlinkStatus()
+try:
+    from natlinkcore import natlink
+except ImportError:
+    natlink = None
+# import natlinkcore.natlinkutils as natut
+# from natlinkcore import natlinkmain
+# from natlinkcore import natlinkstatus
+from natlinkcore import natlinkcorefunctions
+# status = natlinkstatus.NatlinkStatus()
 # import RegistryDict  # for emergency get of UserDirectory!
-import unimacro.autohotkeyactions as autohotkeyactions
+from dtactions import autohotkeyactions
 from natlinkcore.readwritefile import DecodeEncode
-import natlinkcore.utilsqh as utilsqh
-import natlinkcore.inivars as inivars
-import natlinkcore.utilsqh as utilsqh
+from natlinkcore import utilsqh
+from natlinkcore import inivars
+from natlinkcore import utilsqh
 
 
 DEBUG = 0
 
-status = natlinkstatus.NatlinkStatus()
-
-# make old Dos style 8.3 filenames: (can be switched off)
-AppBringUpDoExec83 = 0
+# status = natlinkstatus.NatlinkStatus()
 
 # errors for (mainly) the commando grammar:
 
@@ -756,282 +756,282 @@ mouseStartPosition = () # x, y
 def makedict(**kwargs):
     return kwargs
 
-# for going to Joels routine, double work:
-buttons = makedict(noclick=0, left=1, right=2, middle=4)
-joelsButtons = ['noclick', 'left', 'right', 'middle']
-##print 'buttons: ', buttons
-
-mouseDown = ['', natut.wm_lbuttondown, natut.wm_rbuttondown, natut.wm_mbuttondown]
-mouseUp = ['', natut.wm_lbuttonup, natut.wm_rbuttonup, natut.wm_mbuttonup]
-
-def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifier = 0):
-    """complicated, but complete mouse routine
-    
-    - absorrel: 0 = absolute positions (in pixels), 1 = relative positions (between -1.0 and 1.0)
-    - screenorwindow: where to take the position from:
-                0 = complete screen
-                1 = active window
-                2 = relative to the current position
-                ## new 2017, relative to current monitor
-                3 = relative to current monitor
-                4 = relative to current monitor work area (excluding eg task bar and Dragon bar)
-                5 = relative to the client area of or window (eg the body of an e-mail)
-    - xpos, ypos: relative or absolute position horizontal and vertical
-    - mouse: the button to be clicked: 'left', 'right', 1, 2, or 0 if no button is clicked
-    - nClick: 1 or 2 OR -1 if the button has to be pushed down. 0 if the button must be released.
-
-
-    -combined values for mouse for vocola MP and RMP calls:
-    leftdouble, rightdouble, middledouble, leftrelease, rightrelease, middlerelease,
-    leftup, rightup, middleup (same as release), and click (identical with left) and
-    -also doubleclickleft or doubleleft etc.
-    - noclick or move
-    -abbreviations: down for leftdown, up for leftup release for leftrelease.
-    
-    Pushing down buttons down must be remembered, and reversed before 
-    other actions are performed.  
-    Therefore the mouse state is remembered in the variable mouseState.
-    
-    """
-    global mouseState
-    hndle = natlink.getCurrentModule()[2]
-    rect = None
-    if hndle:
-        rect = win32gui.GetWindowRect(hndle)
-    xold,yold = natlink.getCursorPos()
-    # screenorwindow corrensponds with relativeTo in DNS
-    # only 0 (whole screen), 1 (relative to window), 2 (relative to cursorPos)
-    # are considered here 5, inside client area
-    if screenorwindow not in [0,1,2,3,4,5]:  # only within current window
-        print("doMouse, only screenorwindow 0 ... 5 valid:", screenorwindow)
-        return
-    
-    if screenorwindow == 0:
-        width, height, xMin, yMin, xMax, yMax = monitorfunctions.getScreenRectData()
-    elif screenorwindow == 1:
-        if hndle:
-            rect = win32gui.GetWindowRect(hndle)
-        else:
-            print("doMouse, no valid foreground window")
-            return
-        width, height, xMin, yMin, xMax, yMax = getRectData(rect)
-    elif screenorwindow == 3:
-        # get current monitor
-        rect = monitorfunctions.get_current_monitor_rect( (xold, yold) )
-        width, height, xMin, yMin, xMax, yMax = getRectData(rect)
-    elif screenorwindow == 4:
-        # get current monitor work area (skipping task bar and Dragon bar)
-        rect = monitorfunctions.get_current_monitor_rect_work( (xold, yold) )
-        width, height, xMin, yMin, xMax, yMax = getRectData(rect)
-        # print 'w: %s, h: %s, xMin: %s, yMin: %s, xMax: %s, yMax: %s'% (
-        #     width, height, xMin, yMin, xMax, yMax)
-    elif screenorwindow == 5:
-        if hndle:
-            clxold, clyold = win32gui.ScreenToClient(hndle, (xold, yold) )
-            rect = win32gui.GetClientRect(hndle)
-        else:
-            print("doMouse, no valid foreground window")
-            return
-        # active window
-        width, height, xMin, yMin, xMax, yMax = getRectData(rect)
-
-    if screenorwindow == 2:  # relative to current position
-        xnew = xold + xpos
-        ynew = yold + ypos
-        xp, yp = monitorfunctions.get_closest_position( (xnew, ynew) )
-    elif screenorwindow in (0, 1, 3, 4, 5): 
-        if absorrel == 1: # relative:
-            xp, yp = relToCoord(xpos, xMin, xMax), relToCoord(ypos, yMin, yMax)
-        else:
-            xp, yp = xpos, ypos   # get rid of: getMouseAbsolute(ypos, yMin, yMax)
-        xp, yp = checkMousePosition(xp,xMin,xMax), checkMousePosition(yp,yMin,yMax)
-        if screenorwindow == 5:
-            clPos = (xp, yp)
-            xp, yp = win32gui.ClientToScreen(hndle, clPos)
-        # print 'before get_closest_position: (%s, %s)'% (xp, yp)
-        xp,yp =  monitorfunctions.get_closest_position( (xp, yp) )
-        # print 'after  get_closest_position: (%s, %s)'% (xp, yp)
-    
-    if debugMode == -1:
-        print('Mouse to: %s, %s' % (xp, yp))
-    nclick = 1
-    onlyMove = 0
-    if mouse and type(mouse) == str:
-        # special variables for vocola combined calls:
-        if mouse in ("noclick", "0"):
-            nclick = 0
-            mouse = ""
-        elif mouse == 'move':
-            onlyMove = 1
-            nclick = 0
-            mouse = ""
-        else:
-            # get the click and button from text:
-            mouse, nclick = catchClick(mouse)
-            if not nclick is None:
-                nClick = nclick
-            if not mouse:
-                mouse = 'left'
-    if mouse:
-        if type(mouse) == str:
-            if mouse not in buttons:
-                print('doMouse warning: invalid value for mouse: %s (taking left button)'% mouse)
-            btn = buttons.get(mouse, 1)
-        else:
-            btn = mouse
-    else:
-        #print 'no click, mouseState: %s'% mouseState
-        btn = 0
-        nclick = 0
-    #nClick = nClick or nclick   # take things from "mouse" if nClick  not used
-    #print 'btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState)
-    if onlyMove:
-        print('onlyMove to %s, %x'% (xp, yp))
-        natlink.playEvents([(natut.wm_mousemove, xp, yp)])
-    elif not mouseState:  # ongecompliceerd
-        if nClick > 0:
-            natlink.playEvents([(natut.wm_mousemove, xp, yp)])
-            if btn:
-                if debugMode == -1:
-                    print('ButtonClick %s, %s' % (btn, nClick))
-                else:
-    ##                Wait()  # before clicking!
-                    buttonClick(btn, nClick)
-##                for i in range(nClick):
-##                    print 'click'
-##                    natlink.playEvents([(mouseDown[btn], xp, yp)])
-##                    natlink.playEvents([(mouseUp[btn], xp, yp)])
-##                    Wait(0.01)
-                    
-        elif nClick == 0:
-            natlink.playEvents([(natut.wm_mousemove, xp, yp)])
-        elif nClick == -1:
-            if btn:
-                if (xold,yold) != (xp, yp):
-                    print('mousedown at old: %s, %s (%s)'% (xold, yold, repr(mouseDown[btn])))
-                    natlink.playEvents([(mouseDown[btn], xold, yold)])
-
-    ##            Wait()  # before clicking!
-                print('mousedown at new: %s, %s (%s)'% (xp, yp, repr(mouseDown[btn])))
-                natlink.playEvents([(mouseDown[btn], xp, yp)])
-                mouseState = btn
-    elif btn:  # muis was omlaag!
-        #print 'btn: %s, wanted mouseState: %s'% (btn, mouseState)
-        if mouseState != btn or nClick > 0: # change button
-            if (xold,yold) != (xp, yp):
-                natlink.playEvents([(mouseDown[mouseState], xold, yold)])
-                natlink.playEvents([(mouseDown[mouseState], xp, yp)])
-
-##            Wait()  # before clicking!
-            natlink.playEvents([(mouseUp[mouseState], xp, yp)])
-            mouseState = 0
-            doMouse(0, 0, xp, yp, btn, nClick)
-        # end or continue dragging state:
-        if (xold,yold) != (xp, yp):
-            natlink.playEvents([(mouseDown[btn], xold, yold)])
-            natlink.playEvents([(mouseDown[btn], xp, yp)])
-        if nClick == -1:
-            pass
-        else:
-            natlink.playEvents([(mouseUp[btn], xp, yp)])
-            mouseState = 0
-    else:
-        # no btn, but mouseState, simply move:
-        natlink.playEvents([(natut.wm_mousemove, xp, yp)])  
-
-def catchClick(mouse):
-    """return reduced mouse command and nClick
-
-    if mouse starts or ends with "doubleclick" or "double", nClick=2
-    if mouse starts or ends with "click" , nClick=2
-    if mouse starts or ends with "down", nClick=-1
-    if mouse starts or endswith "up" or "release", nClick=0
-    """    
-    for clicker, result in [("doubleclick", 2), ("double", 2),
-                            ("click", 1), ("down", -1),
-                            ("up", 0), ("release", 0)]:
-        if mouse.startswith(clicker) or mouse.endswith(clicker):
-            mouse = mouse.replace(clicker, "")
-            return mouse, result
-    # fall through:
-    return mouse, None 
-
-##buttons = makedict(left=1, right=2, middle=4)
-##joelsButtons = ['', 'left', 'right', 'middle']
-def buttonClick(button='left', nclick=1, modifiers=None):
-    """do a natspeak buttonclick, but release mouse first if necessary
-    """
-    # make button numeric:
-    #if button in buttons:
-    #    button = buttons[button]
-    #if button not in [1, 2, 4]:
-    #    raise UnimacroError('buttonClick invalid button: %s'% button)
-    #if nclick not in [1,2]:
-    #    raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
-    if mouseState:
-        releaseMouse()
-        
-    natut.buttonClick(button, nclick, modifiers)
-    #natlink.execScript("ButtonClick %s,%s"%(button, nclick))
-    
-
-
-def releaseMouse():
-    """restores the default mouseState
-    """
-    global mouseState
-    if mouseState:
-        (xp,yp) = natlink.getCursorPos()
-        print('releasing mouse at %s, %s (%s)'% (xp, yp, repr(mouseUp[mouseState])))
-        natlink.playEvents([(mouseUp[mouseState], xp, yp)])
-        mouseState = 0
-        Wait()
-
-def mousePushDown(mouse='left'):
-    """only pushes the mouse down
-
-    """
-    if mouseState:
-        endMouse()
-##    print 'pushing down with %s'% mouse
-    doMouse(0, 2, 0, 0, mouse, -1)  # abs, rel to window, x, y, click
-            
-def endMouse():
-    """replaced by releaseMouse"""
-    releaseMouse()
-        
-def rememberMouse():
-    global mouseStartPosition
-    mouseStartPosition = natlink.getCursorPos()
-
-def cancelMouse():        
-    global mouseStartPosition
-    if not mouseStartPosition:
-        endMouse()
-        print('cancelMouse, no mouseStartPosition')
-        return
-    if mouseState:
-        doMouse(0, 0, mouseStartPosition[0], mouseStartPosition[1],
-                mouseState, 0)
-    else:
-        doMouse(0, 0, mouseStartPosition[0], mouseStartPosition[1],
-                0, 0)
-    mouseStartPosition = ()
-        
-def checkMousePosition(pos, Min, Max):
-    #print 'checking:', pos, Min, Max
-    if pos >= Max: return Max - 1
-    if pos < Min: return Min
-    return int(pos)
-
-def getRectData(rect):
-    """get from a rect the width, height, xMin, xMax, yMin, yMax
-    
-    example: see unittestMouse.py (in unimacro_test directory)
-    """
-    xMin, yMin, xMax, yMax = tuple(rect)
-    width, height = rect[2] - rect[0], rect[3] - rect[1]
-    return width, height, xMin, yMin, xMax, yMax 
+# # for going to Joels routine, double work:
+# buttons = makedict(noclick=0, left=1, right=2, middle=4)
+# joelsButtons = ['noclick', 'left', 'right', 'middle']
+# ##print 'buttons: ', buttons
+# 
+# mouseDown = ['', natut.wm_lbuttondown, natut.wm_rbuttondown, natut.wm_mbuttondown]
+# mouseUp = ['', natut.wm_lbuttonup, natut.wm_rbuttonup, natut.wm_mbuttonup]
+# 
+# def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifier = 0):
+#     """complicated, but complete mouse routine
+#     
+#     - absorrel: 0 = absolute positions (in pixels), 1 = relative positions (between -1.0 and 1.0)
+#     - screenorwindow: where to take the position from:
+#                 0 = complete screen
+#                 1 = active window
+#                 2 = relative to the current position
+#                 ## new 2017, relative to current monitor
+#                 3 = relative to current monitor
+#                 4 = relative to current monitor work area (excluding eg task bar and Dragon bar)
+#                 5 = relative to the client area of or window (eg the body of an e-mail)
+#     - xpos, ypos: relative or absolute position horizontal and vertical
+#     - mouse: the button to be clicked: 'left', 'right', 1, 2, or 0 if no button is clicked
+#     - nClick: 1 or 2 OR -1 if the button has to be pushed down. 0 if the button must be released.
+# 
+# 
+#     -combined values for mouse for vocola MP and RMP calls:
+#     leftdouble, rightdouble, middledouble, leftrelease, rightrelease, middlerelease,
+#     leftup, rightup, middleup (same as release), and click (identical with left) and
+#     -also doubleclickleft or doubleleft etc.
+#     - noclick or move
+#     -abbreviations: down for leftdown, up for leftup release for leftrelease.
+#     
+#     Pushing down buttons down must be remembered, and reversed before 
+#     other actions are performed.  
+#     Therefore the mouse state is remembered in the variable mouseState.
+#     
+#     """
+#     global mouseState
+#     hndle = natlink.getCurrentModule()[2]
+#     rect = None
+#     if hndle:
+#         rect = win32gui.GetWindowRect(hndle)
+#     xold,yold = natlink.getCursorPos()
+#     # screenorwindow corrensponds with relativeTo in DNS
+#     # only 0 (whole screen), 1 (relative to window), 2 (relative to cursorPos)
+#     # are considered here 5, inside client area
+#     if screenorwindow not in [0,1,2,3,4,5]:  # only within current window
+#         print("doMouse, only screenorwindow 0 ... 5 valid:", screenorwindow)
+#         return
+#     
+#     if screenorwindow == 0:
+#         width, height, xMin, yMin, xMax, yMax = monitorfunctions.getScreenRectData()
+#     elif screenorwindow == 1:
+#         if hndle:
+#             rect = win32gui.GetWindowRect(hndle)
+#         else:
+#             print("doMouse, no valid foreground window")
+#             return
+#         width, height, xMin, yMin, xMax, yMax = getRectData(rect)
+#     elif screenorwindow == 3:
+#         # get current monitor
+#         rect = monitorfunctions.get_current_monitor_rect( (xold, yold) )
+#         width, height, xMin, yMin, xMax, yMax = getRectData(rect)
+#     elif screenorwindow == 4:
+#         # get current monitor work area (skipping task bar and Dragon bar)
+#         rect = monitorfunctions.get_current_monitor_rect_work( (xold, yold) )
+#         width, height, xMin, yMin, xMax, yMax = getRectData(rect)
+#         # print 'w: %s, h: %s, xMin: %s, yMin: %s, xMax: %s, yMax: %s'% (
+#         #     width, height, xMin, yMin, xMax, yMax)
+#     elif screenorwindow == 5:
+#         if hndle:
+#             clxold, clyold = win32gui.ScreenToClient(hndle, (xold, yold) )
+#             rect = win32gui.GetClientRect(hndle)
+#         else:
+#             print("doMouse, no valid foreground window")
+#             return
+#         # active window
+#         width, height, xMin, yMin, xMax, yMax = getRectData(rect)
+# 
+#     if screenorwindow == 2:  # relative to current position
+#         xnew = xold + xpos
+#         ynew = yold + ypos
+#         xp, yp = monitorfunctions.get_closest_position( (xnew, ynew) )
+#     elif screenorwindow in (0, 1, 3, 4, 5): 
+#         if absorrel == 1: # relative:
+#             xp, yp = relToCoord(xpos, xMin, xMax), relToCoord(ypos, yMin, yMax)
+#         else:
+#             xp, yp = xpos, ypos   # get rid of: getMouseAbsolute(ypos, yMin, yMax)
+#         xp, yp = checkMousePosition(xp,xMin,xMax), checkMousePosition(yp,yMin,yMax)
+#         if screenorwindow == 5:
+#             clPos = (xp, yp)
+#             xp, yp = win32gui.ClientToScreen(hndle, clPos)
+#         # print 'before get_closest_position: (%s, %s)'% (xp, yp)
+#         xp,yp =  monitorfunctions.get_closest_position( (xp, yp) )
+#         # print 'after  get_closest_position: (%s, %s)'% (xp, yp)
+#     
+#     if debugMode == -1:
+#         print('Mouse to: %s, %s' % (xp, yp))
+#     nclick = 1
+#     onlyMove = 0
+#     if mouse and type(mouse) == str:
+#         # special variables for vocola combined calls:
+#         if mouse in ("noclick", "0"):
+#             nclick = 0
+#             mouse = ""
+#         elif mouse == 'move':
+#             onlyMove = 1
+#             nclick = 0
+#             mouse = ""
+#         else:
+#             # get the click and button from text:
+#             mouse, nclick = catchClick(mouse)
+#             if not nclick is None:
+#                 nClick = nclick
+#             if not mouse:
+#                 mouse = 'left'
+#     if mouse:
+#         if type(mouse) == str:
+#             if mouse not in buttons:
+#                 print('doMouse warning: invalid value for mouse: %s (taking left button)'% mouse)
+#             btn = buttons.get(mouse, 1)
+#         else:
+#             btn = mouse
+#     else:
+#         #print 'no click, mouseState: %s'% mouseState
+#         btn = 0
+#         nclick = 0
+#     #nClick = nClick or nclick   # take things from "mouse" if nClick  not used
+#     #print 'btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState)
+#     if onlyMove:
+#         print('onlyMove to %s, %x'% (xp, yp))
+#         natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+#     elif not mouseState:  # ongecompliceerd
+#         if nClick > 0:
+#             natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+#             if btn:
+#                 if debugMode == -1:
+#                     print('ButtonClick %s, %s' % (btn, nClick))
+#                 else:
+#     ##                Wait()  # before clicking!
+#                     buttonClick(btn, nClick)
+# ##                for i in range(nClick):
+# ##                    print 'click'
+# ##                    natlink.playEvents([(mouseDown[btn], xp, yp)])
+# ##                    natlink.playEvents([(mouseUp[btn], xp, yp)])
+# ##                    Wait(0.01)
+#                     
+#         elif nClick == 0:
+#             natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+#         elif nClick == -1:
+#             if btn:
+#                 if (xold,yold) != (xp, yp):
+#                     print('mousedown at old: %s, %s (%s)'% (xold, yold, repr(mouseDown[btn])))
+#                     natlink.playEvents([(mouseDown[btn], xold, yold)])
+# 
+#     ##            Wait()  # before clicking!
+#                 print('mousedown at new: %s, %s (%s)'% (xp, yp, repr(mouseDown[btn])))
+#                 natlink.playEvents([(mouseDown[btn], xp, yp)])
+#                 mouseState = btn
+#     elif btn:  # muis was omlaag!
+#         #print 'btn: %s, wanted mouseState: %s'% (btn, mouseState)
+#         if mouseState != btn or nClick > 0: # change button
+#             if (xold,yold) != (xp, yp):
+#                 natlink.playEvents([(mouseDown[mouseState], xold, yold)])
+#                 natlink.playEvents([(mouseDown[mouseState], xp, yp)])
+# 
+# ##            Wait()  # before clicking!
+#             natlink.playEvents([(mouseUp[mouseState], xp, yp)])
+#             mouseState = 0
+#             doMouse(0, 0, xp, yp, btn, nClick)
+#         # end or continue dragging state:
+#         if (xold,yold) != (xp, yp):
+#             natlink.playEvents([(mouseDown[btn], xold, yold)])
+#             natlink.playEvents([(mouseDown[btn], xp, yp)])
+#         if nClick == -1:
+#             pass
+#         else:
+#             natlink.playEvents([(mouseUp[btn], xp, yp)])
+#             mouseState = 0
+#     else:
+#         # no btn, but mouseState, simply move:
+#         natlink.playEvents([(natut.wm_mousemove, xp, yp)])  
+# 
+# def catchClick(mouse):
+#     """return reduced mouse command and nClick
+# 
+#     if mouse starts or ends with "doubleclick" or "double", nClick=2
+#     if mouse starts or ends with "click" , nClick=2
+#     if mouse starts or ends with "down", nClick=-1
+#     if mouse starts or endswith "up" or "release", nClick=0
+#     """    
+#     for clicker, result in [("doubleclick", 2), ("double", 2),
+#                             ("click", 1), ("down", -1),
+#                             ("up", 0), ("release", 0)]:
+#         if mouse.startswith(clicker) or mouse.endswith(clicker):
+#             mouse = mouse.replace(clicker, "")
+#             return mouse, result
+#     # fall through:
+#     return mouse, None 
+# 
+# ##buttons = makedict(left=1, right=2, middle=4)
+# ##joelsButtons = ['', 'left', 'right', 'middle']
+# def buttonClick(button='left', nclick=1, modifiers=None):
+#     """do a natspeak buttonclick, but release mouse first if necessary
+#     """
+#     # make button numeric:
+#     #if button in buttons:
+#     #    button = buttons[button]
+#     #if button not in [1, 2, 4]:
+#     #    raise UnimacroError('buttonClick invalid button: %s'% button)
+#     #if nclick not in [1,2]:
+#     #    raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
+#     if mouseState:
+#         releaseMouse()
+#         
+#     natut.buttonClick(button, nclick, modifiers)
+#     #natlink.execScript("ButtonClick %s,%s"%(button, nclick))
+#     
+# 
+# 
+# def releaseMouse():
+#     """restores the default mouseState
+#     """
+#     global mouseState
+#     if mouseState:
+#         (xp,yp) = natlink.getCursorPos()
+#         print('releasing mouse at %s, %s (%s)'% (xp, yp, repr(mouseUp[mouseState])))
+#         natlink.playEvents([(mouseUp[mouseState], xp, yp)])
+#         mouseState = 0
+#         Wait()
+# 
+# def mousePushDown(mouse='left'):
+#     """only pushes the mouse down
+# 
+#     """
+#     if mouseState:
+#         endMouse()
+# ##    print 'pushing down with %s'% mouse
+#     doMouse(0, 2, 0, 0, mouse, -1)  # abs, rel to window, x, y, click
+#             
+# def endMouse():
+#     """replaced by releaseMouse"""
+#     releaseMouse()
+#         
+# def rememberMouse():
+#     global mouseStartPosition
+#     mouseStartPosition = natlink.getCursorPos()
+# 
+# def cancelMouse():        
+#     global mouseStartPosition
+#     if not mouseStartPosition:
+#         endMouse()
+#         print('cancelMouse, no mouseStartPosition')
+#         return
+#     if mouseState:
+#         doMouse(0, 0, mouseStartPosition[0], mouseStartPosition[1],
+#                 mouseState, 0)
+#     else:
+#         doMouse(0, 0, mouseStartPosition[0], mouseStartPosition[1],
+#                 0, 0)
+#     mouseStartPosition = ()
+#         
+# def checkMousePosition(pos, Min, Max):
+#     #print 'checking:', pos, Min, Max
+#     if pos >= Max: return Max - 1
+#     if pos < Min: return Min
+#     return int(pos)
+# 
+# def getRectData(rect):
+#     """get from a rect the width, height, xMin, xMax, yMin, yMax
+#     
+#     example: see unittestMouse.py (in unimacro_test directory)
+#     """
+#     xMin, yMin, xMax, yMax = tuple(rect)
+#     width, height = rect[2] - rect[0], rect[3] - rect[1]
+#     return width, height, xMin, yMin, xMax, yMax 
     
 def coordToRel(x, xMin, xMax, side=0):
     """calculate relative coordinate, must be between 0 and 1
@@ -1227,76 +1227,76 @@ def clearWindowHandle():
 # This is called if the user clicks on the tray icon.  We simply cancel
 # movement in all cases.
 waitingCanceled = 0
-iconState = 0
-iconDirectory = os.path.join(status.getUnimacroDirectory(), 'icons')
-
-# this sets the icontray for several waiting situations:::
-def setTrayIcon(state=None, toolTip=None, comingFrom=None):
-    """activate the trayIcon depending on the state
-    
-    -If comingFrom is passed it can be either a instance (so the self of the calling grammar)
-    or a function/method.
-    -If comingFrom is an instance, a method "onTrayIcon" is taken (if possible) from the instance.
-    In those cases this function (onTrayIcon) is called if the user clicks on the trayIcon.
-    
-    
-    """
-    #if getDNSVersion() >= 12:
-    #    return # silently ignore this for Dragon 12
-    global iconState
-    if state is None:
-        natlink.setTrayIcon()
-        return # reset!
-    #print 'natlinkqh setTrayIcon: %s'% state
-    if state == 'waiting':
-        toolTip = toolTip or 'unimacro is waiting'
-        iconName = os.path.join(iconDirectory, 'waiting')
-    else:
-        iconName = state
-
-    iconState = (iconState + 1)%2
-##        print 'iconName: %s'% iconName
-    if iconName[1] == ':':
-        if not iconName.endswith('.ico'):
-            # absolute path, attach extension:
-            iconName = iconName + '.ico'
-    elif iconName in ['right', 'left', 'up', 'down']:
-        ## only if the 2 is not in the calling function yet...
-        if iconState:
-            iconName += '2'
-    
-    if type(comingFrom) == types.InstanceType:
-        func = getattr(comingFrom, 'onTrayIcon', None)
-        if func:
-            toolTip += ' (grammar: %s)'% comingFrom.getName()
-    elif type(comingFrom) in [types.UnboundMethodType, types.FunctionType]:
-        func = comingFrom
-    elif comingFrom:
-        func = None
-        #print 'natqh.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
-    else:
-        func = None
-    
-    if func is None:
-        toolTip += " (cannot be canceled)"
-        try:
-            natlink.setTrayIcon(iconName,toolTip)
-        except natlink.NatError:
-            natlink.setTrayIcon()
-    else:
-        try:
-            natlink.setTrayIcon(iconName,toolTip,func)
-        except natlink.NatError:
-            print('cannot set tray icon "%s" (comingFrom: %s, func: %s), try to clear'% (iconName, comingFrom, func))
-            natlink.setTrayIcon()
-        
-
-def clearTrayIcon():
-    global waitingCanceled, iconState
-    waitingCanceled = 0
-    iconState = 0
-    natlink.setTrayIcon()
-
+# iconState = 0
+# iconDirectory = os.path.join(status.getUnimacroDirectory(), 'icons')
+# 
+# # this sets the icontray for several waiting situations:::
+# def setTrayIcon(state=None, toolTip=None, comingFrom=None):
+#     """activate the trayIcon depending on the state
+#     
+#     -If comingFrom is passed it can be either a instance (so the self of the calling grammar)
+#     or a function/method.
+#     -If comingFrom is an instance, a method "onTrayIcon" is taken (if possible) from the instance.
+#     In those cases this function (onTrayIcon) is called if the user clicks on the trayIcon.
+#     
+#     
+#     """
+#     #if getDNSVersion() >= 12:
+#     #    return # silently ignore this for Dragon 12
+#     global iconState
+#     if state is None:
+#         natlink.setTrayIcon()
+#         return # reset!
+#     #print 'natlinkqh setTrayIcon: %s'% state
+#     if state == 'waiting':
+#         toolTip = toolTip or 'unimacro is waiting'
+#         iconName = os.path.join(iconDirectory, 'waiting')
+#     else:
+#         iconName = state
+# 
+#     iconState = (iconState + 1)%2
+# ##        print 'iconName: %s'% iconName
+#     if iconName[1] == ':':
+#         if not iconName.endswith('.ico'):
+#             # absolute path, attach extension:
+#             iconName = iconName + '.ico'
+#     elif iconName in ['right', 'left', 'up', 'down']:
+#         ## only if the 2 is not in the calling function yet...
+#         if iconState:
+#             iconName += '2'
+#     
+#     if type(comingFrom) == types.InstanceType:
+#         func = getattr(comingFrom, 'onTrayIcon', None)
+#         if func:
+#             toolTip += ' (grammar: %s)'% comingFrom.getName()
+#     elif type(comingFrom) in [types.UnboundMethodType, types.FunctionType]:
+#         func = comingFrom
+#     elif comingFrom:
+#         func = None
+#         #print 'natqh.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
+#     else:
+#         func = None
+#     
+#     if func is None:
+#         toolTip += " (cannot be canceled)"
+#         try:
+#             natlink.setTrayIcon(iconName,toolTip)
+#         except natlink.NatError:
+#             natlink.setTrayIcon()
+#     else:
+#         try:
+#             natlink.setTrayIcon(iconName,toolTip,func)
+#         except natlink.NatError:
+#             print('cannot set tray icon "%s" (comingFrom: %s, func: %s), try to clear'% (iconName, comingFrom, func))
+#             natlink.setTrayIcon()
+#         
+# 
+# def clearTrayIcon():
+#     global waitingCanceled, iconState
+#     waitingCanceled = 0
+#     iconState = 0
+#     natlink.setTrayIcon()
+# 
 
 def rememberWindow(modInfo=None, progInfo=None, comingFrom=None):
     global hndle, waitingCanceled, windowTitle
@@ -1892,32 +1892,32 @@ def stripSpokenForm(t):
 
 
  
-# get screen parameters:
-monitorfunctions.monitor_info()
-screenRect = monitorfunctions.VIRTUAL_SCREEN[:]
-screenWidth, screenHeight, screenXMin, screenYMin, screenXMax, screenYMax = getRectData(screenRect)
-logFolder = None
-try:
-    uud = getUnimacroUserDirectory()
-    if uud:
-        logFolder = os.path.join(uud, getLanguage() + "_log", getUser())
-        utilsqh.createFolderIfNotExistent(logFolder)
-        # print 'natlinkutilsqh, logfolder: %s'% logFolder
-except natlink.NatError:
-    pass
-    # print 'natlinkutilsqh, no logFolder active'
+# # get screen parameters:
+# monitorfunctions.monitor_info()
+# screenRect = monitorfunctions.VIRTUAL_SCREEN[:]
+# screenWidth, screenHeight, screenXMin, screenYMin, screenXMax, screenYMax = getRectData(screenRect)
+# logFolder = None
+# try:
+#     uud = getUnimacroUserDirectory()
+#     if uud:
+#         logFolder = os.path.join(uud, getLanguage() + "_log", getUser())
+#         utilsqh.createFolderIfNotExistent(logFolder)
+#         # print 'natlinkutilsqh, logfolder: %s'% logFolder
+# except natlink.NatError:
+#     pass
+#     # print 'natlinkutilsqh, no logFolder active'
 
 
-def add2logfile(word, filename):
-    """add word to the filename in logFolder
-    """
-    if not logFile: return # silent
-    try:
-        f = open(os.path.join(logFolder, filename), 'a')
-        f.write(word + '\n')
-        print('written to %s: %s' % (os.path.join(logFolder), filename))
-    except:
-        pass
+# def add2logfile(word, filename):
+#     """add word to the filename in logFolder
+#     """
+#     if not logFile: return # silent
+#     try:
+#         f = open(os.path.join(logFolder, filename), 'a')
+#         f.write(word + '\n')
+#         print('written to %s: %s' % (os.path.join(logFolder), filename))
+#     except:
+#         pass
 if __name__ == "__main__":
     progInfo = getProgInfo()
     print("progInfo: %s"% repr(progInfo))

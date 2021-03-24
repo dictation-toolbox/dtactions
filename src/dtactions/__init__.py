@@ -8,6 +8,19 @@ import sys
 import os
 import os.path
 
+def getThisDir(fileOfModule):
+    """get directory of calling module, if possible in site-packages
+    
+    call at top of module with "getThisDir(__file__)
+    
+    Check for symlink and presence in site-packages directory
+    """
+    thisFile = fileOfModule
+    thisDir = os.path.split(thisFile)[0]
+    if findInSitePackages:
+        thisDir = findInSitePackages(thisDir)
+    return thisDir
+
 def findInSitePackages(cloneDir):
     """get corresponding directory in site-packages 
     

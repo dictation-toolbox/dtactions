@@ -80,7 +80,7 @@ hasBraces = re.compile (r'([{].+?[}])')
 BracesExtractKey = re.compile (r'^[{]((alt|ctrl|shift)[+])*(?P<k>[^ ]+?)( [0-9]+)?[}]$', re.I)
 
 ## Scintilla constants:
-import scintillacon
+from dtactions import scintillacon
 
 def findTopWindow(wantedText=None,
                   wantedClass=None):

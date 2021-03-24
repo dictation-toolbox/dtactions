@@ -15,8 +15,8 @@ Note: the notation with +, % and ^ is not valid any more, change
 
 (Quintijn Hoogenboom, 2020-12-14)
 """
-import ExtendedSendDragonKeys
-import SendInput
+from natlinkcore import ExtendedSendDragonKeys
+from natlinkcore import SendInput
 
 
 def sendkeys(keys):
