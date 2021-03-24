@@ -56,34 +56,27 @@ class KeystrokeError(Exception): pass
 class UnimacroError(Exception): pass
 # pendingMessage = ''
 try:
-    from dtactions.__init__ import getThisDir
+    from dtactions.__init__ import getThisDir, checkDirectory
 except ModuleNotFoundError:
     print(f'Run this module after "build_package" and "flit install --symlink"\n')
     raise
 
 dtactions = thisDir = getThisDir(__file__)
 ##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
-sampleDirectory = os.path.join(dtactions, 'samples')
-sampleInifile = os.path.join(sampleDirectory, 'unimacroactions.ini')
-if not os.path.isdir(sampleDirectory):
-    print(f'\nNo dtactions sample directory not found: {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
-    sampleDirectory = ''
+sampleDirectory = os.path.normpath(os.path.join(dtactions, '..', 'samples', 'unimacro'))
+checkDirectory(sampleDirectory, create=False)
+inifilename = 'unimacroactions.ini'
+
+sampleInifile = os.path.join(sampleDirectory, inifilename)
 if not os.path.isfile(sampleInifile):
-    print(f'\nNo unimacroactions.ini file found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
-    sampleInifile = ''
+    raise OSError(f'\nNo unimacroactions.ini file found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
 
-userDirectory = os.path.expanduser("~\\.dtactions")
-if not os.path.isdir(userDirectory):
-    os.mkdir(userDirectory)
-if not os.path.isdir(userDirectory):
-    raise IOError(f'userDirectory {userDirectory} does not exist and cannot be created')
+userDirectory = os.path.expanduser("~\\.dtactions\\unimacro")
+checkDirectory(userDirectory)
 
-inifile = os.path.join(userDirectory, 'actions.ini')
+inifile = os.path.join(userDirectory, inifilename)
 if not os.path.isfile(inifile):
-    if sampleInifile:
-        shutil.copy(sampleInifile, inifile)
-    else:
-        raise IOError(f'Cannot find sample or actual "actions.ini" file')
+    shutil.copy(sampleInifile, inifile)
 
 print(f'inifile: {inifile}')
 
@@ -92,7 +85,7 @@ debugSock = None
 debugFile = os.path.join(userDirectory, 'dtactions_debug.txt')
 samples = []
 
-try:
+try:  #
     ini = inivars.IniVars(inifile)
 except inivars.IniError:
     

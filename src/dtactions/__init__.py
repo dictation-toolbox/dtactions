@@ -13,7 +13,7 @@ def getThisDir(fileOfModule):
     
     call at top of module with "getThisDir(__file__)
     
-    Check for symlink and presence in site-packages directory
+    Check for symlink and presence in site-packages directory (in this case work is done on this repository)
     """
     thisFile = fileOfModule
     thisDir = os.path.split(thisFile)[0]
@@ -50,3 +50,23 @@ def findInSitePackages(cloneDir):
     else:
         print('findInSitePackages, not a valid directory in site-packages, no "flit install --symlink" yet: {spDir}')
     return cloneDir        
+
+def checkDirectory(newDir, create=True):
+    """check existence of directory path
+    
+    create if not existent yet... if create == True
+    if create == False, raise an error if directory is not there
+    raise IOError if something strange happens...
+    """
+    if os.path.isdir(newDir):
+        return
+    elif create is False:
+        raise OSError(f'Cannot find directory {newDir}, but it should be there.')
+    if os.path.exists(newDir):
+        raise OSError(f'path exists, but is not a directory: {newDir}')
+    os.makedirs(newDir)
+    if os.path.isdir(newDir):
+        print('created directory: {newDir}')
+    else:
+        raise OSError(f'did not manage to create directory: {newDir}')
+                      
