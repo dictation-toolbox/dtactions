@@ -32,16 +32,11 @@ dtactionsDir = os.path.normpath(os.path.join(thisDir, '..'))
 import unittest
 # import natlink
 from dtactions import natlinkclipboard
-from dtactions import unimacroactions as actions
-from actions import doAction as action
+from dtactions.unimacro import actions
+# from dtactions.unimacro.actions import 
 
 class TestError(Exception):
     pass
-
-natconnectOption = 0 # no threading has most chances to pass...
-
-
-
 
 logFileName = thisDir/"testresult.txt"
 print('printing will go to %s'% logFileName)

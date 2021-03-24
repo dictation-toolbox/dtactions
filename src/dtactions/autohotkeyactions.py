@@ -39,22 +39,12 @@ import win32gui
 
 ## get thisDir and other basics...
 try:
-    from dtactions.__init__ import findInSitePackages
+    from dtactions.__init__ import getThisDir
 except ModuleNotFoundError:
-    findInSitePackages = None
+    print(f'Run this module after "build_package" and "flit install --symlink"\n')
+    raise
 
-def getThisDir():
-    """get directory of this, if possible in site-packages
-    
-    Check for symlink and presence in site-packages directory
-    """
-    thisFile = __file__
-    thisDir = os.path.split(thisFile)[0]
-    if findInSitePackages:
-        thisDir = findInSitePackages(thisDir)
-    return thisDir
-
-dtactions = thisDir = getThisDir()
+dtactions = thisDir = getThisDir(__file__)
 ##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
 sampleAhkDirectory = os.path.join(dtactions, 'samples')
 
@@ -163,10 +153,11 @@ def GetAhkExe():
 
     
 def GetAhkScriptFolder():
-    """try to get AutoHotkey folder as subdirectory of PERSONAL
+    """try to get AutoHotkey folder as subdirectory of HOME
+    
+    On Windows mostly C:\\Users\\Username\\.autohotkey
     
     create if non-existent.
-    
     """
     global ahkscriptfolder
 

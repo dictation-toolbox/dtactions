@@ -27,10 +27,10 @@ import types
 import shutil
 import os.path
 import copy
-import win32api
-import win32gui
-import win32con
-import win32com.client
+# import win32api
+# import win32gui
+# import win32con
+# import win32com.client
 import html.entities
 import time
 import datetime
@@ -56,22 +56,12 @@ class KeystrokeError(Exception): pass
 class UnimacroError(Exception): pass
 # pendingMessage = ''
 try:
-    from dtactions.__init__ import findInSitePackages
+    from dtactions.__init__ import getThisDir
 except ModuleNotFoundError:
-    findInSitePackages = None
+    print(f'Run this module after "build_package" and "flit install --symlink"\n')
+    raise
 
-def getThisDir():
-    """get directory of this, if possible in site-packages
-    
-    Check for symlink and presence in site-packages directory
-    """
-    thisFile = __file__
-    thisDir = os.path.split(thisFile)[0]
-    if findInSitePackages:
-        thisDir = findInSitePackages(thisDir)
-    return thisDir
-
-dtactions = thisDir = getThisDir()
+dtactions = thisDir = getThisDir(__file__)
 ##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
 sampleDirectory = os.path.join(dtactions, 'samples')
 sampleInifile = os.path.join(sampleDirectory, 'unimacroactions.ini')
@@ -82,18 +72,18 @@ if not os.path.isfile(sampleInifile):
     print(f'\nNo unimacroactions.ini file found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
     sampleInifile = ''
 
-userDirectory = os.path.expanduser("~\\.natlink")
+userDirectory = os.path.expanduser("~\\.dtactions")
 if not os.path.isdir(userDirectory):
     os.mkdir(userDirectory)
 if not os.path.isdir(userDirectory):
     raise IOError(f'userDirectory {userDirectory} does not exist and cannot be created')
 
-inifile = os.path.join(userDirectory, 'unimacroactions.ini')
+inifile = os.path.join(userDirectory, 'actions.ini')
 if not os.path.isfile(inifile):
     if sampleInifile:
         shutil.copy(sampleInifile, inifile)
     else:
-        raise IOError(f'Cannot find sample or actual "unimacroactions.ini" file')
+        raise IOError(f'Cannot find sample or actual "actions.ini" file')
 
 print(f'inifile: {inifile}')
 
