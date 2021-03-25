@@ -3,7 +3,7 @@
 including utility functions,
     - getThisDir, for getting the calling directory of module (in site-packages, also when this is a valid symlink),
     - findInSitePackages, supporting getThisDir
-    -checkDirectory, check existence of directory, with create=True, do create if directory does not exist yet.
+    - checkDirectory, check existence of directory, with create=True, do create if directory does not exist yet.
     
 Note: -as user, having pipped the package, the scripts run from the site-packages directory,
        no editing is meant to be done
@@ -31,19 +31,23 @@ __version__ = '1.1.0'  # Quintijn to test
 import sys
 from pathlib import Path
 
-def getThisDir(fileOfModule):
+def getThisDir(fileOfModule, warnings=False):
     """get directory of calling module, if possible in site-packages
     
-    call at top of module with "getThisDir(__file__)
+    call at top of module with `getThisDir(__file__)`
     
-    Check for symlink and presence in site-packages directory (in this case work is done on this repository)
+    If you want to get warnings (each one only once, pass `warnings = True`)
+    
+    Check for symlink and presence in site-packages directory: 
+    the "site-packages" version will be treated in the program,
+    but in the resolved files in the github clone the editing will take place
     """
     thisFile = Path(fileOfModule)
     thisDir = thisFile.parent
-    thisDir = findInSitePackages(thisDir)
+    thisDir = findInSitePackages(thisDir, warnings=warnings)
     return thisDir
 
-def findInSitePackages(cloneDir):
+def findInSitePackages(cloneDir, warnings):
     """get corresponding directory in site-packages 
     
     This directory should be a symlink, otherwise there was no "flit install --symlink" yet.
@@ -53,25 +57,31 @@ def findInSitePackages(cloneDir):
     
     If not found, return the input directory (cloneDir)
     If not "coupled" return the input directory, but issue a warning
+    if warnings is set to True, see above.
     """
     cloneDirStr = str(cloneDir)
     if cloneDirStr.find('\\src\\') < 0:
+        if warnings:
+            warning(f'directory {cloneDirStr} not connected to a github clone directory, changes will not persist across updates...')
         return cloneDir
-        # raise IOErrorprint(f'This function should only be called when "\\src\\" is in the path')
+
     commonpart = cloneDirStr.split('\\src\\')[-1]
     spDir = Path(sys.prefix, 'Lib', 'site-packages', commonpart)
     if spDir.is_dir():
         spResolve = spDir.resolve()
         if spResolve == spDir:
-            print(f'corresponding site-packages directory is not a symlink: {spDir}.\nPlease use "flit install --symlink" when you want to test this package')
+            if warnings:
+                warning(f'corresponding site-packages directory is not a symlink: {spDir}.\nPlease use "flit install --symlink" when you want to test this package')
         elif spResolve == cloneDir:
             # print(f'directory is symlink: {spDir} and resolves to {cloneDir} all right')
             ## return the symbolic link in the site-packages directory, that resolves to cloneDir!!
             return spDir
         else:
-            print(f'directory is symlink: {spDir} but does NOT resolve to {cloneDir}, but to {spResolve}')
+            if warnings:
+                warning(f'directory is symlink: {spDir} but does NOT resolve to {cloneDir}, but to {spResolve}')
     else:
-        print('findInSitePackages, not a valid directory in site-packages, no "flit install --symlink" yet: {spDir}')
+        if warnings:
+            warning('findInSitePackages, not a valid directory in site-packages, no "flit install --symlink" yet: {spDir}')
     return cloneDir        
 
 def checkDirectory(newDir, create=None):
@@ -94,4 +104,13 @@ def checkDirectory(newDir, create=None):
         print('created directory: {newDir}')
     else:
         raise OSError(f'did not manage to create directory: {newDir}')
-                      
+
+warnings = []
+def warning(text):
+    """print warning only once, if warnings is set!
+    """
+    textForeward = text.replace("\\", "/")
+    if textForeward in warnings:
+        return
+    warnings.append(textForeward)
+    print(text)
