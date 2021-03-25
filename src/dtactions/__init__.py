@@ -1,15 +1,19 @@
 """dtactions __init__
 
-including utility functions, to get calling directory of module (in site-packages),
-
-...and to check the existence of a directory, for example .natlink in the home directory.
-
-Note: -as user, having pipped the package, the scripts run from the site-packages directory
+including utility functions,
+    - getThisDir, for getting the calling directory of module (in site-packages, also when this is a valid symlink),
+    - findInSitePackages, supporting getThisDir
+    -checkDirectory, check existence of directory, with create=True, do create if directory does not exist yet.
+    
+Note: -as user, having pipped the package, the scripts run from the site-packages directory,
+       no editing is meant to be done
       -as developer, you have to clone the package, then `build_package` and,
-       after a `pip uninstall dtactions`, `flit install --symlink`.
-       See instructions in the file README.md in the source directory of the package.
+       after a `pip uninstall dtactions` do: `flit install --symlink`.
+       When you edit a file, either via the site-packages (symlinked) directory or via the cloned directory,
+       the changes will come in the cloned file, so can be committed again.
+       See more instructions in the file README.md in the source directory of the package.
 
-getThisDir: can be called in the calling module like:
+Start with the following lines near the top of your python file:
 
 ```
 try:
@@ -20,11 +24,6 @@ except ModuleNotFoundError:
 
 thisDir = getThisDir(__file__)
 ```
-
-checkDirectory(dirpath, create=True)
-    create `dirpath` if not yet exists.
-    when create=False is passed, no new directory is created, but an error is thrown if
-    the directory does not exist.
 """
 
 __version__ = '1.1.0'  # Quintijn to test
@@ -75,7 +74,7 @@ def findInSitePackages(cloneDir):
         print('findInSitePackages, not a valid directory in site-packages, no "flit install --symlink" yet: {spDir}')
     return cloneDir        
 
-def checkDirectory(newDir, create=True):
+def checkDirectory(newDir, create=None):
     """check existence of directory path
     
     create if not existent yet... if create == True
