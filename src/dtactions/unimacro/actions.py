@@ -21,12 +21,11 @@ natlink grammar) is needed to activate these functions by voice.
 
 """
 import re
-import os
 import sys
 import types
 import shutil
-import os.path
 import copy
+from pathlib import Path
 # import win32api
 # import win32gui
 # import win32con
@@ -61,28 +60,29 @@ except ModuleNotFoundError:
     print(f'Run this module after "build_package" and "flit install --symlink"\n')
     raise
 
-dtactions = thisDir = getThisDir(__file__)
+dtactionsDir = thisDir = getThisDir(__file__)
 ##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
-sampleDirectory = os.path.normpath(os.path.join(dtactions, '..', 'samples', 'unimacro'))
+sampleDirectory = dtactionsDir.parent
+sampleDirectory = sampleDirectory/'samples'/'unimacro'
 checkDirectory(sampleDirectory, create=False)
 inifilename = 'unimacroactions.ini'
 
-sampleInifile = os.path.join(sampleDirectory, inifilename)
-if not os.path.isfile(sampleInifile):
-    raise OSError(f'\nNo unimacroactions.ini file found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
+sampleInifile = sampleDirectory/inifilename
+if not sampleInifile.is_file():
+    raise OSError(f'\nNo ini file "{inifilename}" found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
 
-userDirectory = os.path.expanduser("~\\.dtactions\\unimacro")
+userDirectory = Path.home()/".dtactions"/"unimacro"
 checkDirectory(userDirectory)
 
-inifile = os.path.join(userDirectory, inifilename)
-if not os.path.isfile(inifile):
+inifile = userDirectory/inifilename
+if not inifile.is_file():
     shutil.copy(sampleInifile, inifile)
 
 print(f'inifile: {inifile}')
 
-whatFile = os.path.join(userDirectory,  __name__ + '.txt')
+whatFile = userDirectory/(__name__ + '.txt')
 debugSock = None
-debugFile = os.path.join(userDirectory, 'dtactions_debug.txt')
+debugFile = userDirectory/'dtactions_debug.txt'
 samples = []
 
 try:  #
@@ -2259,7 +2259,7 @@ if debug:
         print('_actions, IOError, cannot write debug statements to: %s'% debugFile)
 else:
     try:
-        os.remove(debugFile)
+        debugFile.unlink()
     except OSError:
         pass
 

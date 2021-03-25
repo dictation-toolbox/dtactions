@@ -10,9 +10,8 @@
 #
 import sys
 import unittest
-import os
-import os.path
 import time
+from pathlib import  Path
 
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
@@ -21,7 +20,7 @@ except ModuleNotFoundError:
     raise
 
 thisDir = getThisDir(__file__)
-dtactionsDir = os.path.normpath(os.path.join(thisDir, '..'))
+dtactionsDir = thisDir.parent
 
 # import TestCaseWithHelpers
 import unittest
@@ -33,11 +32,11 @@ from dtactions.unimacro import actions
 class TestError(Exception):
     pass
 
-dataDirDtactions = os.path.expanduser("~\\.dtactions")
-dataDir = os.path.join(dataDirDtactions, 'unimacro')
-checkDirectory(dataDir)
+dataDirDtactions = Path.home()/".dtactions"
+dataDir = dataDirDtactions/'unimacro'
+checkDirectory(dataDir) 
 
-logFileName = os.path.join(dataDir, "testresult.txt")  #
+logFileName = dataDir/"testresult.txt"
 print(f'output will be logged in {logFileName}')
 print('start UnittestActions', file=open(logFileName, 'w'))
 
@@ -60,7 +59,7 @@ class UnittestActions(unittest.TestCase):
         print(f'result action F: {result}')
         result = act.doKeystroke("Hello world")
         print(f'result doKeystroke: {result}')
-                
+                 
     def log(self, t):
         print(t, file=open(logFileName, "a"))
 
