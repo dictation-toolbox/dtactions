@@ -103,7 +103,7 @@ def getModInfo():
     """get the module info, like natlink.getCurrentModule
     """
     scriptFolder = GetAhkScriptFolder()
-    WinInfoFile = str(scriptFolder/"WININFOfromAHK.txt")
+    WinInfoFile = os.path.join(scriptFolder, "WININFOfromAHK.txt")
     script = """; put module info of current window in file. 
 
 WinGet pPath, ProcessPath, A
@@ -168,17 +168,17 @@ def copySampleAhkScripts(fromFolder, toFolder):
             print('---copy AutoHotkey script "{inputName}" from\nSamples directory to "{toFolder}"----'% (filename, fromFolder, toFolder))
             shutil.copyfile(inputFile, outputFile)
         elif getFileDate(inputFile) > getFileDate(outputFile):
-            # if compare_f2f(inputFile, outputFile):
-            #     for i in range(1000):
-            #         outputStem = f'{stem}_{i:03d}'
-            #         newOutputFile = outputFile.with_name(newOutputName)
-            #         if not newOutputFile.is_file():
-            #             break
-            #     else: 
-            #         raise OSError('no unused newOutputFile available last: {newOutputFile}')
-            #     print(f'AutoHotkey script "{inputName}" has been changed in "sample_ahk"\n   copy to "{toFolder}"\n   keep backup in {newOutputFile}')
-            #     shutil.copyfile(outputFile, newOutputFile)
-            shutil.copyfile(inputFile, outputFile)
+            if compare_f2f(inputFile, outputFile):
+                for i in range(1000):
+                    outputName = f'{stem_{i:03d}}'
+                    newOutputFile = outputFile(with_name(newOutputName))
+                    if not newOutputFile.is_file():
+                        break
+                else:
+                    raise OSError('no unused newOutputFile available last: {newOutputFile}')
+                print(f'AutoHotkey script "{inputName}" has been changed in "sample_ahk"\n   copy to "{toFolder}"\n   keep backup in {newOutputFile}')
+                shutil.copyfile(outputFile, newOutputFile)
+                shutil.copyfile(inputFile, outputFile)
           
 def GetRunWinwordScript(filepath, HNDLEfile):
     """construct script than opens a word document
@@ -211,7 +211,7 @@ def ahkBringup(app, filepath=None, title=None, extra=None, modInfo=None, progInf
     """
     if not ahk_is_active():
         print(f'cannot run ahkBringup, autohotkey is not active')
-    WinInfoFile = str(ahkscriptfolder/"WININFOfromAHK.txt")
+    WinInfoFile = ahkScriptFolder/"WININFOfromAHK.txt"
     
     ## treat mode = open or edit, finding a app in actions.ini:
     if ((app and app.lower() == "winword") or
@@ -281,7 +281,7 @@ FileAppend, %wHndle%, ##WININFOfile##
         script.append('FileAppend, %wHndle%, ' + WinInfoFile)
         script = '\n'.join(script)
 
-        result = do_ahk_script(script)
+        result = autohotkeyactions.do_ahk_script(script)
 
     ## collect the wHndle:
     if result == 1:
@@ -307,11 +307,8 @@ FileAppend, %wHndle%, ##WININFOfile##
 
 
 def getFileDate(modName):
-    try:
-        modTime = modName.stat().st_mtime
-        return modTime
-    except OSError:
-        return 0        # file not found
+    try: return os.stat(modName)[stat.ST_MTIME]
+    except OSError: return 0        # file not found
 
 def compare_f2f(f1, f2):
     """Helper to compare two files, return 0 if they are equal."""

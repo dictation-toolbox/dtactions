@@ -11,7 +11,7 @@
 import sys
 import unittest
 import time
-from pathlib import  Path
+from pathlib import Path
 
 try:
     from dtactions.__init__ import getThisDir, checkDirectory

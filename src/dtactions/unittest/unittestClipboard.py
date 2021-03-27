@@ -14,38 +14,38 @@
 import sys
 import unittest
 import types
-import os
-import os.path
 import time
 import win32gui
-import pathlib     
+from pathlib import Path
 try:
-    from dtactions.__init__ import getThisDir
+    from dtactions.__init__ import getThisDir, checkDirectory
 except ModuleNotFoundError:
     print(f'Run this module after "build_package" and "flit install --symlink"\n')
     raise
 
 thisDir = getThisDir(__file__)
-dtactionsDir = os.path.normpath(os.path.join(thisDir, '..'))
+dtactionsDir = thisDir.parent
 
 # import TestCaseWithHelpers
 import unittest
 # import natlink
 from dtactions import natlinkclipboard
-from dtactions.unimacro import actions
+from dtactions import autohotkeyactions as ahkactions 
 # from dtactions.unimacro.actions import 
 
 class TestError(Exception):
     pass
 
-logFileName = thisDir/"testresult.txt"
-print('printing will go to %s'% logFileName)
-print('start unittestClipboard', file=open(logFileName, 'w'))
+
+dataDir = Path.home()/".dtactions"
+checkDirectory(dataDir) 
+
+logFileName = dataDir/"testresult.txt"
+print(f'output will be logged in {logFileName}')
+print('start UnittestActions', file=open(logFileName, 'w'))
 
 testFilesDir = thisDir/'test_clipboardfiles'
-if not testFilesDir.isdir():
-    testFilesDir.mkdir()
-
+checkDirectory(testFilesDir, create=True)
 #---------------------------------------------------------------------------
 # These tests should be run after we call natConnect
 # no reopen user at each test anymore..
@@ -236,7 +236,7 @@ class UnittestClipboard(unittest.TestCase):
         self.thisHndle = natlinkutilsqh.GetForegroundWindow()
 
         dirWindows = "C:\\windows"
-        result = actions.AutoHotkeyBringUp(app="explore", filepath=dirWindows)
+        result = ahkactions.AutoHotkeyBringUp(app="explore", filepath=dirWindows)
         if not result:
             print('no result for %s'% dirWindows)
             return
@@ -249,10 +249,10 @@ class UnittestClipboard(unittest.TestCase):
         """open Word file and do the testing on it...
         """
         docxFile2 = "natlink.docx"
-        docxPath2 = os.path.normpath( os.path.join(testFilesDir, docxFile2))
-        if not os.path.isfile(docxPath2):
-            raise IOError('file does not exist: %s'% docxPath2)
-        result = actions.AutoHotkeyBringUp(app=None, filepath=docxPath2)
+        docxPath2 = testFilesDir/docxFile2
+        if not docxPath2.is_file():
+            raise OSError('file does not exist: %s'% docxPath2)
+        result = autohotkeyactions.AutoHotkeyBringUp(app=None, filepath=docxPath2)
         if result:
             pPath, wTitle, hndle = result
         else:
@@ -267,9 +267,9 @@ class UnittestClipboard(unittest.TestCase):
         """make some text files for clipboard testing
         """
         textFile0 = "testempty.txt"
-        textPath0 = os.path.join(testFilesDir, textFile0)
+        textPath0 = testFilesDir/textFile0
         open(textPath0, 'w')
-        result = actions.AutoHotkeyBringUp(app=None, filepath=textPath0)
+        result = autohotkeyactions.AutoHotkeyBringUp(app=None, filepath=textPath0)
         pPath, wTitle, hndle = result
         natlinkutilsqh.SetForegroundWindow(self.thisHndle)
         print('testempty (text0Hndle): %s'% hndle)
@@ -277,10 +277,10 @@ class UnittestClipboard(unittest.TestCase):
         self.text0Hndle = hndle
 
         textFile1 = "testsmall.txt"
-        textPath1 = os.path.join(testFilesDir, textFile1)
+        textPath1 = testFilesDir/textFile1
         self.text1Txt = "small abacadabra\n"*2
         open(textPath1, 'w').write(self.text1Txt)
-        result = actions.AutoHotkeyBringUp(app=None, filepath=textPath1)
+        result = autohotkeyactions.AutoHotkeyBringUp(app=None, filepath=textPath1)
         pPath, wTitle, hndle = result
         self.tempFileHndles.append(hndle)
         natlinkutilsqh.SetForegroundWindow(self.thisHndle)
@@ -289,10 +289,10 @@ class UnittestClipboard(unittest.TestCase):
         self.tempFileHndles.append(hndle)
 
         textFile2 = "testlarge.txt"
-        textPath2 = os.path.join(testFilesDir, textFile2)
+        textPath2 = testFilesDir/textFile2
         self.text2Txt = "large abacadabra\n"*1000
         open(textPath2, 'w').write(self.text2Txt)
-        result = actions.AutoHotkeyBringUp(app=None, filepath=textPath2)
+        result = autohotkeyactions.AutoHotkeyBringUp(app=None, filepath=textPath2)
         pPath, wTitle, hndle = result
         self.tempFileHndles.append(hndle)
         natlinkutilsqh.SetForegroundWindow(self.thisHndle)
@@ -312,7 +312,7 @@ class UnittestClipboard(unittest.TestCase):
                 'Sleep, 100',
                 'Send, {tab 2}'])     # note SetTitleMatchMode and Sleep, apparently necessary
 
-        result = actions.AutoHotkeyBringUp(app="thunderbird.exe", title="Mozilla Thunderbird", extra=extra)
+        result = autohotkeyactions.AutoHotkeyBringUp(app="thunderbird.exe", title="Mozilla Thunderbird", extra=extra)
         pPath, wTitle, hndle = result
         self.tempFileHndles.append(hndle)
         self.thundHndle = hndle
@@ -328,7 +328,7 @@ class UnittestClipboard(unittest.TestCase):
         ## this extra makes an empty window, and goes to the message pane:
         extra = '\n'.join(["Sleep, 100", 'Send, ^n', "Sleep, 100"])
 
-        result = actions.AutoHotkeyBringUp(app=r"C:\Program Files (x86)\Frescobaldi\frescobaldi.exe", title="Frescobaldi", extra=extra)
+        result = autohotkeyactions.AutoHotkeyBringUp(app=r"C:\Program Files (x86)\Frescobaldi\frescobaldi.exe", title="Frescobaldi", extra=extra)
         pPath, wTitle, hndle = result
         action("Frescobaldi abacadabra")
         self.tempFileHndles.append(hndle)

@@ -2001,11 +2001,11 @@ class Action:
                             if os.path.isfile(appPath):
                                 appPath = os.path.normpath(appPath)
                             else:
-                                raise IOError('invalid path for PROGRAMFILES to PROGRAMW6432, app %s: %s (expanded: %s)'% (app, appPath, appPath2))
+                                raise OSError('invalid path for PROGRAMFILES to PROGRAMW6432, app %s: %s (expanded: %s)'% (app, appPath, appPath2))
                         else:
-                            raise IOError('invalid path for app with PROGRAMFILES %s: %s (expanded: %s)'% (app, appPath, appPath2))
+                            raise OSError('invalid path for app with PROGRAMFILES %s: %s (expanded: %s)'% (app, appPath, appPath2))
                     else:
-                        raise IOError('invalid path for  app %s: %s (expanded: %s)'% (app, appPath, appPath2))
+                        raise OSError('invalid path for  app %s: %s (expanded: %s)'% (app, appPath, appPath2))
             else:
                 appPath = appName or app
             appArgs = ini.get("bringup %s"% app, "args") or None
@@ -2072,111 +2072,6 @@ class Action:
             
         return result
     
-    def AutoHotkeyBringUp(self, app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None):
-        """start a program, folder, file, with AutoHotkey
-        
-        This functions is related to UnimacroBringup, which works with AppBringup from Dragon,
-        but sometimes fails.
-        
-        Besides, this function can also work without Dragon being on, not relying on natlink.
-        So better fit for debugging purposes.
-        
-        """
-        scriptFolder = autohotkeyactions.GetAhkScriptFolder()
-        if not os.path.isdir(scriptFolder):
-            raise IOError('no scriptfolder for AHK: %s'%s)
-        WinInfoFile = os.path.join(scriptFolder, "WININFOfromAHK.txt")
-        
-        ## treat mode = open or edit, finding a app in actions.ini:
-        if ((app and app.lower() == "winword") or
-            (filepath and (filepath.endswith(".docx") or filepath.endswith('.doc')))):
-            script = autohotkeyactions.GetRunWinwordScript(filepath, WinInfoFile)
-            result = autohotkeyactions.do_ahk_script(script)
-    
-        elif app and title:
-            ## start eg thunderbird.exe this way
-            ## can also give additional startup instructions in extra
-            extra = extra or ""
-            script = '''SetTitleMatchMode, 2
-    Process, Exist, ##basename##
-    if !ErrorLevel = 0
-    {
-    IfWinNotActive, ##title##,
-    WinActivate, ##title##, 
-    WinWaitActive, ##title##,,1
-    if ErrorLevel {
-        return
-    }
-    }
-    else
-    {
-    Run, ##app##
-    WinWait, ##title##,,5
-    if ErrorLevel {
-        MsgBox, AutoHotkey, WinWait for running ##basename## timed out
-        return
-    }
-    }
-    ##extra##
-    WinGet pPath, ProcessPath, A
-    WinGetTitle, Title, A
-    WinGet wHndle, ID, A
-    FileDelete, ##WININFOfile##
-    FileAppend, %pPath%`n, ##WININFOfile##
-    FileAppend, %Title%`n, ##WININFOfile##
-    FileAppend, %wHndle%, ##WININFOfile##
-    
-    '''
-            basename = os.path.basename(app)
-            script = script.replace('##extra##', extra)
-            script = script.replace('##app##', app)
-            script = script.replace('##basename##', basename)
-            script = script.replace('##title##', title)
-            script = script.replace('##WININFOfile##', WinInfoFile)
-            result = autohotkeyactions.do_ahk_script(script)
-                
-        else:
-            ## other programs:
-            if app and filepath:
-                script = ["Run, %s, %s,,NewPID"% (app, filepath)]
-            elif filepath:
-                script = ["Run, %s,,, NewPID"% filepath]
-            elif app:
-                script = ["Run, %s,,, NewPID"% app]
-        
-            script.append("WinWait, ahk_pid %NewPID%")
-        
-            script.append("WinGet, pPath, ProcessPath, ahk_pid %NewPID%")
-            script.append("WinGetTitle, Title, A")  ##, ID, ahk_pid %NewPID%")
-            script.append("WinGet, wHndle, ID, ahk_pid %NewPID%")
-            script.append('FileDelete, ' + WinInfoFile)
-            script.append('FileAppend, %pPath%`n, ' + WinInfoFile)
-            script.append('FileAppend, %Title%`n, ' + WinInfoFile)
-            script.append('FileAppend, %wHndle%, ' + WinInfoFile)
-            script = '\n'.join(script)
-    
-            result = autohotkeyactions.do_ahk_script(script)
-    
-        ## collect the wHndle:
-        if result == 1:
-            winInfo = open(WinInfoFile, 'r').read().split('\n')
-            if len(winInfo) == 3:
-                # make hndle decimal number:
-                pPath, wTitle, hndle = winInfo
-                hndle = int(hndle, 16)
-                print('extracted pPath: %s, wTitle: %s and hndle: %s'% (pPath, wTitle, hndle))
-                return pPath, wTitle, hndle
-            else:
-                if natlink.isNatSpeakRunning():
-                    mess = "Result of ahk_script should be a 3 item list (pPath, wTitle, hndle), not: %s"% repr(winInfo)
-                    do_MSG(str(mess))
-                print(str())
-                return 0
-        else:
-            if natlink.isNatSpeakRunning():
-                do_MSG(str(result))
-            print(str(result))
-            return 0
     
     
     ## was:
@@ -2255,8 +2150,8 @@ class Action:
 if debug:
     try:
         debugSock = open(debugFile, 'w')
-    except IOError:
-        print('_actions, IOError, cannot write debug statements to: %s'% debugFile)
+    except OSError:
+        print('_actions, OSError, cannot write debug statements to: %s'% debugFile)
 else:
     try:
         debugFile.unlink()
