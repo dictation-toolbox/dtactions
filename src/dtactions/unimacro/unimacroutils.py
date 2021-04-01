@@ -1575,6 +1575,18 @@ def SetForegroundWindow(h, waitingTime=0.1, nWait=3, debug=None):
     """
     if not h:
         raise UnimacroError("no valid handle given for set foreground window: %s"% h)
+    if autohotkeyactions.ahk_is_active():
+        script = f'WinActivate, ahk_id {h}'
+        result = autohotkeyactions.do_ahk_script(script)
+        print(f'result SetForegroundWindow: {result}, wanted hndle: {h}')
+        curHndle = win32gui.GetForegroundWindow()
+        if curHndle == h:
+            # print("autohotkey WinActivate succeeded: %s, wait 0.3 more seconds"% h)
+            # time.sleep(0.3)
+            return 1
+        print(f'autohotkey did not get window with hndle {h} in the foreground')
+        return
+
     curHndle = win32gui.GetForegroundWindow()
     if curHndle == h:
         if debug: print('got it in one shot!! %s'% h)
@@ -1582,17 +1594,6 @@ def SetForegroundWindow(h, waitingTime=0.1, nWait=3, debug=None):
     
     if not win32gui.IsWindow(h):
         print('SetForegroundWindow: not a valid window hndle: %s'% h)
-        return
-    
-    if autohotkeyactions.ahk_is_active():
-        script = "WinActivate, ahk_id  %s"% h
-        autohotkeyactions.do_ahk_script(script)
-        curHndle = win32gui.GetForegroundWindow()
-        if curHndle == h:
-            # print("autohotkey WinActivate succeeded: %s, wait 0.3 more seconds"% h)
-            # time.sleep(0.3)
-            return 1
-        print("autohotkey did not get in foreground in one shot: %s"% h)
         return
         
     for doKeystroke in [""]:  #  "{win+b}"]: ####, "{win+m}"]:
@@ -1922,3 +1923,4 @@ if __name__ == "__main__":
     progInfo = getProgInfo()
     print("progInfo: %s"% repr(progInfo))
     pass
+

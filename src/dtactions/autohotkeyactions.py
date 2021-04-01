@@ -1,51 +1,46 @@
-# unimacro natlink macro wrapper/extensions
-# (c) copyright 2003 Quintijn Hoogenboom (quintijn@users.sourceforge.net)
-#
-# autohotkeyactions.py 
-#  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
-#  December 2013/.../March 2021, adding AutoHotkey support
-#
-"""This module contains actions via AutoHotkey
+"""unimacro natlink macro wrapper/extensions
+(c) copyright 2003 Quintijn Hoogenboom (quintijn@users.sourceforge.net)
 
-1. the exe and scriptfolder are collected at first call and stored in
-   variables ahkexe and ahkscriptfolder
+ autohotkeyactions.py 
+ make it independent from Natlink (Dragon), but it is windows specific
 
-2. ahk_is_active returns whether AutoHotkey is running on your system
+ written by: Quintijn Hoogenboom (QH softwaretraining & advies)
+ December 2013/.../March 2021, adding AutoHotkey support
 
-3. call_ahk_script_path calls the script you have defined. If you have the script in
-   a string, the string is copied to tempscript.ahk and executed.
+This module contains actions via AutoHotkey
+
+(see autohotkey.com)
+
+1. the ahkexe and ahkscriptfolder are checked for at the bottom of the import procedure.
+   Previous scripts are copied from the directory dtactions/samples/autohotkey
+
+2. ahk_is_active returns whether AutoHotkey is running on your system. 
+
+3. call_ahk_script_path calls the script you have defined.
+
+4. If you have the script in a string, call call_ahk_script.
+    The script is copied to tempscript.ahk in the ahkscriptfolder and executed with call_ahk_script_path
+    
+5. When scripts want information back into python, write this information into "INFOfromAHK.txt".
+   Scripts that use this feature, should have a function in this module, in order to read the data from this file.
+   See getProgInfo and getCurrentModule below.
    
-4. if %hndle% is in your script, this string is substituted by the handle of the foreground window and the copy
-   of the script goes to tempscript.ahk and is then executed.
-   
-5. At first call the sample_ahk directory of Unimacro is copied into the  AutoHotkey in your Documents folder,
-   this folder is created if it does not exist yet. Of course only files that do not exist in the AutoHotkey directory
-   are copied this way (copySampleAhkScripts function).
-   
-GetAhkExe gets the correct ahkexe, or "" if AutoHotkey is not on your computer
-GetAhkScriptFolder get the correct scriptfolder ((AutoHotkey in your Documents folder).autohotkey in your home directory)
-    and copies scripts as described in 5. above
-     
 """
-import glob
-import sys
 import subprocess
-import stat
 import shutil
+import filecmp
 from pathlib import Path
-from natlinkcore import natlinkcorefunctions
-from natlinkcore import natlinkstatus
-import win32gui
+import collections
+import os.path  # only for getting the ahk exe path...
 
 ## get thisDir and other basics...
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
 except ModuleNotFoundError:
-    print(f'Run this module after "build_package" and "flit install --symlink"\n')
+    print('Run this module after "build_package" and "flit install --symlink"\n')
     raise
 
 dtactions = thisDir = getThisDir(__file__)
-##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
 sampleAhkDirectory = dtactions/'samples'/'autohotkey'
 checkDirectory(sampleAhkDirectory)
 
@@ -53,91 +48,99 @@ ahkexe = None
 ahkscriptfolder = None
 
 def ahk_is_active():
+    """return True if autohotkey is active
+    """
     return bool(ahkexe) and bool(ahkscriptfolder)
 
-def do_ahk_script(script, hndle=None):
+def do_ahk_script(script):
     """try autohotkey integration
     """
-    global ahkscriptfolder
     if not ahk_is_active():
         print('ahk is not active, cannot run script')
         return
-
-    if ahkscriptfolder is None:
-        GetAhkScriptFolder()
-    if not ahkscriptfolder:
-        raise OSError("no folder for AutoHotkey scripts found")
-   
-    #print 'AHK with script: %s'% script
-    if script.endswith(".ahk"): 
-        scriptPath = ahkscriptfolder/script
-        if scriptPath.is_file():
-            scriptText = open(scriptPath, 'r').read()
-            if scriptText.find(r'%hndle%') >= 0:
-                #print 'take scriptText for replacing %%hndle%%: %s'% scriptText
-                script = scriptText
-            else:
-                # just run ahk script:
-                result = call_ahk_script_path(scriptPath)
-                if result:
-                    return 'AHK error: %s'% result
-                else:
-                    return 1
-        else:
-            return "action AHK, not an existing script file: %s (%s)"% (script, scriptPath)
-    if script.find(r"%hndle%") >= 0:
-        if hndle is None:
-            hndle = win32gui.GetForegroundWindow()
-        script = script.replace("%hndle%", "%s"% hndle)
-        #print 'substituted script: %s'% script
     #print 'AHK with script: %s'% script
     scriptPath = ahkscriptfolder/'tempscript.ahk'
-    open(scriptPath, 'w').write(script+'\n')
-    result = call_ahk_script_path(scriptPath)
-    if result:
-        return 'AHK error: %s'% result
-    else:
-        return 1
-
-def getModInfo():
-    """get the module info, like natlink.getCurrentModule
-    """
-    scriptFolder = GetAhkScriptFolder()
-    WinInfoFile = str(scriptFolder/"WININFOfromAHK.txt")
-    script = """; put module info of current window in file. 
-
-WinGet pPath, ProcessPath, A
-WinGetTitle, Title, A
-WinGet wHndle, ID, A
-FileDelete, ##WININFOfile##
-FileAppend, %pPath%`n, ##WININFOfile##
-FileAppend, %Title%`n, ##WININFOfile##
-FileAppend, %wHndle%, ##WININFOfile##
-"""
-    script = script.replace('##WININFOfile##', WinInfoFile)
-    result = do_ahk_script(script)
-
-    if result == 1:
-        winInfo = open(WinInfoFile, 'r').read().split('\n')
-        if len(winInfo) == 3:
-            # make hndle decimal number:
-            pPath, wTitle, hndle = winInfo
-            hndle = int(hndle, 16)
-            # print('extracted pPath: %s, wTitle: %s and hndle: %s'% (pPath, wTitle, hndle))
-            return pPath, wTitle, hndle
-    raise ValueError('ahk script getModInfo did not return correct result: %s'% result)
-    
+    with open(scriptPath, 'w') as fp:
+        fp.write(script+'\n')
+    call_ahk_script_path(scriptPath)
 
 def call_ahk_script_path(scriptPath):
-    """call the specified ahk script
+    """call the specified ahk script  
+    
+    you can call .ahk scripts or .exe compiled files,
+    but .exe files seem not to give better performance...
     
     use the global variable ahkexe as executable
     
     """
-    result = subprocess.call([ahkexe, scriptPath, ""])
+    scriptPath = str(scriptPath)
+    if scriptPath.endswith('.ahk'):
+        result = subprocess.call([ahkexe, scriptPath, ""])
+    elif scriptPath.endswith('exe'):
+        result = subprocess.call([scriptPath, "", ""])
+    else:
+        raise ValueError(f'autohotkeyactions, call_ahk_script_path: path should end with ".ahk", or ".exe"\n    path: {scriptPath}')
     if result:
         print('non-zero result of call_ahk_script_path "%s": %s'% (scriptPath, result))
         return 
+
+ProgInfo = collections.namedtuple('ProgInfo', 'prog title topchild classname hndle'.split(' '))
+
+def getProgInfo():
+    """get the prog info, like natlink.getCurrentModule enhanced with toporchild and classname
+    
+    returns program info as namedtuple (prog, title, topchild, classname, hndle)
+
+    So the length of progInfo is 5!
+
+    topchild 'top' or 'child', or '' if no valid window
+          
+    """
+    scriptName = "getProgInfo.ahk"
+    scriptNameExe = "getProgInfo.exe"
+    scriptFileExe = Path(ahkscriptfolder)
+    WinInfoFile = ahkscriptfolder/"proginfofromahk.txt"
+    if WinInfoFile.is_file():
+        WinInfoFile.unlink()
+    
+    script = """; put prog info of current window in file.
+;(prog, title, topchild, classname, hndle)
+
+WinGet pPath, ProcessPath, A
+WinGetTitle, Title, A
+WinGetClass, Class, A
+WinGet wHndle, ID, A
+wHndle := wHndle + 0
+toporchild := "top"
+if DllCall("GetParent", UInt, WinExist("A")) {
+    toporchild := "child"    
+}
+WinGetClass, Class, ahk_id %id%
+WinGetTitle, Title, ahk_id %id%
+
+FileDelete, ##INFOfile##
+FileAppend, %pPath%`n, ##INFOfile##
+FileAppend, %Title%`n, ##INFOfile##
+FileAppend, %toporchild%`n, ##INFOfile##
+FileAppend, %Class%`n, ##INFOfile##
+FileAppend, %wHndle%, ##INFOfile##
+"""
+    script = script.replace('##INFOfile##', str(WinInfoFile))
+    if scriptFileExe.is_file():
+        call_ahk_script_path(scriptFileExe)
+    else:        
+        do_ahk_script(script)
+
+    with open(WinInfoFile, 'r') as fp:
+        progInfo = fp.read().split('\n')
+    if len(progInfo) == 5:
+        # make hndle decimal number:
+        pPath, wTitle, toporchild, classname, hndle = progInfo
+        return ProgInfo(pPath, wTitle, toporchild, classname, hndle)
+    raise ValueError(f'ahk script getProgInfo did not return correct result:\n    length {len(progInfo)}\n    text: {repr(progInfo)}')
+
+GetProgInfo = getProgInfo
+
 
 #def call_ahk_script_text(scriptText):
 #    """call the specified ahk script as a text string
@@ -152,7 +155,7 @@ def call_ahk_script_path(scriptPath):
 #    ahk = win32com.client.Dispatch("AutoHotkey.Script")
 #        
 #    ahk.ahktextdll(script)
-# 
+ 
 def copySampleAhkScripts(fromFolder, toFolder):
     """copy (in new Autohotkey directory) the sample script files
     """
@@ -162,13 +165,13 @@ def copySampleAhkScripts(fromFolder, toFolder):
     for f in fromFolder.glob("*.ahk"):
         inputFile = f
         inputName = f.name
-        stem = f.stem
+        # stem = f.stem
         outputFile = toFolder/inputName
         if not outputFile.is_file():
-            print('---copy AutoHotkey script "{inputName}" from\nSamples directory to "{toFolder}"----'% (filename, fromFolder, toFolder))
+            print(f'---copy AutoHotkey script "{inputName}" from\nSamples directory to "{toFolder}"----')
             shutil.copyfile(inputFile, outputFile)
         elif getFileDate(inputFile) > getFileDate(outputFile):
-            # if compare_f2f(inputFile, outputFile):
+            if not filecmp.cmp(inputFile, outputFile): # inputFile (samples), newer and changed
             #     for i in range(1000):
             #         outputStem = f'{stem}_{i:03d}'
             #         newOutputFile = outputFile.with_name(newOutputName)
@@ -178,28 +181,28 @@ def copySampleAhkScripts(fromFolder, toFolder):
             #         raise OSError('no unused newOutputFile available last: {newOutputFile}')
             #     print(f'AutoHotkey script "{inputName}" has been changed in "sample_ahk"\n   copy to "{toFolder}"\n   keep backup in {newOutputFile}')
             #     shutil.copyfile(outputFile, newOutputFile)
-            shutil.copyfile(inputFile, outputFile)
+                shutil.copyfile(inputFile, outputFile)
           
 def GetRunWinwordScript(filepath, HNDLEfile):
     """construct script than opens a word document
     
     filepath is the Word document to open.
     HNDLEfile is a complete path to a file that will hold the windows handle after the script has run
-    The Bringup script can retrieve the handle from this file (for the moment see actions.UnimacroBringup)
+    The script can retrieve the handle from this file (for the moment see actions.UnimacroBringup)
     
     """
-    script = '''Word := ComObjCreate("Word.Application")
+    script = f'''Word := ComObjCreate("Word.Application")
 Word.Visible := True
-Word.Documents.Open("%s")
+Word.Documents.Open("{filepath}")
 Word.Visible := 1
 Word.Activate
 WinGet, hWnd, ID, A
-FileDelete, %s
-FileAppend, %%hWnd%%, %s
+FileDelete, {HNDLEfile}
+FileAppend, %%hWnd%%, {HNDLEfile}
 '''% (filepath, HNDLEfile, HNDLEfile)
     return script
 
-def ahkBringup(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None):
+def ahkBringup(app, filepath=None, title=None):
     """start a program, folder, file, with AutoHotkey
     
     This functions is related to UnimacroBringup, which works with AppBringup from Dragon,
@@ -210,14 +213,14 @@ def ahkBringup(app, filepath=None, title=None, extra=None, modInfo=None, progInf
     
     """
     if not ahk_is_active():
-        print(f'cannot run ahkBringup, autohotkey is not active')
+        print('cannot run ahkBringup, autohotkey is not active')
     WinInfoFile = str(ahkscriptfolder/"WININFOfromAHK.txt")
     
     ## treat mode = open or edit, finding a app in actions.ini:
     if ((app and app.lower() == "winword") or
-        (filepath and (filepath.endswith(".docx") or filepath.endswith('.doc')))):
-        script = autohotkeyactions.GetRunWinwordScript(filepath, WinInfoFile)
-        result = autohotkeyactions.do_ahk_script(script)
+        (filepath and (str(filepath).endswith(".docx") or str(filepath).endswith('.doc')))):
+        script = GetRunWinwordScript(filepath, WinInfoFile)
+        do_ahk_script(script)
 
     elif app and title:
         ## start eg thunderbird.exe this way
@@ -247,19 +250,19 @@ if ErrorLevel {
 WinGet pPath, ProcessPath, A
 WinGetTitle, Title, A
 WinGet wHndle, ID, A
-FileDelete, ##WININFOfile##
-FileAppend, %pPath%`n, ##WININFOfile##
-FileAppend, %Title%`n, ##WININFOfile##
-FileAppend, %wHndle%, ##WININFOfile##
+FileDelete, ##INFOfile##
+FileAppend, %pPath%`n, ##INFOfile##
+FileAppend, %Title%`n, ##INFOfile##
+FileAppend, %wHndle%, ##INFOfile##
 
 '''
-        basename = os.path.basename(app)
+        basename = app.name
         script = script.replace('##extra##', extra)
         script = script.replace('##app##', app)
         script = script.replace('##basename##', basename)
         script = script.replace('##title##', title)
-        script = script.replace('##WININFOfile##', WinInfoFile)
-        result = autohotkeyactions.do_ahk_script(script)
+        script = script.replace('##INFOfile##', WinInfoFile)
+        do_ahk_script(script)
             
     else:
         ## other programs:
@@ -281,57 +284,99 @@ FileAppend, %wHndle%, ##WININFOfile##
         script.append('FileAppend, %wHndle%, ' + WinInfoFile)
         script = '\n'.join(script)
 
-        result = do_ahk_script(script)
+        do_ahk_script(script)
 
     ## collect the wHndle:
-    if result == 1:
         winInfo = open(WinInfoFile, 'r').read().split('\n')
         if len(winInfo) == 3:
             # make hndle decimal number:
             pPath, wTitle, hndle = winInfo
             hndle = int(hndle, 16)
-            print('extracted pPath: %s, wTitle: %s and hndle: %s'% (pPath, wTitle, hndle))
+            print(f'pPath: {pPath}, wTitle: {wTitle} and hndle: {hndle}')
             return pPath, wTitle, hndle
+
+        print(f'autohotkeyactions, return of getting winInfo in appBringup: "{repr(winInfo)}" (length: {len(winInfo)}')
+        return
+
+autohotkeyBringup = ahkBringup
+
+def GetForegroundWindow():
+    """return the hndle of the ForegroundWindow
+    
+    return value: int: the hndle of the Foreground window
+    return value: str: error message, function failed
+    """
+    WinInfoFile = ahkscriptfolder/"foregroundhndlefromahk.txt"
+    if WinInfoFile.is_file():
+        WinInfoFile.unlink()
+    
+    script = """; put window hndle of current window in file.
+
+WinGet pPath, ProcessPath, A
+WinGet wHndle, ID, A
+wHndle := wHndle + 0
+FileDelete, ##INFOfile##
+FileAppend, %wHndle%, ##INFOfile##
+"""
+    script = script.replace('##INFOfile##', str(WinInfoFile))
+    do_ahk_script(script)
+
+    with open(WinInfoFile, 'r') as fp:
+        gotHndle = fp.read().strip()
+    try:
+        hndleInt = int(gotHndle)
+        return hndleInt
+    except ValueError:
+        if gotHndle:
+            mess = f'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: {gotHndle}'
+            print(mess)
+            return mess
         else:
-            if natlink.isNatSpeakRunning():
-                mess = "Result of ahk_script should be a 3 item list (pPath, wTitle, hndle), not: %s"% repr(winInfo)
-                do_MSG(str(mess))
-            print(str())
-            return 0
-    else:
-        if natlink.isNatSpeakRunning():
-            do_MSG(str(result))
-        print(str(result))
-        return 0
+            mess = 'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: (empty)'
+            print(mess)
+            return mess
 
+def SetForegroundWindow(hndle):
+    """bring window with hndle into the foreground
+     
+    return value 0: success
+    other return value, mostly the hndle of the active window: failure
+    
+    """
+    InfoFile = ahkscriptfolder/"INFOfromAHK.txt"
+    if InfoFile.is_file():
+        InfoFile.unlink()
 
+    script = f'''WinActivate, ahk_id {hndle}
+WinGet wHndle, ID, A
+wHndle := wHndle + 0
+FileDelete, ##INFOfile##
+FileAppend, %wHndle%, ##INFOfile##
+'''
+    script = script.replace('##INFOfile##', str(InfoFile))
+    do_ahk_script(script)
+    winHndle = open(InfoFile, 'r').read().strip()
+    if winHndle:
+        try:
+            winHndle = int(winHndle)
+        except ValueError:
+            print(f'ahk script getIntoForeground to "{hndle}" did not return correct winHndle: {winHndle}')
+            return winHndle
+            
+        if winHndle == hndle:
+            return 0  # ok, then return None
+        print(f'could not switch to wanted hndle {hndle} (got {winHndle})')
+        return winHndle
+    raise ValueError('ahk script getIntoForeground did not return anything')
 
 def getFileDate(modName):
+    """return the last modified date/time of file
+    """
     try:
         modTime = modName.stat().st_mtime
         return modTime
     except OSError:
         return 0        # file not found
-
-def compare_f2f(f1, f2):
-    """Helper to compare two files, return 0 if they are equal."""
-
-    BUFSIZE = 8192
-    fp1 = open(f1)
-    try:
-        fp2 = open(f2)
-        try:
-            while 1:
-                b1 = fp1.read(BUFSIZE)
-                b2 = fp2.read(BUFSIZE)
-                if not b1 and not b2: return 0
-                c = b1 != b2
-                if c:
-                    return c
-        finally:
-            fp2.close()
-    finally:
-        fp1.close()
 
 def GetAhkExe():
     """try to get executable of autohotkey.exe, if not there, empty string is put in ahkexe
@@ -339,14 +384,14 @@ def GetAhkExe():
     """
     global ahkexe
     # no succes, go on with program files:
-    pf = natlinkcorefunctions.getExtendedEnv("PROGRAMFILES")
+    pf = os.path.expandvars("%PROGRAMFILES%")
     if pf.find('(x86)')>0:
         # 64 bit:
-        pf = natlinkcorefunctions.getExtendedEnv("PROGRAMW6432")  # the old pf directory
+        pf = os.path.expandvars("%PROGRAMW6432%") 
     if pf and Path(pf).is_dir():
         pf = Path(pf)
     elif pf:
-        raise OSError(f'cannot find (old style) program files directory: (empty)')
+        raise OSError('cannot find (old style) program files directory: (empty)')
     else:
         raise OSError(f'cannot find (old style) program files directory: {pf}')
     
@@ -356,7 +401,7 @@ def GetAhkExe():
         #print 'AutoHotkey found, %s'% ahkexe
     else:
         ahkexe = ""
-        #print 'AutoHotkey not found on this computer (%s)'% ahkexe
+        print(f'AutoHotkey not found on this computer {ahkexe}')
     
 def GetAhkScriptFolder():
     """try to get AutoHotkey folder as subdirectory of HOME
@@ -383,12 +428,26 @@ def GetAhkScriptFolder():
     copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
     return scriptfolder
 
+
+
+
+
 ## initialise ahkexe and ahkscriptfolder:
-GetAhkExe()
-GetAhkScriptFolder()
+# GetAhkExe() # is done in next line:
+if ahkscriptfolder is None:
+    GetAhkScriptFolder()
+
+
+
 
 if __name__ ==  "__main__":
     print(f'ahk_is_active: {ahk_is_active()}')
-    result = getModInfo()
-    print('result of getModInfo: ', repr(result))
-    result = ahkBringup("notepad")
+    Result = getProgInfo()
+    print('result of getProgModInfo: ', repr(Result))
+    Result = ahkBringup("notepad")
+    call_ahk_script_path(ahkscriptfolder/"getProgInfo.ahk")
+    call_ahk_script_path(ahkscriptfolder/"getProgInfo.exe")
+    # result = getProgInfo()
+    # print('result of getProgModInfo: ', repr(result))
+
+
