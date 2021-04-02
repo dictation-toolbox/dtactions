@@ -1,20 +1,23 @@
-"""Interface to Microsoft Windows SendInput function using ctypes
-
-This code allows sending an arbitrary sequence of raw input
-events via the SendInput call.  Determining the correct sequence
-of raw input events to produce a desired result based on the
-current keyboard layout and key state is the responsibility of the
-caller.
-
-Moved from Vocola, via Natlink to dtactions
-
-Author:  Mark Lillibridge
-Version: 0.6
-"""
+### 
+### Interface to Microsoft Windows SendInput function using ctypes
+### (requires Python 2.5+)
+### 
+###     This code allows sending an arbitrary sequence of raw input
+### events via the SendInput call.  Determining the correct sequence
+### of raw input events to produce a desired result based on the
+### current keyboard layout and key state is the responsibility of the
+### caller.
+### 
+### 
+### Author:  Mark Lillibridge
+### Version: 0.6
+### 
 
 from ctypes import *
 import win32con
 
+
+## 
 ## SendInput function:
 ## 
 ##   Synthesizes keystrokes, mouse motions, and button clicks.
@@ -41,15 +44,12 @@ import win32con
 ## 
 
 def send_input(events):
-    """sends the events to the foreground window
-    
-    alias: sendinput
-    """
     inputs = [e.to_input() for e in events]
     input = (Input * len(events))(*inputs)
     inserted = windll.user32.SendInput(len(input), byref(input), sizeof(Input))
     if inserted != len(events):
         raise ValueError("windll.user32.SendInput: " + FormatMessage())
+
 
 ## 
 ## The raw INPUT data structure used to pass events to SendInput.

@@ -15,8 +15,8 @@ Note: the notation with +, % and ^ is not valid any more, change
 
 (Quintijn Hoogenboom, 2020-12-14)
 """
-import ExtendedSendDragonKeys
-import SendInput
+from dtactions import ExtendedSendDragonKeys
+from dtactions import SendInput
 
 
 def sendkeys(keys):
@@ -29,6 +29,4 @@ def sendkeys(keys):
     pass
 
 if __name__ == "__main__":
-    sendkeys("abc{shift+home}#")
-
-#
+    sendkeys("abc")

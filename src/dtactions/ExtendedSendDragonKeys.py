@@ -1,18 +1,22 @@
-"""Code for parsing extended SendDragonKeys syntax into a series of
-Input events suitable for calling SendInput with.
+### 
+### Code for parsing extended SendDragonKeys syntax into a series of
+### Input events suitable for calling SendInput with.
+### 
+### Uses ctypes (requires Python 2.5+).
+### 
+### Assumes input is 8-bit Windows-1252 encoding.
+### 
+### 
+### Author:  Mark Lillibridge
+### Version: 0.7
+### 
 
-Uses ctypes (requires Python 2.5+).
-
-Assumes input is 8-bit Windows-1252 encoding.
-
-Author:  Mark Lillibridge
-Version: 0.7
-"""
 import re
 import win32con
 
-# from ctypes    import *
+from ctypes    import *
 from SendInput import *
+
 
 debug = False
 
@@ -459,6 +463,7 @@ def how_type_character(char):
     
     return modifiers, virtual_key
 
+
 ### 
 ### 
 ### 
@@ -475,6 +480,8 @@ def windows1252_to_events(code):
 
 def numpad(i):
     return chord_to_events([None, "numkey"+str(i), None, "{numkey"+str(i)+"}"])
+
+
 
 ### 
 ### 
