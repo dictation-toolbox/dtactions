@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from profilehooks import profile
 from dtactions import autohotkeyactions
+from dtactions.sendkeys import sendkeys
 
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
@@ -36,6 +37,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
     def tearDown(self):
         pass
 
+
     @profile(filename=dataDir/'profileinfo.txt')
     def testSimple(self):
         """only testing GetForegroundWindow and getProgInfo (or GetProgInfo)
@@ -51,10 +53,13 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         self.assertEqual(thisHndle, hndleFromGetProgInfo, mess)
         
         notepadHndle = autohotkeyactions.ahkBringup("notepad")[-1]
+        
+        for _ in range(5):
+            autohotkeyactions.SetForegroundWindow(notepadHndle)
+            autohotkeyactions.SetForegroundWindow(thisHndle)
+
+        killWindow(notepadHndle, key_close="{alt+f4}", key_close_dialog="n")
         autohotkeyactions.SetForegroundWindow(notepadHndle)
-        autohotkeyactions.SetForegroundWindow(thisHndle)
-        autohotkeyactions.SetForegroundWindow(notepadHndle)
-        autohotkeyactions.do_ahk_script("WinClose")
         autohotkeyactions.SetForegroundWindow(thisHndle)
         autohotkeyactions.SetForegroundWindow(notepadHndle)
         result = autohotkeyactions.SetForegroundWindow(123)
@@ -65,6 +70,39 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         
         self.assertNotEqual(result, 123, mess)
             
+def killWindow(hndle, key_close=None, key_close_dialog=None):
+    """kill the app with hndle,
+    
+    like the unimacro shorthand command KW (killwindow)
+    """
+    result = autohotkeyactions.SetForegroundWindow(hndle)
+    if result:
+        print(f'window {hndle} not any more available')
+        return
+    key_close = key_close or "{alt+f4}"
+    key_close_dialog = key_close_dialog or "n"
+    progInfo = autohotkeyactions.getProgInfo()
+    foregroundProg = progInfo.prog
+    if progInfo.hndle != hndle:
+        print(f'invalid window {progInfo.hndle} in the foreground, want {hndle}')
+        return
+    if progInfo.toporchild == 'child':
+        print(f'child window in the foreground, expected top {hndle}')
+        return
+    sendkeys(key_close)
+    progInfo = autohotkeyactions.getProgInfo()
+    if progInfo.prog != foregroundProg:
+        return
+    if progInfo.toporchild == 'child':
+        sendkeys(key_close_dialog)
+
+    progInfo = autohotkeyactions.getProgInfo()
+    if progInfo.toporchild == 'child':
+        print('killWindow, failed to close child dialog')
+        return
+     
+    
+
 
 def log(text):
     print(text, file=open(logFileName, "a"))

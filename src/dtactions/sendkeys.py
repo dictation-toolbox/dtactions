@@ -15,8 +15,8 @@ Note: the notation with +, % and ^ is not valid any more, change
 
 (Quintijn Hoogenboom, 2020-12-14)
 """
-from natlinkcore import ExtendedSendDragonKeys
-from natlinkcore import SendInput
+import ExtendedSendDragonKeys
+import SendInput
 
 
 def sendkeys(keys):
@@ -29,4 +29,6 @@ def sendkeys(keys):
     pass
 
 if __name__ == "__main__":
-    sendkeys("abc")
+    sendkeys("abc{shift+home}#")
+
+#

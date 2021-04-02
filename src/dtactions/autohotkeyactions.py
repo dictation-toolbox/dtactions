@@ -84,20 +84,18 @@ def call_ahk_script_path(scriptPath):
         print('non-zero result of call_ahk_script_path "%s": %s'% (scriptPath, result))
         return 
 
-ProgInfo = collections.namedtuple('ProgInfo', 'prog title topchild classname hndle'.split(' '))
+ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title topchild classname hndle'.split(' '))
 
 def getProgInfo():
     """get the prog info, like natlink.getCurrentModule enhanced with toporchild and classname
     
-    returns program info as namedtuple (prog, title, topchild, classname, hndle)
+    returns program info as namedtuple (progpath, prog, title, topchild, classname, hndle)
 
-    So the length of progInfo is 5!
+    So the length of progInfo is 6!
 
     topchild 'top' or 'child', or '' if no valid window
           
     """
-    scriptName = "getProgInfo.ahk"
-    scriptNameExe = "getProgInfo.exe"
     scriptFileExe = Path(ahkscriptfolder)
     WinInfoFile = ahkscriptfolder/"proginfofromahk.txt"
     if WinInfoFile.is_file():
@@ -126,17 +124,18 @@ FileAppend, %Class%`n, ##INFOfile##
 FileAppend, %wHndle%, ##INFOfile##
 """
     script = script.replace('##INFOfile##', str(WinInfoFile))
-    if scriptFileExe.is_file():
-        call_ahk_script_path(scriptFileExe)
-    else:        
-        do_ahk_script(script)
+    do_ahk_script(script)
 
     with open(WinInfoFile, 'r') as fp:
         progInfo = fp.read().split('\n')
+        
+    # note ahk returns 5 lines, but ProgInfo has 6 items.   
+        
     if len(progInfo) == 5:
         # make hndle decimal number:
         pPath, wTitle, toporchild, classname, hndle = progInfo
-        return ProgInfo(pPath, wTitle, toporchild, classname, hndle)
+        prog = Path(pPath).stem
+        return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
     raise ValueError(f'ahk script getProgInfo did not return correct result:\n    length {len(progInfo)}\n    text: {repr(progInfo)}')
 
 GetProgInfo = getProgInfo
