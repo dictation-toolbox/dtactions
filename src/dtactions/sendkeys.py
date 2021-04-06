@@ -26,7 +26,7 @@ def sendkeys(keys):
     m = chord_pattern.search(keys)
     if m:
         matches = chord_pattern.split(keys)
-        print(matches)
+        # print(matches)
         for part in matches:
             if not part:
                 continue
@@ -34,6 +34,7 @@ def sendkeys(keys):
                 part = part[1:-1]  # strip { and }
                 parts = part.split("+")
                 if len(parts) > 1:
+                    # pylint: disable=R1715
                     key = parts[-1]
                     if key in synonym_keys:
                         key = synonym_keys[key]
@@ -48,7 +49,7 @@ def sendkeys(keys):
             else:
                 action_text.Text(part).execute()
     else:
-        action_text.Text(key).execute()
+        action_text.Text(keys).execute()
     
 if __name__ == "__main__":
     # t1 = 'a{ctrl+o}hallo{escape}k'
