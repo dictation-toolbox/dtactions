@@ -69,11 +69,17 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+documentation/_build/
 
 # PyBuilder
 .pybuilder/
 target/
+
+# Backup files
+*~
+
+# Emacs
+*\#
 
 # Jupyter Notebook
 .ipynb_checkpoints
