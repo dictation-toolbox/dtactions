@@ -4,33 +4,28 @@
 #   Portions (c) Copyright 1999 by Dragon Systems, Inc.
 #
 # unittestActions.py
-#
-# This module tests the actions module (the "unimacro actions")
-# Quintijn Hoogenboom, 2021
-#
+
+"""
+This module tests the actions module (the "unimacro actions")
+
+Quintijn Hoogenboom, 2021
+"""
 import sys
 import unittest
-import time
 from pathlib import Path
 
-try:
-    from dtactions.__init__ import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print(f'Run this module after "build_package" and "flit install --symlink"\n')
-    raise
-
-thisDir = getThisDir(__file__)
-dtactionsDir = thisDir.parent
-
-# import TestCaseWithHelpers
-import unittest
-# import natlink
 from dtactions import natlinkclipboard
 from dtactions.unimacro import actions
 # from dtactions.unimacro.actions import 
 
-class TestError(Exception):
-    pass
+try:
+    from dtactions.__init__ import getThisDir, checkDirectory
+except ModuleNotFoundError:
+    print('Run this module after "build_package" and "flit install --symlink"\n')
+    raise
+
+thisDir = getThisDir(__file__)
+dtactionsDir = thisDir.parent
 
 dataDirDtactions = Path.home()/".dtactions"
 dataDir = dataDirDtactions/'unimacro'
@@ -41,6 +36,9 @@ print(f'output will be logged in {logFileName}')
 print('start UnittestActions', file=open(logFileName, 'w'))
 
 class UnittestActions(unittest.TestCase):
+    """class that tests unimacro actions
+    """
+
     def setUp(self):
         pass        
     def tearDown(self):
@@ -60,6 +58,8 @@ class UnittestActions(unittest.TestCase):
         result = act.doKeystroke("Hello world")
         print(f'result doKeystroke: {result}')
                  
+                 
+                 
     def log(self, t):
         print(t, file=open(logFileName, "a"))
 
@@ -69,7 +69,7 @@ def run():
     sys.stderr = open(logFileName, 'a')
     
     suite = unittest.makeSuite(UnittestActions, 'test')
-    result = unittest.TextTestRunner().run(suite)
+    unittest.TextTestRunner().run(suite)
     
 if __name__ == "__main__":
     print(f'run the tests, result will be in {logFileName}')

@@ -32,6 +32,7 @@ import filecmp
 from pathlib import Path
 import collections
 import os.path  # only for getting the ahk exe path...
+import time
 
 ## get thisDir and other basics...
 try:
@@ -84,25 +85,24 @@ def call_ahk_script_path(scriptPath):
         print('non-zero result of call_ahk_script_path "%s": %s'% (scriptPath, result))
         return 
 
-ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title topchild classname hndle'.split(' '))
+ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 
 def getProgInfo():
     """get the prog info, like natlink.getCurrentModule enhanced with toporchild and classname
     
-    returns program info as namedtuple (progpath, prog, title, topchild, classname, hndle)
+    returns program info as namedtuple (progpath, prog, title, toporchild, classname, hndle)
 
     So the length of progInfo is 6!
 
-    topchild 'top' or 'child', or '' if no valid window
+    toporchild 'top' or 'child', or '' if no valid window
           
     """
-    scriptFileExe = Path(ahkscriptfolder)
     WinInfoFile = ahkscriptfolder/"proginfofromahk.txt"
     if WinInfoFile.is_file():
         WinInfoFile.unlink()
     
     script = """; put prog info of current window in file.
-;(prog, title, topchild, classname, hndle)
+;(prog, title, toporchild, classname, hndle)
 
 WinGet pPath, ProcessPath, A
 WinGetTitle, Title, A
@@ -113,8 +113,8 @@ toporchild := "top"
 if DllCall("GetParent", UInt, WinExist("A")) {
     toporchild := "child"    
 }
-WinGetClass, Class, ahk_id %id%
-WinGetTitle, Title, ahk_id %id%
+WinGetClass, Class, A
+WinGetTitle, Title, A
 
 FileDelete, ##INFOfile##
 FileAppend, %pPath%`n, ##INFOfile##
@@ -134,6 +134,7 @@ FileAppend, %wHndle%, ##INFOfile##
     if len(progInfo) == 5:
         # make hndle decimal number:
         pPath, wTitle, toporchild, classname, hndle = progInfo
+        hndle = int(hndle)
         prog = Path(pPath).stem
         return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
     raise ValueError(f'ahk script getProgInfo did not return correct result:\n    length {len(progInfo)}\n    text: {repr(progInfo)}')
@@ -277,24 +278,33 @@ FileAppend, %wHndle%, ##INFOfile##
         script.append("WinGet, pPath, ProcessPath, ahk_pid %NewPID%")
         script.append("WinGetTitle, Title, A")  ##, ID, ahk_pid %NewPID%")
         script.append("WinGet, wHndle, ID, ahk_pid %NewPID%")
+        script.append("""wHndle := wHndle + 0
+toporchild := "top"
+if DllCall("GetParent", UInt, WinExist("A")) {
+    toporchild := "child"    
+}
+WinGetClass, Class, A
+WinGetTitle, Title, A
+""")
         script.append('FileDelete, ' + WinInfoFile)
         script.append('FileAppend, %pPath%`n, ' + WinInfoFile)
         script.append('FileAppend, %Title%`n, ' + WinInfoFile)
+        script.append('FileAppend, %toporchild%`n, ' + WinInfoFile)
+        script.append('FileAppend, %Class%`n, ' + WinInfoFile)
         script.append('FileAppend, %wHndle%, ' + WinInfoFile)
         script = '\n'.join(script)
 
         do_ahk_script(script)
 
     ## collect the wHndle:
-        winInfo = open(WinInfoFile, 'r').read().split('\n')
-        if len(winInfo) == 3:
-            # make hndle decimal number:
-            pPath, wTitle, hndle = winInfo
-            hndle = int(hndle, 16)
-            print(f'pPath: {pPath}, wTitle: {wTitle} and hndle: {hndle}')
-            return pPath, wTitle, hndle
+        progInfo = open(WinInfoFile, 'r').read().split('\n')
+        if len(progInfo) == 5:
+            pPath, wTitle, toporchild, classname, hndle = progInfo
+            hndle = int(hndle)
+            prog = Path(pPath).stem
+            return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
 
-        print(f'autohotkeyactions, return of getting winInfo in appBringup: "{repr(winInfo)}" (length: {len(winInfo)}')
+        print(f'autohotkeyactions, return of getting proInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}')
         return
 
 autohotkeyBringup = ahkBringup
@@ -326,6 +336,7 @@ FileAppend, %wHndle%, ##INFOfile##
         hndleInt = int(gotHndle)
         return hndleInt
     except ValueError:
+        # pylint: disable=R1705  # (unnecessary else)
         if gotHndle:
             mess = f'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: {gotHndle}'
             print(mess)
@@ -381,6 +392,7 @@ def GetAhkExe():
     """try to get executable of autohotkey.exe, if not there, empty string is put in ahkexe
     
     """
+    # pylint: disable=W0603  # (using the global statement)
     global ahkexe
     # no succes, go on with program files:
     pf = os.path.expandvars("%PROGRAMFILES%")
@@ -409,6 +421,7 @@ def GetAhkScriptFolder():
     
     create if non-existent.
     """
+    # pylint: disable=W0603  # (using the global statement)
     global ahkscriptfolder
 
     if ahkexe is None:
@@ -440,13 +453,22 @@ if ahkscriptfolder is None:
 
 
 if __name__ ==  "__main__":
+
+    from sendkeys import sendkeys
     print(f'ahk_is_active: {ahk_is_active()}')
     Result = getProgInfo()
-    print('result of getProgModInfo: ', repr(Result))
+    print(f'\nresult of getProgModInfo: (start)\n{repr(Result)}')
     Result = ahkBringup("notepad")
-    call_ahk_script_path(ahkscriptfolder/"getProgInfo.ahk")
-    call_ahk_script_path(ahkscriptfolder/"getProgInfo.exe")
-    # result = getProgInfo()
-    # print('result of getProgModInfo: ', repr(result))
+    print(f'\nresult of ahkBringup("notepad"):\n{repr(Result)}')
+    Result = getProgInfo()
+    print(f'\nresult of getProgModInfo (should be notepad):\n{repr(Result)}')
+    time.sleep(1)
+    # quite notepad again...
+    sendkeys("{alt+f4}")
+    Result = getProgInfo()
+    print(f'\nresult of getProgModInfo:\n{repr(Result)}')
+    
+    
+    
 
 

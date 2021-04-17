@@ -6,6 +6,7 @@ This module tests the actions, that are performed by autohotkey (autohotkeyactio
 Quintijn Hoogenboom, 2021
 """
 import unittest
+import time
 from pathlib import Path
 from profilehooks import profile
 from dtactions import autohotkeyactions
@@ -56,8 +57,10 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         
         for _ in range(5):
             autohotkeyactions.SetForegroundWindow(notepadHndle)
+            sendkeys('xxx')
             autohotkeyactions.SetForegroundWindow(thisHndle)
 
+        time.sleep(1)
         killWindow(notepadHndle, key_close="{alt+f4}", key_close_dialog="n")
         autohotkeyactions.SetForegroundWindow(notepadHndle)
         autohotkeyactions.SetForegroundWindow(thisHndle)
@@ -80,7 +83,7 @@ def killWindow(hndle, key_close=None, key_close_dialog=None):
         print(f'window {hndle} not any more available')
         return
     key_close = key_close or "{alt+f4}"
-    key_close_dialog = key_close_dialog or "n"
+    key_close_dialog = key_close_dialog or "{alt+n}"
     progInfo = autohotkeyactions.getProgInfo()
     foregroundProg = progInfo.prog
     if progInfo.hndle != hndle:
@@ -105,9 +108,13 @@ def killWindow(hndle, key_close=None, key_close_dialog=None):
 
 
 def log(text):
+    """print text and log to logFile
+    """
+    print(text)
     print(text, file=open(logFileName, "a"))
 
 def run():
+    """run the unittest procedure"""
     print('starting UnittestAutohotkeyactions')
 
     suite = unittest.makeSuite(UnittestAutohotkeyactions, 'test')
