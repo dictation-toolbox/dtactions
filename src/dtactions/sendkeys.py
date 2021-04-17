@@ -15,7 +15,7 @@ Some keys require a synonym, for example "esc", which is "escape" in action_key.
 (Quintijn Hoogenboom, 2021-04-04)
 """
 import re
-from dragonfly.actions import action_key, action_text
+from dragonfly.actions import action_key
 
 chord_pattern = re.compile(r'(\{.*?\})')
 synonym_keys = dict(esc="escape")

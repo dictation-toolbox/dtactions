@@ -13,7 +13,7 @@ This replaces the `natlink.playString` and the `SendInput` sending keys
 modules
 
 
-sendkeys function
+sendkeys module
 ------------------------------------------------------------------------------
 .. automodule:: dtactions.sendkeys
    :members:
