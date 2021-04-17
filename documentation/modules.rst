@@ -8,3 +8,4 @@ This section includes the available modules in DT actions.
 
    natlinkclipboard
    monitorfunctions
+   sendkeys
