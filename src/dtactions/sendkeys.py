@@ -46,9 +46,13 @@ def sendkeys(keys):
                     
                 action_key.Key(key).execute()
             else:
-                action_text.Text(part).execute()
+                part_keys = ','.join(t for t in part)
+                action_key.Key(part_keys).execute()
+                # action_text.Text(part).execute()
     else:
-        action_text.Text(key).execute()
+        all_keys = ','.join(t for t in keys)
+        action_key.Key(all_keys).execute()
+        # action_text.Text(keys).execute()
     
 if __name__ == "__main__":
     # t1 = 'a{ctrl+o}hallo{escape}k'
@@ -60,5 +64,6 @@ if __name__ == "__main__":
     t3 = 'abc{shift+left}def{shift+left 2}ghi{left 4}{shift+end}{del}'
     sendkeys(t3)
     
-
-
+    sendkeys("abcde")
+    #ababababcde#ababcde
+    
