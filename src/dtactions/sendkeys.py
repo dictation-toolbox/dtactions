@@ -22,6 +22,8 @@ synonym_keys = dict(esc="escape")
 
 def sendkeys(keys):
     """go via dragonfly action_key
+    
+    ! at end of the chord, triggers use_hardware=True
     """
     m = chord_pattern.search(keys)
     if m:
@@ -32,6 +34,12 @@ def sendkeys(keys):
                 continue
             if part.startswith('{'):
                 part = part[1:-1]  # strip { and }
+                use_hardware = False
+               
+                if part.endswith("!"):
+                    use_hardware = True
+                    part = part.rstrip("!")
+                    part = part.rstrip()
                 parts = part.split("+")
                 if len(parts) > 1:
                     key = parts[-1]
@@ -44,7 +52,7 @@ def sendkeys(keys):
                 if key.find(' ') > 0:
                     key = key.replace(' ', ':')
                     
-                action_key.Key(key).execute()
+                action_key.Key(key, use_hardware=use_hardware).execute()
             else:
                 part_keys = ','.join(t for t in part)
                 action_key.Key(part_keys).execute()
@@ -61,9 +69,9 @@ if __name__ == "__main__":
     # sendkeys(t2)
     
     # only ab should remain:
-    t3 = 'abc{shift+left}def{shift+left 2}ghi{left 4}{shift+end}{del}'
+    t3 = '{shift+left!}def{shift+left 2}ghi{left 4}{shift+end}{del}'
     sendkeys(t3)
     
     sendkeys("abcde")
-    #ababababcde#ababcde
+    # abcde
     
