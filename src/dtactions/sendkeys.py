@@ -3,9 +3,9 @@
 # Licensed under the LGPL.
 """shortcut to the sendkeys mechanism of Natlink/Vocola
 
-usage: import sendkeys
+usage: :code:`from dtactions.sendkeys import sendkeys`
 
-and then: sendkeys.sendkeys("keystrokes")
+and then: :code"`sendkeys("keystrokes")`
 
 This module now adopts the dragonfly action_key and action_text modules,
 so {alt+w} must be converted to "a-w" etc.
@@ -21,9 +21,9 @@ chord_pattern = re.compile(r'(\{.*?\})')
 synonym_keys = dict(esc="escape")
 
 def sendkeys(keys):
-    """go via dragonfly action_key
-    
-    ! at end of the chord, triggers use_hardware=True
+    """send keystrokes via dragonfly action_key.Keys() function
+   
+    "!" at the end of a chord, triggers use_hardware=True
     """
     m = chord_pattern.search(keys)
     if m:
