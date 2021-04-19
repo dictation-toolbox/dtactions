@@ -1,5 +1,6 @@
-# This file is part of Dragonfly.
+# This file is part of Dragonfly and Unimacro
 # (c) Copyright 2007, 2008 by Christo Butcher
+# (c) Copyright 2002, by Quintijn Hoogenboom
 # Licensed under the LGPL.
 """shortcut to the sendkeys mechanism of Natlink/Vocola
 

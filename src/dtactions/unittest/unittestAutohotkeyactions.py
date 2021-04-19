@@ -73,35 +73,6 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         
         self.assertNotEqual(result, 123, mess)
             
-def killWindow(hndle, key_close=None, key_close_dialog=None):
-    """kill the app with hndle,
-    
-    like the unimacro shorthand command KW (killwindow)
-    """
-    result = autohotkeyactions.SetForegroundWindow(hndle)
-    if result:
-        print(f'window {hndle} not any more available')
-        return
-    key_close = key_close or "{alt+f4}"
-    key_close_dialog = key_close_dialog or "{alt+n}"
-    progInfo = autohotkeyactions.getProgInfo()
-    foregroundProg = progInfo.prog
-    if progInfo.hndle != hndle:
-        print(f'invalid window {progInfo.hndle} in the foreground, want {hndle}')
-        return
-    if progInfo.toporchild == 'child':
-        print(f'child window in the foreground, expected top {hndle}')
-        return
-    sendkeys(key_close)
-    progInfo = autohotkeyactions.getProgInfo()
-    if progInfo.prog != foregroundProg:
-        return
-    if progInfo.toporchild == 'child':
-        sendkeys(key_close_dialog)
-
-    progInfo = autohotkeyactions.getProgInfo()
-    if progInfo.toporchild == 'child':
-        print('killWindow, failed to close child dialog')
         return
      
     
