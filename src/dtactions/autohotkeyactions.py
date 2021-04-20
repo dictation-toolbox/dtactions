@@ -33,13 +33,14 @@ from pathlib import Path
 import collections
 import os.path  # only for getting the ahk exe path...
 import time
-
+from dtactions.sendkeys import sendkeys
 ## get thisDir and other basics...
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
 except ModuleNotFoundError:
     print('Run this module after "build_package" and "flit install --symlink"\n')
     raise
+
 
 dtactions = thisDir = getThisDir(__file__)
 sampleAhkDirectory = dtactions/'samples'/'autohotkey'
@@ -134,7 +135,10 @@ FileAppend, %wHndle%, ##INFOfile##
     if len(progInfo) == 5:
         # make hndle decimal number:
         pPath, wTitle, toporchild, classname, hndle = progInfo
-        hndle = int(hndle)
+        if hndle:
+            hndle = int(hndle)
+        else:
+            hndle = 0
         prog = Path(pPath).stem
         return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
     raise ValueError(f'ahk script getProgInfo did not return correct result:\n    length {len(progInfo)}\n    text: {repr(progInfo)}')
@@ -212,9 +216,9 @@ def ahkBringup(app, filepath=None, title=None):
     So better fit for debugging purposes.
     
     """
-    # pylint: disable=R1710
     if not ahk_is_active():
         print('cannot run ahkBringup, autohotkey is not active')
+        return 0
     WinInfoFile = str(ahkscriptfolder/"WININFOfromAHK.txt")
     
     ## treat mode = open or edit, finding a app in actions.ini:
@@ -297,16 +301,16 @@ WinGetTitle, Title, A
 
         do_ahk_script(script)
 
-    ## collect the wHndle:
-        progInfo = open(WinInfoFile, 'r').read().split('\n')
-        if len(progInfo) == 5:
-            pPath, wTitle, toporchild, classname, hndle = progInfo
-            hndle = int(hndle)
-            prog = Path(pPath).stem
-            return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
+    ## collect the progInfo:
+    progInfo = open(WinInfoFile, 'r').read().split('\n')
+    if len(progInfo) == 5:
+        pPath, wTitle, toporchild, classname, hndle = progInfo
+        hndle = int(hndle)
+        prog = Path(pPath).stem
+        return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
 
-        print(f'autohotkeyactions, return of getting proInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}')
-        return
+    print(f'autohotkeyactions, return of getting proInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}')
+    return 0
 
 autohotkeyBringup = ahkBringup
 
@@ -337,15 +341,13 @@ FileAppend, %wHndle%, ##INFOfile##
         hndleInt = int(gotHndle)
         return hndleInt
     except ValueError:
-        # pylint: disable=R1705  # (unnecessary else)
         if gotHndle:
             mess = f'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: {gotHndle}'
             print(mess)
             return mess
-        else:
-            mess = 'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: (empty)'
-            print(mess)
-            return mess
+        mess = 'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: (empty)'
+        print(mess)
+        return mess
 
 def SetForegroundWindow(hndle):
     """bring window with hndle into the foreground
@@ -441,45 +443,77 @@ def GetAhkScriptFolder():
     copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
     return scriptfolder
 
-def killWindow(hndle, key_close=None, key_close_dialog=None):
+def killWindow(hndle=None, key_close=None, key_close_dialog=None, silent=True):
     """kill the app with hndle,
     
     like the unimacro shorthand command KW (killwindow)
         
     input:
-    hndle: int, windows handle of the app to be closed
+    hndle: int, windows handle of the app to be closed, normally leave away,
+                the foreground hndle is taken
     key_close: keystrokes to be performed to close a top window, default: `{alt+f4}`
     key_close_dialog: keystrokes to close the dialog if a dialog (child window) is in
-                      the foreground. Default  `{esc}`
+                      the foreground. Default  `{alt+n}`
+    silent: if messages are printed (True by default)
+    
+    returns: True if success
+             message with progInfo (if possible) if fail
     
     tested with unittestAutohotkeyactions.py...
     """
-    result = SetForegroundWindow(hndle)
-    if result:
-        print(f'window {hndle} not any more available')
-        return
+    # pylint: disable=R0911, R0912
+    if hndle:
+        result = SetForegroundWindow(hndle)
+        if not result == 0:
+            mess = f'window {hndle} not any more available'
+            if not silent:
+                print(mess)
+            return mess
+    progInfo = getProgInfo()
+    if hndle:
+        if hndle != progInfo.hndle:
+            mess = f'hndle {hndle} does not match hndle of foreground window\n{progInfo}'
+            return mess
+    else:
+        hndle = progInfo.hndle
+    
     key_close = key_close or "{alt+f4}"
     key_close_dialog = key_close_dialog or "{alt+n}"
-    progInfo = getProgInfo()
-    foregroundProg = progInfo.prog
-    if progInfo.hndle != hndle:
-        print(f'invalid window {progInfo.hndle} in the foreground, want {hndle}')
-        return
+
     if progInfo.toporchild == 'child':
-        print(f'child window in the foreground, expected top {hndle}')
-        return
+        if not silent:
+            print('child window in the foreground, first close, then proceed')
+        sendkeys("{escape}")
+        time.sleep(0.5)
+        foregroundProgInfo = getProgInfo()
+        if progInfo.prog != foregroundProgInfo.prog:
+            mess = f'after esc key, there is now another program in the foreground: {progInfo.prog}'
+            return mess
+    
+    ## close the window:
     sendkeys(key_close)
-    progInfo = getProgInfo()
-    if progInfo.prog != foregroundProg:
-        return
-    if progInfo.toporchild == 'child':
-        sendkeys(key_close_dialog)
+    newProgInfo = getProgInfo()
+    if newProgInfo.prog != progInfo.prog:
+        # OK!
+        return True
+    
+    ## no success, child window must be closed:
+    if newProgInfo.toporchild == 'top':
+        mess = f'if file needs saving, a child window should be on top now, not {newProgInfo}'
+        return mess
+    
+    ## try to send the no save close dialog key now:
+    sendkeys(key_close_dialog)
 
     progInfo = getProgInfo()
     if progInfo.toporchild == 'child':
-        print('killWindow, failed to close child dialog')
-
-
+        mess = f'killWindow, failed to close child dialog\n\t{progInfo}'
+        return mess
+    
+    if hndle == progInfo.hndle:
+        mess = f'killing window failed for {hndle}\n\t{progInfo}'
+        return mess
+    return True
 
 
 ## initialise ahkexe and ahkscriptfolder:
@@ -491,8 +525,6 @@ if ahkscriptfolder is None:
 
 
 if __name__ ==  "__main__":
-
-    from sendkeys import sendkeys
     print(f'ahk_is_active: {ahk_is_active()}')
     Result = getProgInfo()
     print(f'\nresult of getProgModInfo: (start)\n{repr(Result)}')

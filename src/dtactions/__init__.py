@@ -101,7 +101,7 @@ def checkDirectory(directory, create=None):
         directory = Path(directory)
     if directory.is_dir():
         return
-    elif create is False:
+    if create is False:
         raise OSError(f'Cannot find directory {directory}, but it should be there.')
     if directory.exists():
         raise OSError(f'path exists, but is not a directory: {directory}')
@@ -122,3 +122,4 @@ def warning(text):
         return
     warningTexts.append(textForeward)
     print(text)
+    

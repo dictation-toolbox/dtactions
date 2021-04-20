@@ -34,48 +34,104 @@ class UnittestAutohotkeyactions(unittest.TestCase):
     """test actions of the module "autohotkeyactions"
     """
     def setUp(self):
-        pass        
+        self.notepadHndles = []        
     def tearDown(self):
-        pass
+        for hndle in self.notepadHndles:
+            if autohotkeyactions.SetForegroundWindow(hndle) == 0:
+                autohotkeyactions.killWindow()
 
 
-    @profile(filename=dataDir/'profileinfo.txt')
-    def testSimple(self):
-        """only testing GetForegroundWindow and getProgInfo (or GetProgInfo)
-        
+    def testKillWindow(self):
+        """test the autohotkey version of killWindow
         """
         thisHndle = autohotkeyactions.GetForegroundWindow()
-        thisProgInfo = autohotkeyactions.getProgInfo()
-        hndleFromGetProgInfo = thisProgInfo.hndle   # or thisProgInfo[-1]
-        mess = '\n'.join(['',
-            'GetForegroundWindow and getProgInfo should return the same hndle but:',
-            f'getForegroundWindow: {thisHndle}',
-            f'from getProgInfo: {hndleFromGetProgInfo}', '='*40])
-        self.assertEqual(thisHndle, hndleFromGetProgInfo, mess)
+        # thisProgInfo = autohotkeyactions.getProgInfo()
         
-        notepadHndle = autohotkeyactions.ahkBringup("notepad")[-1]
+        ## empty notepad window close again:    
+        notepadInfo = autohotkeyactions.ahkBringup("notepad")
+        notepadHndle = notepadInfo.hndle
+        self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
         
-        for _ in range(5):
-            autohotkeyactions.SetForegroundWindow(notepadHndle)
-            sendkeys('xxx')
-            autohotkeyactions.SetForegroundWindow(thisHndle)
+        ## create a child window
+        sendkeys("{ctrl+o}")
+        time.sleep(0.5)
+        childInfo = autohotkeyactions.getProgInfo()
+        childHndle = childInfo[-1]
+        
+        print(f'notepad, notepadHndle: {notepadHndle}, child: {childHndle}\n{childInfo}')
 
-        time.sleep(1)
-        killWindow(notepadHndle, key_close="{alt+f4}", key_close_dialog="n")
-        autohotkeyactions.SetForegroundWindow(notepadHndle)
-        autohotkeyactions.SetForegroundWindow(thisHndle)
-        autohotkeyactions.SetForegroundWindow(notepadHndle)
-        result = autohotkeyactions.SetForegroundWindow(123)
-        mess = '\n'.join(['',
-            'SetForegroundWindow should not return hndle of non existing window (123):',
-            f'expected: {notepadHndle}',
-            f'got {result}', '='*40])
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)        
+        ## failed experiment: cannot find back the child window, when you get the top window in the foreground:
+        # self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+        # result = autohotkeyactions.SetForegroundWindow(notepadHndle)        
+        # self.assertTrue(result == 0, f'calling notepadHndle seems to succeed, but child window is in front\n\tnotepad: {notepadInfo}\n\tchildwindow: {childHndle}')
+        # 
+        # sendkeys("{alt+tab}")
+        # time.sleep(0.5)
+        # sendkeys("{alt+tab}")
+        # time.sleep(0.5)
+        # 
+        # result = autohotkeyactions.GetForegroundWindow()
         
-        self.assertNotEqual(result, 123, mess)
-            
-        return
-     
-    
+        # when the hndle of the open child window is given, this works all right
+        # the child window is closed, with {esc}, and then the normal killWindow procedure follows.
+        result = autohotkeyactions.killWindow(childHndle)
+        self.assertTrue(result is True, f'result of killing notepad should be 0, not {result}')
+
+        ## now with text in the window:
+        notepadHndle = autohotkeyactions.ahkBringup("notepad")[-1]
+        self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
+
+        ## print a line of text:
+        sendkeys("the quick brown fox...")
+
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+
+        result = autohotkeyactions.killWindow(notepadHndle)
+        self.assertTrue(result is True, f'result of killing notepad should be 0, not {result}')
+        
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)        
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+
+        ####### close with wrong key::::::::::::::::::::::::::::
+        ## empty notepad window close again:    
+        notepadHndle = autohotkeyactions.ahkBringup("notepad")[-1]
+        self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
+        
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+
+        result = autohotkeyactions.killWindow(notepadHndle, key_close="{alt+f5}")   # should be {alt+f4}
+        self.assertFalse(result is True, f'result of killing notepad should NOT be True\n\t{result}')
+
+        result = autohotkeyactions.killWindow(notepadHndle)   # should be {alt+f4}
+        self.assertTrue(result is True, f'result of killing notepad should be True, not\n\t{result}')
+        
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)        
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+        
+        ## now with text in the window:
+        notepadHndle = autohotkeyactions.ahkBringup("notepad")[-1]
+        self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
+
+        ## print a line of text:
+        sendkeys("the quick brown fox...")
+
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+
+        result = autohotkeyactions.killWindow(notepadHndle, key_close_dialog="{alt+m}")
+        self.assertFalse(result is True, f'result of killing notepad should be not True\n\t{result}')
+
+        ## now do it good:
+        result = autohotkeyactions.killWindow()
+        self.assertTrue(result is True, f'result of killing notepad should be True, not:\n\t{result}')
+        
+        result = autohotkeyactions.SetForegroundWindow(thisHndle)        
+        self.assertTrue(result == 0, f'calling window should be in the foreground again {thisHndle}')
+
+
 
 
 def log(text):
