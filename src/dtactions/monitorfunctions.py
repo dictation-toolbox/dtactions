@@ -69,16 +69,14 @@ This module provides functions for getting:
 -- helper functions:
     
 """
-
-import win32api
-import math
-import win32gui
-import win32con
-import time
+# pylint: disable=C0302
 import pprint
-import types
+import time
 import math
 import copy
+import win32api
+import win32gui
+import win32con
 from dtactions import messagefunctions # only for taskbar position (left, bottom etc)
 
 MONITOR_INFO = None
@@ -90,6 +88,7 @@ NMON = None
 def monitor_info():
     """collecting all the essential information
     """
+    # pylint: disable=W0603
     global MONITOR_INFO
     global MONITOR_HNDLES
     global BORDERX, BORDERY
@@ -99,8 +98,8 @@ def monitor_info():
     if NMON < 1:
         raise ValueError("monitor_info: system should have at least one monitor, strange result: %s"% NMON)
     MONITOR_INFO = {}
-    ALL_MONITOR_INFO = [item for item in win32api.EnumDisplayMonitors(None, None)]
-    for hndle, dummy, monitorRect in ALL_MONITOR_INFO:
+    ALL_MONITOR_INFO = list(win32api.EnumDisplayMonitors(None, None))
+    for hndle, _dummy, _monitorRect in ALL_MONITOR_INFO:
         hndle = int(hndle)
         MONITOR_INFO[hndle] = win32api.GetMonitorInfo(hndle)
         m = MONITOR_INFO[hndle]
@@ -126,6 +125,7 @@ def getScreenRectData():
 def fake_monitor_info_for_testing(nmon, virtual_screen):
     """test if changed monitor data come through in calling program
     """
+    # pylint: disable=W0603
     global NMON, VIRTUAL_SCREEN
     NMON = nmon
     VIRTUAL_SCREEN = virtual_screen
@@ -197,7 +197,7 @@ def get_monitor_rect(monitorIndex):
         moninfo = MONITOR_INFO[MONITOR_HNDLES[monitorIndex]]
     except IndexError:
         print('monitorfunctions.get_monitor_rect: monitorindex not available %s'% monitorIndex)
-        return
+        return False
     rect = copy.copy(moninfo['Monitor'])
     return rect
 
@@ -211,7 +211,7 @@ def get_monitor_rect_work(monitorIndex):
         moninfo = MONITOR_INFO[MONITOR_HNDLES[monitorIndex]]
     except IndexError:
         print('monitorfunctions.get_monitor_rect: monitorindex not available %s'% monitorIndex)
-        return
+        return False
     rect = copy.copy(moninfo['Work'])
     return rect
 
@@ -227,11 +227,11 @@ def get_taskbar_position():
     """return left, top, right or bottom
     """
     monitor_info()
-    m = MONITOR_INFO
+    # m = MONITOR_INFO
     hApp = messagefunctions.findTopWindow(wantedClass='Shell_TrayWnd')
     if not hApp:
         print('no taskbar (system tray) found')
-        return
+        return False
     info = list( win32gui.GetWindowPlacement(hApp) )
     RA = list(info[4])
     mon = get_nearest_monitor_window(hApp)
@@ -244,12 +244,13 @@ def get_taskbar_position():
     # left 0
     if RA[2] <= work[0] + 2*BORDERX:
         return 'left'  # right pos of RA == left pos of work area
-    elif RA[1] >= work[3] - 2*BORDERY: 
+    if RA[1] >= work[3] - 2*BORDERY: 
         return 'bottom' # top of RA == bottom of work area
-    elif RA[0] >= work[2] - 2*BORDERX: 
+    if RA[0] >= work[2] - 2*BORDERX: 
         return 'right' # left of RA == right of work area (account for Dragon bar)
-    elif RA[3] <= work[1] + 2*BORDERY:
+    if RA[3] <= work[1] + 2*BORDERY:
         return 'top'
+    return False
 
 #======================== on same monitor: ==========================================
 
@@ -272,6 +273,7 @@ def restore_window(winHndle, monitor=None, xwidth=None, ywidth=None,
         default taken from this function
     
     """
+    # pylint: disable=R0913
     monitor_info()
     if not monitor:
         monitor = get_nearest_monitor_window(winHndle)
@@ -279,7 +281,7 @@ def restore_window(winHndle, monitor=None, xwidth=None, ywidth=None,
     info = list( win32gui.GetWindowPlacement(winHndle) )
     MI = MONITOR_INFO[monitor]
     RA = list(info[4])
-    maximized =  ( info[1] == win32con.SW_SHOWMAXIMIZED)
+    # maximized =  ( info[1] == win32con.SW_SHOWMAXIMIZED)
     if keepinside is None:
         keepinside = not window_can_be_resized(winHndle)
 
@@ -317,6 +319,7 @@ def move_window(winHndle, direction, amount, units='pixels',
         keepinsideall: keep inside the virtual area of all monitors.
         
     """
+    # pylint: disable=R0913
     monitor_info()
     if not monitor:
         monitor = get_nearest_monitor_window(winHndle)
@@ -345,6 +348,7 @@ def stretch_window(winHndle, direction, amount, units='pixels',
         keepinsideall: keep inside the virtual area of all monitors.
         
     """
+    # pylint: disable=R0913
     monitor_info()
     if not monitor:
         monitor = get_nearest_monitor_window(winHndle)
@@ -376,6 +380,7 @@ def shrink_window(winHndle, direction, amount, units='pixels',
         keepinsideall: keep inside the virtual area of all monitors.
         
     """
+    # pylint: disable=R0913
     monitor_info()
     if not monitor:
         monitor = get_nearest_monitor_window(winHndle)
@@ -428,9 +433,10 @@ def _move_resize_restore_area(RestoreArea, resize, direction, amount, units,
     monitor_info: the info (dict) of the current monitor
     
     """
+    # pylint: disable=R0912, R0913, R0914, R0915    
     RA = RestoreArea[:]
-    raWidth = RA[2] - RA[0]
-    raHeight = RA[3] - RA[1]
+    # raWidth = RA[2] - RA[0]
+    # raHeight = RA[3] - RA[1]
     WA = monitor_info['Work']
     MA = monitor_info['Monitor']
     #offsetx = monitor_info['offsetx']
@@ -493,7 +499,7 @@ def _move_resize_restore_area(RestoreArea, resize, direction, amount, units,
         side_corner = 'top'
     elif direction == 'down':
         side_corner = 'bottom'
-    elif type(side_corner) == bytes:
+    else:
         side_corner = direction
         
         
@@ -523,6 +529,7 @@ def _get_distance_in_direction(RestoreArea, boundingbox, angle):
     alpha is direction to appropriate cornerpoint
     return distance  (0 if direction fails, distance to cornerpoint maximum)
     """
+    # pylint: disable=R0911, C0321
     RA = RestoreArea[:]
     angle = angle % 360
     if 0 <= angle < 90:
@@ -541,12 +548,12 @@ def _get_distance_in_direction(RestoreArea, boundingbox, angle):
         alpha, distance = _get_angle_distance_side_corners(RA, boundingbox, 0, 0)
         if not 270 <= alpha  < 360: return 0 # not same direction
         angle, alpha = angle - 270, alpha - 270 # for easier goniometry
+    
     if angle == alpha:
         return distance
-    elif angle < alpha:
+    if angle < alpha:
         return distance * math.cos(math.radians(alpha))/math.cos(math.radians(angle))
-    else:
-        return distance * math.sin(math.radians(alpha))/math.sin(math.radians(angle))
+    return distance * math.sin(math.radians(alpha))/math.sin(math.radians(angle))
 
 
 def _round_float(f):
@@ -566,10 +573,9 @@ def _round_float(f):
     """
     if f > 0:
         return int(f + 0.5)
-    elif f < 0:
+    if f < 0:
         return int(f - 0.5)
-    else:
-        return 0
+    return 0
 
 def _get_angle_distance_side_corners(RA, boundingbox, xindex, yindex):
     """return angle and distance of RA point and WA point
@@ -582,15 +588,14 @@ def _get_angle_distance_side_corners(RA, boundingbox, xindex, yindex):
     bb = boundingbox ##(should be [0, 0, widhtofWA, heightofWA])
     if xindex == 0 and yindex == 0:
         return _get_angle_distance( RA[0], RA[1], bb[0], bb[1])
-    elif xindex == 0 and yindex == 1:
+    if xindex == 0 and yindex == 1:
         return _get_angle_distance( RA[0], RA[3], bb[0], bb[3])
-    elif xindex == 1 and yindex == 0:
+    if xindex == 1 and yindex == 0:
         return _get_angle_distance( RA[2], RA[1], bb[2], bb[1])
-    elif xindex == 1 and yindex == 1:
+    if xindex == 1 and yindex == 1:
         return _get_angle_distance( RA[2], RA[3], bb[2], bb[3])
-    else:
-        raise ValueError("_get_angle_distance_side_corners: invalid parameters xindex (%s), yindex (%s) (should be 0 or 1)"%
-                         (xindex, yindex))
+    raise ValueError("_get_angle_distance_side_corners: invalid parameters xindex (%s), yindex (%s) (should be 0 or 1)"%
+                     (xindex, yindex))
         
 def _get_angle_distance(px, py, qx, qy):
     """calculate angle and distance of two points
@@ -608,37 +613,35 @@ def _get_angle_distance(px, py, qx, qy):
 #(90, 700.0)
 
     """
+    # pylint: disable=R0912, R1716
     dx, dy = qx-px, qy-py
     dist = math.sqrt(dx*dx + dy*dy)
     if dx == 0:
         if dy == 0:
             return (0, 0)
-        elif dy > 0:
+        if dy > 0:
             return (180, dist)
-        else:
-            return (0, dist)
-    elif dy == 0:
+        return (0, dist)
+    if dy == 0:
         if dx > 0:
             return (90, dist)
-        else:
-            # dx < 0
-            return (270, dist)
+        # dx < 0
+        return (270, dist)
+    alpha = math.degrees(math.atan(math.fabs(1.0*dy/dx)))
+    if dx > 0 and dy < 0: # first quadrant
+        alpha = 90 - alpha
+    elif dx > 0 and dy > 0:
+        # second quadrant
+        alpha = 90 + alpha
+    elif dx < 0 and dy > 0:
+        # third quadrant
+        alpha = 270 - alpha
+    elif dx < 0 and dy < 0:
+        # fourth quadrant
+        alpha = 270 + alpha
     else:
-        alpha = math.degrees(math.atan(math.fabs(1.0*dy/dx)))
-        if dx > 0 and dy < 0: # first quadrant
-            alpha = 90 - alpha
-        elif dx > 0 and dy > 0:
-            # second quadrant
-            alpha = 90 + alpha
-        elif dx < 0 and dy > 0:
-            # third quadrant
-            alpha = 270 - alpha
-        elif dx < 0 and dy < 0:
-            # fourth quadrant
-            alpha = 270 + alpha
-        else:
-            raise ValueError("impossible to come here")
-        return alpha, dist
+        raise ValueError("impossible to come here")
+    return alpha, dist
   
 def _get_deltax_deltay_from_angle_distance(angle, distance):
     """calculates "back" the px - py and qx - qy from _get_angle_distance
@@ -686,6 +689,7 @@ def _adjust_coordinates_side_corners(RestoreArea, amountx, amounty, resize, side
     
 (see unittestMonitorfunctions for tests)
     """
+    # pylint: disable=R0912, R0913, R0915
     RA = RestoreArea[:]
     validvaluesside_corner = ('rightbottom', 'righttop', 'leftbottom', 'lefttop',
                               'left', 'right', 'top', 'bottom',
@@ -700,7 +704,7 @@ def _adjust_coordinates_side_corners(RestoreArea, amountx, amounty, resize, side
         if amountx == 0:
             if amounty == 0:
                 return RA  # no changes to be expected
-            elif amounty * reverse > 0:
+            if amounty * reverse > 0:
                 side_corner = 'bottom'
             else:
                 # amounty < 0:
@@ -783,8 +787,9 @@ def _change_restore_area(RA, monitor_info, xwidth, ywidth,
      _get_new_coordinates_same_monitor below
     
     """
-    raWidth = RA[2] - RA[0]
-    raHeight = RA[3] - RA[1]
+    # pylint: disable=R0913
+    # raWidth = RA[2] - RA[0]
+    # raHeight = RA[3] - RA[1]
     WA = monitor_info['Work']
     MA = monitor_info['Monitor']
     #offsetx = monitor_info['offsetx']
@@ -836,6 +841,7 @@ def _get_new_coordinates_same_monitor(begin, end, size, width, positioning, minW
             according to this number
 
     """
+    # pylint: disable=R0912, R0913,  
     oldwidth = end - begin
     if not width:
         width = end - begin
@@ -850,7 +856,7 @@ def _get_new_coordinates_same_monitor(begin, end, size, width, positioning, minW
 
     if positioning is None:
         return begin, begin + width
-    if type(positioning) == bytes:
+    if isinstance(positioning, str):
         
         if positioning in ('left', 'up'):
             positioning = 0
@@ -861,7 +867,7 @@ def _get_new_coordinates_same_monitor(begin, end, size, width, positioning, minW
         elif positioning in ('relative',):
             # relative to old spacing
             oldspacing = size - oldwidth
-            newspacing = max(size - width, 0)
+            # newspacing = max(size - width, 0)
             if oldspacing > 0:
                 positioning = 1.0 * begin / oldspacing
             else:
@@ -880,6 +886,7 @@ def keepinside_all_screens(left, right, virtL, virtR, fixed_width, border=1):
     
     (horizontal and vertical called separate
     """
+    # pylint: disable=R0913
     if left < virtL - border:
         if fixed_width:
             right += virtL - left - 1
@@ -917,39 +924,16 @@ def keepinside_restore_area(left, right, size, fixed_width=1, margin=1):
             left = max(right-span, -margin)
         
     return left, right
-
-def keepinside_restore_area(left, right, size, fixed_width=1, margin=1):
-    """adjust (restore)
-    """
-    span = right - left
-    if -margin < left < right < size + 1:
-        return left, right
-    if fixed_width:
-        if left < -margin or span > size + margin*2:
-            left = -margin
-            right = span - margin
-        elif right > size + margin:
-            right = size + margin
-            left = right - span
-    else:
-        # width may alter, adjust to possibilities of monitor
-        if left < -margin or span > size + margin*2:
-            left = -margin
-            right = min(left+span, size+margin)
-        elif right > size + margin:
-            right = size + margin
-            left = max(right-span, -margin)
-        
-    return left, right
             
 
 #===================== more monitors: ===============================================
 def move_to_monitor(hndle, monitor, currentMon, resize=0):
     """move window with hndle to monitor with hndle monitor
     """
+    # pylint: disable=R0914
     monitor_info()
     
-    toMin = win32con.SW_SHOWMINIMIZED
+    # toMin = win32con.SW_SHOWMINIMIZED
     toMax = win32con.SW_SHOWMAXIMIZED
     toRestore = win32con.SW_RESTORE
     info = list( win32gui.GetWindowPlacement(hndle) )
@@ -990,9 +974,9 @@ def correct_restore_area(RA, monitor_info_new, monitor_info_old,
            keepinside: keep the window inside the work area of the monitor (normally when resize = true)
     
     """
-    #print 'old RA: %s'% RA
-    raWidth = RA[2] - RA[0]
-    raHeight = RA[3] - RA[1]
+    # pylint: disable=R0914, W0613
+    # raWidth = RA[2] - RA[0]
+    # raHeight = RA[3] - RA[1]
     oldWA = monitor_info_old['Work']
     newWA = monitor_info_new['Work']
     oldMA = monitor_info_old['Monitor']
@@ -1072,13 +1056,13 @@ def is_inside_monitor( point ):
     xpos, ypos = point
     monitor_info()
     mon = get_nearest_monitor_point( point )
-    if not mon in MONITOR_INFO:
+    if mon not in MONITOR_INFO:
         monitor_info()
     monitor_area = MONITOR_INFO[mon]['Monitor']
     left, top, right, bottom = monitor_area
     if left <= xpos < right and top <= ypos < bottom:
         return mon
-    
+    return False
         
 def get_closest_position( point ):
     """return the closest valid mouse position on any monitor
@@ -1188,7 +1172,7 @@ def test_mouse_to_other_monitor():
     """
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
-    canBeResized = window_can_be_resized(winHndle)
+    # canBeResized = window_can_be_resized(winHndle)
     mon = get_nearest_monitor_window(winHndle)
     others = get_other_monitors(mon)
     moninfo = MONITOR_INFO[others[0]]
@@ -1323,7 +1307,7 @@ def test_move_far_away():
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
     mon = get_nearest_monitor_window(winHndle)
-    canBeResized = window_can_be_resized(winHndle)
+    # canBeResized = window_can_be_resized(winHndle)
     # you can also test from the other monitor by uncommenting next 3 lines:
     #others = get_other_monitors(mon)
     #move_to_monitor(winHndle, others[0], mon, resize=canBeResized)
@@ -1372,7 +1356,7 @@ def test_stretch_far_away():
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
     mon = get_nearest_monitor_window(winHndle)
-    canBeResized = window_can_be_resized(winHndle)
+    # canBeResized = window_can_be_resized(winHndle)
     # you can also test from the other monitor by uncommenting next 3 lines:
     #others = get_other_monitors(mon)
     #move_to_monitor(winHndle, others[0], mon, resize=canBeResized)
@@ -1510,25 +1494,24 @@ def test_move_relative_degrees():
     wait()
     move_window(winHndle, 45, 0.5, units='relative')
     
-    return
-    restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
-    wait()
-    for i in range(20):
-        dist = 0.8
-        angle = i*20 % 360
-        move_window(winHndle,angle, dist, units='relative')
-        wait()
-        restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
-        wait(0.5)
-    
-    # range with greatest jumps (probably)   
-    for i in range(20):
-        dist = 1
-        angle = i + 48
-        move_window(winHndle,angle, dist, units='relative')
-        wait(0.3)
-        restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
-        wait(0.1)
+    # restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
+    # wait()
+    # for i in range(20):
+    #     dist = 0.8
+    #     angle = i*20 % 360
+    #     move_window(winHndle,angle, dist, units='relative')
+    #     wait()
+    #     restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
+    #     wait(0.5)
+    # 
+    # # range with greatest jumps (probably)   
+    # for i in range(20):
+    #     dist = 1
+    #     angle = i + 48
+    #     move_window(winHndle,angle, dist, units='relative')
+    #     wait(0.3)
+    #     restore_window(winHndle, mon, xpos='center', ypos='center', xwidth=0.5, ywidth=0.5, keepinside=1)
+    #     wait(0.1)
 
 
     #wait(2)
@@ -1538,12 +1521,13 @@ def test_move_relative_degrees():
     #    angle = i*20 % 360
     #    move_window(winHndle,angle, dist, keepinside=1)
     #    wait(0.1)
+    
 def test_restore_window_half_width():
     """test moving around edges, corners, half width, height
     """
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
-    mon = get_nearest_monitor_window(winHndle)
+    # mon = get_nearest_monitor_window(winHndle)
 
     restore_window(winHndle, xpos='left', ypos=None, xwidth=0.5, ywidth=1, keepinside=1)
     wait()
@@ -1572,7 +1556,7 @@ def test_restore_window_third_width():
     """
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
-    mon = get_nearest_monitor_window(winHndle)
+    # mon = get_nearest_monitor_window(winHndle)
 
     restore_window(winHndle, xpos='left', ypos=None, xwidth=0.33, ywidth=1, keepinside=1)
     wait()
@@ -1588,6 +1572,7 @@ def test_restore_window_third_width():
 def test_stretch_same_window_sides_corners():
     """test moving around the monitor
     """
+    # pylint: disable=R0915    
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
     mon = get_nearest_monitor_window(winHndle)
@@ -1660,6 +1645,7 @@ def test_stretch_same_window_sides_corners():
 def test_shrink_same_window_sides_corners():
     """test moving around the monitor
     """
+    # pylint: disable=R0915    
     monitor_info()
     winHndle = win32gui.GetForegroundWindow()
     mon = get_nearest_monitor_window(winHndle)
@@ -1734,14 +1720,18 @@ def test_minimize_maximize_restore():
     maximize_window(winHndle)
  
 def test_taskbar_position():
-    print('taskbar located: %s'% get_taskbar_position())
+    """prints if the taskbar is located
+    """
+    taskbar_pos = get_taskbar_position()
+    print(f'taskbar located: {taskbar_pos}')
     
 def do_doctest():
+    # pylint: disable=C0116, C0415
     import doctest
     doctest.testmod()
    
 if __name__ == "__main__":
-    winHndle = win32gui.GetForegroundWindow()
+    win_hndle = win32gui.GetForegroundWindow()
     #print 'ra: %s'%  _get_restore_area(winHndle)   
     test_basic_values()
     test_taskbar_position()
@@ -1750,12 +1740,12 @@ if __name__ == "__main__":
     #test_get_nearest_monitors()
     #test_individual_points()
     
-    #test_move_to_other_monitor()
+    # test_move_to_other_monitor()
     #test_move_around_monitor_fixed_size()
     #test_center_different_sizes()
     #test_default_restore()
-    #test_minimize_maximize_restore()
-    #test_move_same_window_sides_corners()
+    # test_minimize_maximize_restore()
+    # test_move_same_window_sides_corners()
     #test_stretch_same_window_sides_corners()
     #test_shrink_same_window_sides_corners()
     #test_move_same_window_degrees()
@@ -1764,4 +1754,5 @@ if __name__ == "__main__":
     #test_stretch_far_away()
     #test_restore_window_half_width()
     #test_restore_window_third_width()
-    #do_doctest()  # most testing moved to unittestMonitorfunctions.py...
+    do_doctest()  # most testing moved to unittestMonitorfunctions.py...
+    

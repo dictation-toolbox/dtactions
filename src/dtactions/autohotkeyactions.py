@@ -21,10 +21,16 @@ This module contains actions via AutoHotkey
 4. If you have the script in a string, call call_ahk_script.
     The script is copied to tempscript.ahk in the ahkscriptfolder and executed with call_ahk_script_path
     
-5. When scripts want information back into python, write this information into "INFOfromAHK.txt".
+5. When scripts want information back into python, write this information into a file eg "INFOfromAHK.txt".
    Scripts that use this feature, should have a function in this module, in order to read the data from this file.
    See getProgInfo and getCurrentModule below.
-   
+
+timing results:
+  1    0.000    0.000    0.401    0.401 autohotkeyactions.py:456(killWindow)
+  4    0.000    0.000    0.261    0.065 autohotkeyactions.py:91(getProgInfo)
+  1    0.000    0.000    0.234    0.234 autohotkeyactions.py:209(ahkBringup)
+  1    0.000    0.000    0.052    0.052 autohotkeyactions.py:323(GetForegroundWindow)
+  
 """
 import subprocess
 import shutil
@@ -215,10 +221,13 @@ def ahkBringup(app, filepath=None, title=None):
     Besides, this function can also work without Dragon being on, not relying on natlink.
     So better fit for debugging purposes.
     
+    returns: progInfo if ahkBringup succeeded
+    returns: error message if ahkBringup failed
+    
     """
     if not ahk_is_active():
-        print('cannot run ahkBringup, autohotkey is not active')
-        return 0
+        mess = 'cannot run ahkBringup, autohotkey is not active'
+        return mess
     WinInfoFile = str(ahkscriptfolder/"WININFOfromAHK.txt")
     
     ## treat mode = open or edit, finding a app in actions.ini:
@@ -305,20 +314,23 @@ WinGetTitle, Title, A
     progInfo = open(WinInfoFile, 'r').read().split('\n')
     if len(progInfo) == 5:
         pPath, wTitle, toporchild, classname, hndle = progInfo
+        if not hndle:
+            mess = 'autohotkeyactions, appBringup, no valid progInfo returned, hndle is empty'
+            return mess
         hndle = int(hndle)
         prog = Path(pPath).stem
         return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
 
-    print(f'autohotkeyactions, return of getting proInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}')
-    return 0
+    mess = f'autohotkeyactions, wrong length of getting progInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}'
+    return mess
 
 autohotkeyBringup = ahkBringup
 
 def GetForegroundWindow():
     """return the hndle of the ForegroundWindow
     
-    return value: int: the hndle of the Foreground window
-    return value: str: error message, function failed
+    OK: return value, int, the hndle of the Foreground window
+    Error: return value is str: error message explaining the failure
     """
     WinInfoFile = ahkscriptfolder/"foregroundhndlefromahk.txt"
     if WinInfoFile.is_file():
@@ -338,22 +350,25 @@ FileAppend, %wHndle%, ##INFOfile##
     with open(WinInfoFile, 'r') as fp:
         gotHndle = fp.read().strip()
     try:
-        hndleInt = int(gotHndle)
-        return hndleInt
+        if gotHndle:
+            hndleInt = int(gotHndle)
+            return hndleInt
+        mess = 'autohotkeyactions, GetForegroundWindow did not return a window hndle'
+        return mess
     except ValueError:
         if gotHndle:
             mess = f'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: {gotHndle}'
-            print(mess)
+            # print(mess)
             return mess
         mess = 'autohotkeyactions, GetForegroundWindow: did not get correct hndle window: (empty)'
-        print(mess)
+        # print(mess)
         return mess
 
 def SetForegroundWindow(hndle):
     """bring window with hndle into the foreground
      
-    return value 0: success
-    other return value, mostly the hndle of the active window: failure
+    return True: success
+    other return: message why it went wrong
     
     """
     InfoFile = ahkscriptfolder/"INFOfromAHK.txt"
@@ -373,17 +388,17 @@ FileAppend, %wHndle%, ##INFOfile##
         try:
             winHndle = int(winHndle)
         except ValueError:
-            print(f'ahk script getIntoForeground to "{hndle}" did not return correct winHndle: {winHndle}')
-            return winHndle
+            mess = f'ahk script getIntoForeground to "{hndle}" did not return correct winHndle: {winHndle}'
+            return mess
             
         if winHndle == hndle:
-            return 0  # ok, then return None
-        print(f'could not switch to wanted hndle {hndle} (got {winHndle})')
-        return winHndle
+            return True  # ok, then return True
+        mess = f'could not switch to wanted hndle {hndle} (got {winHndle})'
+        return mess
     raise ValueError('ahk script getIntoForeground did not return anything')
 
 def getFileDate(modName):
-    """return the last modified date/time of file
+    """return the last modified date/time of file, 0 if file does not exist
     """
     try:
         modTime = modName.stat().st_mtime
@@ -394,6 +409,7 @@ def getFileDate(modName):
 def GetAhkExe():
     """try to get executable of autohotkey.exe, if not there, empty string is put in ahkexe
     
+    return None, raises OSError if ahkExe is not found
     """
     # pylint: disable=W0603  # (using the global statement)
     global ahkexe
@@ -464,7 +480,7 @@ def killWindow(hndle=None, key_close=None, key_close_dialog=None, silent=True):
     # pylint: disable=R0911, R0912
     if hndle:
         result = SetForegroundWindow(hndle)
-        if not result == 0:
+        if result is not True:
             mess = f'window {hndle} not any more available'
             if not silent:
                 print(mess)

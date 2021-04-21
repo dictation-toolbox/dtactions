@@ -16,11 +16,10 @@ Some keys require a synonym, for example "esc", which is "escape" in action_key.
 (Quintijn Hoogenboom, 2021-04-04)
 """
 import re
-import time
 from dragonfly.actions import action_key
 
 chord_pattern = re.compile(r'(\{.*?\})')
-text_of_key = re.compile(r'\w+')
+split_text_from_key = re.compile(r'(\w+)(.*$)')
 
 synonym_keys = dict(esc="escape")
 def sendkeys(keys):
@@ -35,6 +34,8 @@ def sendkeys(keys):
 
     extra notation (Quintijn):   
     "!" at the end of a chord, triggers use_hardware=True
+    
+    tested at bottom of this file interactively...
     """
     m = chord_pattern.search(keys)
     if m:
@@ -60,18 +61,18 @@ def sendkeys(keys):
                     # no modifiers:
                     modifiers = ""
                     rest = part
-                m_key = text_of_key.match(rest)
+                m_key = split_text_from_key.match(rest)
                 if m_key:
-                    key = m_key.group()
+                    key, attr = m_key.groups()
                 else:
                     raise ValueError('sendkeys, found no key to press in {part}, total: {keys}')
                 key = synonym_keys.get(key, key)
 
-                if key.find(' ') > 0:
-                    key = key.replace(' ', ':')
+                if attr.find(' ') == 0:
+                    attr = attr.replace(' ', ':', 1)
 
-                key = modifiers + key
-                    
+                key = modifiers + key + attr
+                # print(f'sendkeys, key: {key}')        
                 action_key.Key(key, use_hardware=use_hardware).execute()
             else:
                 part_keys = ','.join(t for t in part)
@@ -83,18 +84,22 @@ def sendkeys(keys):
         # action_text.Text(keys).execute()
     
 if __name__ == "__main__":
-    # t1 = 'a{ctrl+o}hallo{escape}k'
-    # sendkeys(t1)
-    # t2 = 'abc{left}def{left 2}ghi'
-    # sendkeys(t2)
+    pass
+    # sendkeys("{a 3}") #aaa
     
-    # only ab should remain:
-    t3 = 'abc{shift+left/100}{del/200}def{shift+left 2/100}ghi{left 4/100}{shift+end/100}{del}'
-    sendkeys(t3)
+    # try holding down a key:
+    # (first selects slow 4 lines, then fast, then goes back to start)
+    # sendkeys("{shift:down}{down/25:4}{shift:up/100}")
+    # sendkeys("{shift:down}{down:4/100}{shift:up}")
+    # sendkeys("{up 8}")
     
-    sendkeys("abcde")
-    sendkeys("{ctrl+a}")
-    time.sleep(1)
-    sendkeys("{ctrl+end}")
-    #
-    
+    # leaves empty:
+    # t3 = 'abc{shift+left/50}{del/100}def{shift+left 2/50}ghi{left 4/100}{shift+end/100}{del/100}{backspace 2}'  
+    # sendkeys(t3)   # leave
+
+    # When running next 3 lines several times, starting with cursor on the last line (after #),
+    # you will see abcde appear several times:
+    # sendkeys("abcde")  
+    # sendkeys("{ctrl+a/100}") #
+    # sendkeys("{ctrl+end!}{up/50}{end}")
+    # 
