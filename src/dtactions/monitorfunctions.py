@@ -66,7 +66,12 @@ This module provides functions for getting:
     restore_window(winHndle, monitor, ...): placing in various spots and widths/heights
         see at definition for parameters
     
--- helper functions:
+
+Several test functions demonstrate the result of different monitor functions.
+Switch them on or of at the bottom of the file
+
+Below if the documentation of the different functions:
+
     
 """
 # pylint: disable=C0302

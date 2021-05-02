@@ -49,6 +49,12 @@ for an overview.) Caption text will match if the specified text is *contained*
 in the windows' captions; this match is case unsensitive. Window class names
 must match identically; the full class name must be matched, and the test is
 case sensitive.
+
+Testing most interactively at the bottom of the file. You need the hndle of the application in order to
+run most of the test functions
+
+See the documentation in the different functions:
+
 '''
 
 import array
