@@ -10,19 +10,19 @@ http://qh.antenna.nl/unimacro. Quintijn Hoogenboom, february 2010.
 
 The basic information is collected in
 -MONITOR_INFO, a dictionary with keys the handles of the monitor
-    These keys are converted to int, and for 2 monitors probably 65537 and
-    65539, and put in global variable MONITOR_HNDLES (a list)
+ These keys are converted to int, and for 2 monitors probably 65537 and
+ 65539, and put in global variable MONITOR_HNDLES (a list)
 
-    Each item of MONITOR_INFO is again a dictionary with for example my second monitor info:
-    {'Device': '\\\\.\\DISPLAY2',
+ Each item of MONITOR_INFO is again a dictionary with for example my second monitor info:
+ ``   {'Device': '\\\\.\\DISPLAY2',
      'Flags': 0,
      'Monitor': (1680, 0, 2704, 768),
      'Work': (1787, 0, 2704, 768),
      'offsetx': 107,
-     'offsety': 0}
-    Thus holding the Monitor info and the Work info. As a extra offsetx and offsety are calculated,
-    which give the width/height of task bar and possibly other "bars". In this example I have the task bar
-    vertically placed at the left side of this second monitor, and it has a width of 107 pixels.
+     'offsety': 0}``
+ Thus holding the Monitor info and the Work info. As a extra offsetx and offsety are calculated,
+ which give the width/height of task bar and possibly other "bars". In this example I have the task bar
+ vertically placed at the left side of this second monitor, and it has a width of 107 pixels.``
 
 -MONITOR_HNDLES: a list of the available monitors (the handles are int, see above)
 -VIRTUAL_SCREEN: a 4 tuple giving the (left, top, right, bottom) of the complete (virtual) screen
@@ -318,7 +318,7 @@ def move_window(winHndle, direction, amount, units='pixels',
         winHndle: hndle of the program
         monitor: hdnle of the monitor (is collected if not passed)
         direction: a string, left, right, up, down or
-            a direction in degrees (0 = up, 90 = right, 180 = down, 270 = left)
+        a direction in degrees (0 = up, 90 = right, 180 = down, 270 = left)
         amount: number of pixels (for moving to left edge, use restore_window)
         keepinside: keep inside the work area of the monitor
         keepinsideall: keep inside the virtual area of all monitors.
