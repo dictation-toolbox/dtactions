@@ -20,40 +20,28 @@
 # added findMenuItem
 # adapted for NatSpeak/NatLink interaction, Quintijn Hoogenboomhallo
 # october 2009. (starting with watsup utilities)
+# pylint: disable=C0302, C0115
+'''"Windows GUI automation utilities"
 
-'''Windows GUI automation utilities.
-
-TODO - Until I get around to writing some docs and examples, the tests at the
-foot of this module should serve to get you started.
-
-The standard pattern of usage of winGuiAuto is in three stages; identify a
+The standard pattern of usage of winGuiAuto, originally written by TimCouper,
+is in three stages; identify a
 window, identify a control in the window, trigger an action on the control.
 
 The end result is always that you wish to have an effect upon some Windows GUI
 control.
 
 The first stage is to identify the window within which the control can be
-found. To do this, you can use either findTopWindow or findTopWindows. The
-findTopWindow function returns a reference to single window, or throws an
-exception if multiple windows or no windows matching the supplied selection
-criteria are found. If no matching window is found, immediately, the
-findTopWindow function may keep trying to find a match, depending upon suppled
-retry aguments. The findTopWindows function returns a list of references to all
-windows matching the supplied selection criteria; this list may be empty. The
-findTopWindows function will return immediately.
+found. To do this, you can use either :code:`findTopWindow` or :code:`findTopWindows`. 
 
 Usually, specifying caption text, the window's class, or both, will be
 sufficient to identify the required window. (Note that the window's class is a
-Windows API concept; it has nothing to do with Python classes. See http://msdn.microsoft.com/library/en-us/winui/WinUI/WindowsUserInterface/Windowing/Window_89WindowClasse.asp
-for an overview.) Caption text will match if the specified text is *contained*
-in the windows' captions; this match is case unsensitive. Window class names
-must match identically; the full class name must be matched, and the test is
-case sensitive.
+Windows API concept)
 
-Testing most interactively at the bottom of the file. You need the hndle of the application in order to
+Testing can be done interactively at the bottom of the file. You need the hndle of the application in order to
 run most of the test functions
 
-See the documentation in the different functions:
+Helper class and functions
+==========================
 
 '''
 
@@ -62,21 +50,17 @@ import ctypes
 import types
 import os
 import struct
-import sys
 import time
+import pprint
+import re
+## python 3 only:
+from urllib.parse import unquote
+
+import pywintypes
 import win32api
 import win32con
 import winxpgui as win32gui
-import win32process
-import pprint
-import re
-try:
-    from urllib import unquote
-except ImportError:
-    from urllib.parse import unquote
 
-# for getting unicode explorer window titles:
-import ctypes
 GetWindowText = ctypes.windll.user32.GetWindowTextW
 GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
 
@@ -86,7 +70,7 @@ hasBraces = re.compile (r'([{].+?[}])')
 BracesExtractKey = re.compile (r'^[{]((alt|ctrl|shift)[+])*(?P<k>[^ ]+?)( [0-9]+)?[}]$', re.I)
 
 ## Scintilla constants:
-from dtactions import scintillacon
+# from dragonfly.actions import scintillacon
 
 def findTopWindow(wantedText=None,
                   wantedClass=None):
@@ -95,11 +79,12 @@ def findTopWindow(wantedText=None,
     You can identify windows using caption (part of) or class,
 
     Arguments:
-    wantedText          Text which the required window's caption must
-                        *contain*. (Case insensitive match.)
-    wantedClass         Class to which the required window must belong.
-    Returns: handle if found (the first match)
-             None if not found
+      wantedText     Text which the required window's caption must
+                     *contain*. (Case insensitive match.)
+      wantedClass    Class to which the required window must belong.
+    Returns:
+      handle if found (the first match)
+      None if not found
     '''
     if not (wantedText or wantedClass):
         raise ValueError("findTopWindow, wantedText and/or wantedClass must be passed, not: %s and %s"%
@@ -137,13 +122,14 @@ def findTopWindows(wantedText=None, wantedClass=None, selectionFunction=None, ch
                     quit if criterium has been met (only for wantedText and wantedClass)
     
     '''
+    # pylint: disable=W0603, R0912
     global wText, wClass, checkI
     results = []
     topWindows = []
     if checkImmediate:
-        checkI, wText, wClass, selFunc = 1, _normaliseText(wantedText), wantedClass, selectionFunction
+        checkI, wText, wClass, _selFunc = 1, _normaliseText(wantedText), wantedClass, selectionFunction
     else:
-        checkI, wText, wClass, selFunc = None, None, None, None
+        checkI, wText, wClass, _selFunc = None, None, None, None
         
     for i in range(10):
         try:
@@ -157,14 +143,13 @@ def findTopWindows(wantedText=None, wantedClass=None, selectionFunction=None, ch
         if topWindows:
             # return 1 window handle:
             return topWindows[0][0]
-        else:
-            return
+        return 0
         
     # checking the results:
     if wantedText:
         wantedText = _normaliseText(wantedText)
     for result in topWindows:
-        if type(result) == types.TupleType and len(result) == 3:
+        if isinstance(result, tuple) and len(result) == 3:
             hwnd, windowText, windowClass = result
         else:
             print('invalid entry')
@@ -185,7 +170,7 @@ def getForegroundWindow():
     hndle = win32gui.GetForegroundWindow()
     return hndle
     
-def dumpTopWindows(all=None):
+def dumpTopWindows(doAll=None):
     '''TODO'''
     defaultTitles = ['', 'Default IME', 'Engine Window']
     defaultClasses = ['MSCTFIME UI']
@@ -195,12 +180,11 @@ def dumpTopWindows(all=None):
     except win32gui.error:
         print('got error enumerating windows')
         
-    if all:
+    if doAll:
         return topWindows
-    else:
-        selectedWindows = [(hndle,title,clname) for (hndle,title,clname) in topWindows
-            if title not in defaultTitles and clname not in defaultClasses]
-        return selectedWindows
+    selectedWindows = [(hndle,title,clname) for (hndle,title,clname) in topWindows
+        if title not in defaultTitles and clname not in defaultClasses]
+    return selectedWindows
     
 def dumpWindow(hwnd):
     '''Dump all controls from a window into a nested list
@@ -224,13 +208,12 @@ def dumpWindow(hwnd):
         win32gui.EnumChildWindows(hwnd, _windowEnumerationHandler, windows)
     except win32gui.error:
         # No child windows
-        return
-    windows = [list(window) for window in windows]
+        return windows # empty here
     for window in windows:
-        childHwnd, windowText, windowClass = window
+        childHwnd, _windowText, _windowClass = window
         window_content = dumpWindow(childHwnd)
         if window_content:
-            window.append(window_content)
+            windows.append(window_content)
        
     def dedup(thelist):
         '''De-duplicate deeply nested windows list.'''
@@ -262,7 +245,7 @@ def findControl(topHwnd,
                 wantedClass=None,
                 selectionFunction=None,
                 maxWait=1,
-                retryInterval=0.1, checkImmediate=None):
+                retryInterval=0.1):   ###, checkImmediate=None):
     '''Find a control.
     
     You can identify a control within a top level window, using caption, class,
@@ -300,12 +283,13 @@ def findControl(topHwnd,
                                                wantedClass="Button",
                                                wantedText="OK")
     '''
+    # pylint: disable=R0913
     controls = findControls(topHwnd,
                             wantedText=wantedText,
                             wantedClass=wantedClass,
                             selectionFunction=selectionFunction)
     # check for None returned:  Tim 6 Jul 2004
-    if controls==None:
+    if controls is None:
         raise WinGuiAutoError("EnumChildWindows failed with win32gui.error "  +
                               repr(topHwnd) +
                               ", wantedText=" +
@@ -335,7 +319,7 @@ def findControl(topHwnd,
                               str(retryInterval))
     elif controls:
         return controls[0]
-    elif (maxWait-retryInterval) >= 0:
+    if (maxWait-retryInterval) >= 0:
         time.sleep(retryInterval)
         try:
             return findControl(topHwnd=topHwnd,
@@ -357,8 +341,8 @@ def findControl(topHwnd,
                                   repr(maxWait) +
                                   ", retryInterval=" +
                                   str(retryInterval))
-    else:
-        raise WinGuiAutoError("No control found for topHwnd=" +
+        
+    raise WinGuiAutoError("No control found for topHwnd=" +
                               repr(topHwnd) +
                               ", wantedText=" +
                               repr(wantedText) +
@@ -418,7 +402,8 @@ def findControls(topHwnd,
                 results += descendantMatchingHwnds
 
             if wantedText:
-                if not windowText: continue
+                if not windowText:
+                    continue
                 #print('wanted: %s, window: %s'% (wantedText, windowText)
                 if _normaliseText(windowText).find(wantedText) == -1:
                     continue
@@ -490,7 +475,8 @@ def findAdditionalControls(controls,
                 results += descendantMatchingHwnds
 
             if wantedText:
-                if not windowText: continue
+                if not windowText:
+                    continue
                 #print('wanted: %s, window: %s'% (wantedText, windowText)
                 if _normaliseText(windowText).find(wantedText) == -1:
                     continue
@@ -503,6 +489,7 @@ def findAdditionalControls(controls,
                 continue
             results.append(childHwnd)
         return results
+    
 
     # deduplicate the returned windows:  Tim 6 Jul 2004
     #return searchChildWindows(topHwnd)
@@ -518,7 +505,7 @@ def findAdditionalControls(controls,
             resultsList.append(hdict.keys())
 
             
-def selFuncExplorerAddress(hndle, text, Class):
+def selFuncExplorerAddress(_hndle, text, Class):
     """needed for quick access to explorer CabinetWClass controls
     
     Adres (Dutch) or Address (English) and other languages ???
@@ -526,6 +513,7 @@ def selFuncExplorerAddress(hndle, text, Class):
     if Class == 'ToolbarWindow32':
         if text and text.startswith('Adres: ') or text.startswith('Address: '):
             return True
+    return None
 
 ## zie ook _folders:
 
@@ -550,6 +538,7 @@ def getFolderFromCabinetWClass(hndle):
         ## result is probably u"Address: C:\Documents" or so
         folder = extractFolderFromWindowText(text)
         return folder
+    return None
 
 def getFolderFromDialog(hndle, className):
     """dialog for open etc from office etc
@@ -563,6 +552,7 @@ def getFolderFromDialog(hndle, className):
             text = getwindowtext(hndle)
             folder = extractFolderFromWindowText(text)
             return folder
+    return None
         
 def extractFolderFromWindowText(text):
     """get folder info from CabinetWClass or #32770 window:
@@ -581,7 +571,7 @@ def extractFolderFromWindowText(text):
         folder = text.split(": ", 1)[1]
     else:
         # no activefolder info:
-        return
+        return None
     return folder
     
 def getTopMenu(hWnd):
@@ -617,6 +607,7 @@ def activateMenuItem(hWnd, menuItemPath):
                     
                         activateMenuItem(notepadWindow, (0, 1))
     '''
+    # pylint: disable=W0104
     # By Axel Kowald (kowald@molgen.mpg.de)
     # Modified by S Brunning to accept strings in addition to indicies.
 
@@ -643,7 +634,7 @@ def activateMenuItem(hWnd, menuItemPath):
             hMenu, hMenuItemCount = submenuInfo.submenu, submenuInfo.itemCount
         except TypeError: # Hopefully, submenu is a menu name
             try:
-                dump, hMenu, hMenuItemCount = _findNamedSubmenu(hMenu,
+                _dump, hMenu, hMenuItemCount = _findNamedSubmenu(hMenu,
                                                                 hMenuItemCount,
                                                                 submenu)
             except WinGuiAutoError:
@@ -659,7 +650,7 @@ def activateMenuItem(hWnd, menuItemPath):
                                                         menuItem)
     except TypeError: # Hopefully, menuItem is a menu name
         try:
-            subMenuIndex, dump, dump = _findNamedSubmenu(hMenu,
+            subMenuIndex, _dump1, _dump2 = _findNamedSubmenu(hMenu,
                                         hMenuItemCount,
                                         menuItem)
         except WinGuiAutoError:
@@ -681,7 +672,7 @@ def activateMenuItem(hWnd, menuItemPath):
     
 def getMenuInfo(hWnd, menuItemPath):
     '''TODO'''
-    
+    # pylint: disable=W0104
     # Top level menu    
     hMenu = getTopMenu(hWnd)
         
@@ -714,7 +705,7 @@ def getMenuInfo(hWnd, menuItemPath):
                 raise WinGuiAutoError("Menu path " +
                                       repr(menuItemPath) +
                                       " cannot be found.")
-    if submenuInfo==None:
+    if submenuInfo is None:
         raise WinGuiAutoError("Menu path " +
                               repr(menuItemPath) +
                               " cannot be found. (Null menu path?)")
@@ -1157,15 +1148,17 @@ keySynonyms['del'] = "delete"
 ## functions with sendkeys seem not to work. Want the hndle of a control, but this is not doable.
 ## the _sendkeys via ctypes seems to work better. 
 def sendKey(hndle, key):
+    """sendKey function from messagesfunctions, not in active use
+    """
+    # pylint: disable=C0321
     kdown = win32con.WM_KEYDOWN
     char = win32con.WM_CHAR
     kup = win32con.WM_KEYUP
     sm = win32gui.SendMessage
-    if type(key) in (six.binary_type, six.text_type):
+    if isinstance(key, str):
         ctrl = alt = shift = 0
         kCode = None
         if key.startswith("{") and key.endswith("}"):
-            kCodes = []
             key = key.strip("{}")
             keys = key.split("+")
             for k in keys:
@@ -1173,10 +1166,9 @@ def sendKey(hndle, key):
                 elif k == 'shift': shift = 1
                 elif k == 'alt': alt = 1
                 else:
-                    if k in keySynonyms:
-                        k = keySynonyms[k]
+                    k = keySynonyms.get(k, k)
                     kCode = getattr(win32con, "VK_%s"%k.upper(),None)
-                    if kCode == None:
+                    if kCode is None:
                         if len(k) == 1:
                             kCode = ord(k.upper())
                         else:
@@ -1205,19 +1197,20 @@ def sendKey(hndle, key):
 
 def waitForForegroundWindow(className=None, nWait=50, waitingTime=0.5):
     """wait some time for foreground window to get in front"""
-    if type(className) == str:
+    if isinstance(className, str):
         className = [className]
     elif className is None:
         print('waitForForegroundWindow: no classname given')
-        return
-    for i in range(nWait):
+        return None
+    
+    for _ in range(nWait):
         hndle = getForegroundWindow()
         if hndle:
             currentClass = win32gui.GetClassName(hndle)
             if currentClass in className:
                 return hndle
         time.sleep(waitingTime)
-
+    return None
 
 def SendKeys(hndle, keysString):
     """send the keys to the foreground window
@@ -1231,7 +1224,7 @@ def splitKeysString(keysString):
     """
     L = filter(None, hasBraces.split(keysString))
     M = []
-    for i, item in enumerate(L):
+    for item in L:
         if braceExact.match(item):
             M.append(item)
         else:
@@ -1256,7 +1249,6 @@ def quitProgram(hwnd):
     #time.sleep(1)
     #win32gui.SetActiveWindow(oldHndle)
     #
-    pass
 
 # buffer and length for one stroke get window text:
 BUFFER_LENGTH = 1024
@@ -1266,6 +1258,7 @@ def getWindowTextAll(hwnd, rawLength=None):
     
     return the buffer and the raw length (uncorrected for \r\n and after text character)
     """
+    # pylint: disable=W0603
     global TEXT_BUFFER, BUFFER_LENGTH
     if rawLength is None:
         rawLength = BUFFER_LENGTH 
@@ -1326,23 +1319,24 @@ def _windowEnumerationHandler(hwnd, resultList):
     '''
     if hwnd == 0:
         print('_windowEnumerationHandler, hwnd == 0, skip')
-        return
+        return None
         try:
             testHndle = win32gui.GetWindow(hwnd, 0)
         except pywintypes.error:
             if details[0] == 1400:
                 print('caught 1400 error, skip this window: %s'% hwnd)
-                return
-            else:
-                raise
+                return None
+            reraise
     if checkI:
         text = className = None
         if wText:
             text = win32gui.GetWindowText(hwnd)
-            if wText and _normaliseText(text).find(wText) == -1: return
+            if wText and _normaliseText(text).find(wText) == -1:
+                return
         if wClass:
             className = win32gui.GetClassName(hwnd)
-            if wClass and className.find(wClass) != 0: return
+            if wClass and className.find(wClass) != 0:
+                return
         if not wText:
             text = win32gui.GetWindowText(hwnd)
         if not wClass:
@@ -1350,13 +1344,12 @@ def _windowEnumerationHandler(hwnd, resultList):
         # got it, append and stop:
         resultList.append(  (hwnd, text, className) )
         return True
-    else:
-        # pass on window title and class name:
-        text = win32gui.GetWindowText(hwnd)
-        className = win32gui.GetClassName(hwnd)
-        #visible = win32gui.SendMessage(hwnd, 2491)
-        resultList.append(  (hwnd, text, className) )   
-    
+    # pass on window title and class name:
+    text = win32gui.GetWindowText(hwnd)
+    className = win32gui.GetClassName(hwnd)
+    #visible = win32gui.SendMessage(hwnd, 2491)
+    resultList.append(  (hwnd, text, className) )   
+    return None
     
 def _buildWinLong(high, low):
     '''Build a windows long parameter from high and low words.
@@ -1386,14 +1379,13 @@ def _normaliseText(controlText):
     Useful for matching control text.'''
     if controlText and controlText.find("&"):
         return controlText.replace('&', '')
-    else:
-        return controlText
+    return controlText
 
 def _findNamedSubmenu(hMenu, hMenuItemCount, submenuName):
     '''Find the index number of a menu's submenu with a specific name.'''
     for submenuIndex in range(hMenuItemCount):
         submenuInfo = _getMenuInfo(hMenu, submenuIndex)
-        submenuInfoName = submenuInfo.name
+        # submenuInfoName = submenuInfo.name
         if _normaliseText(submenuInfo.name).startswith(_normaliseText(submenuName)):
             return submenuIndex, submenuInfo.submenu, submenuInfo.itemCount
     raise WinGuiAutoError("No submenu found for hMenu=" +
@@ -1417,9 +1409,8 @@ def _dedup(thelist):
                     found.append(thing)
                 
                               
-class Bunch(object):
-    '''See http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52308'''
-    
+class Bunch:
+    # pylint: disable=R0903
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
         
@@ -1435,18 +1426,18 @@ class WinGuiAutoError(Exception):
 def self_test():
     #print("Let's see what top windows we have at the 'mo:")
     #pprint.pprint(dumpTopWindows())
-    #x=raw_input('->')
+    #x = input('->')
     print("Open and locate Notepad")
     os.startfile('notepad')
     notepadWindow = findTopWindow(wantedClass='Notepad')
-    x=raw_input('->')
+    _x = input('->')
     print("Locate the 'find' edit box")
     findValue = findControls(notepadWindow, wantedClass="Edit")[0]
-    x=raw_input('->')                               
+    _x = input('->')                               
     print("Enter some text - and wait long enough for it to be seen")
     setEditText(findValue, "Hello, mate!")
     time.sleep(.5)
-    x=raw_input('->')
+    _x = input('->')
     print("Locate notepad's edit area, and enter various bits of text.")
     editArea = findControl(notepadWindow,wantedClass="Edit")
     setEditText(editArea, "Hello, again!")
@@ -1455,7 +1446,7 @@ def self_test():
     time.sleep(.5)
     setEditText(editArea, ["Here come", "two lines!"])
     time.sleep(.5)
-    x=raw_input('->')
+    _x = input('->')
     
     print("Add some...")
     setEditText(editArea, ["", "And a 3rd one!"], append=True)
@@ -1463,7 +1454,7 @@ def self_test():
     
     print("See what's there now:")
     pprint.pprint(getEditText(editArea))
-    x=raw_input('->')
+    _x = input('->')
     
     print("Exit notepad")
     activateMenuItem(notepadWindow, ('bestand', 'afsluiten'))  # was 'file', 'exit'
@@ -1474,69 +1465,25 @@ def self_test():
                                                  win32gui.GetWindowText(hwnd)=='Notepad')
     noButton = findControl(saveDialog,wantedClass="Button", wantedText="nee")  # was 'no'
     clickButton(noButton)
-    x=raw_input('->')
-
-
-
-def test_with_aligen1():
-#W["apppath"] = "aligen~3.exe"
-#W["windowcaption"] = "compose report"   
-#W["windowclass"] = None   #QH: does the class change from call to call?
-#W["testcloseapp"] = 0
-#W["editcontrol"] = "RichEdit20A"     # name of the control where the text goes in
-    aligenWindow = findTopWindow(wantedText="compose report")
-    print('aligenWindow: %s'% aligenWindow)
-    ctrls = findControls(aligenWindow, wantedClass="RichEdit20A")
-    #print('editHndle set to: %s'% editHndle)
-    if len(ctrls) > 1: 
-        for hndle in ctrls:
-            id = win32gui.GetDlgCtrlID(hndle)
-            if id == 0xd6:
-                editHndle = hndle
-                break
-        else:
-            print('did not get valid id for aligen window')
-            return
-    else:
-        print('expected more edit handles for aligen, found: %s'% ctrls)
-    print('editHndle: %s'% editHndle)
-    findValue = editHndle
-    print('findValue: %s'% findValue)
-    if not findValue: return
-    if setText:
-        setEditText(findValue, "Hello, mate!")
-    return findValue
-
+    _x = input('->')
 
 def test_with_dragonpad1(setText=1):
     dragonpadWindow = findTopWindow(wantedClass='TalkpadClass')
     print('dragonpadWindow: %s'% dragonpadWindow)
     findValues = findControls(dragonpadWindow, wantedClass="RichEdit20A")
-    if not findValues: return
+    if not findValues:
+        return None
     findValue = findValues[0]
     print('findValue: %s'% findValue)
     if setText:
         setEditText(findValue, "Hello, mate!")
     return findValue
-    ## extra test, does not help::
-    ####pos = len("Hello, mate!")
-    ####setSelection(findValue, pos-1, pos)    ## does not help
-    # do "switch to DragonPad" and dictate "this is a test"
-    # result:
-    # This is a testHello, mate!
-
-    # when you say:
-    # switch to DragonPad 
-    # press space 
-    # press control z 
-    # hello comma this is another test
-    # the result in the DragonPad window is:
-    #Hello, mate! Hello, this is another test
 
 def test_with_notepad1(setText=1):
     notepadWindow = findTopWindow(wantedClass='Notepad')
     print('notepadWindow: %s'% notepadWindow)
-    if not notepadWindow: return
+    if not notepadWindow:
+        return None
     findValue = findControls(notepadWindow, wantedClass="Edit")[0]
     print('findValue: %s'% findValue)
     if setText:
@@ -1551,7 +1498,8 @@ def test_with_wordpad1():
     print('wordpadWindow: %s'% wordpadWindow)
     findValue = findControls(wordpadWindow, wantedClass="RICHEDIT50W")[0]
     print('findValue: %s'% findValue)
-    if not findValue: return
+    if not findValue:
+        return None
     if setText:
         setEditText(findValue, "Hello, mate!")
     return findValue
@@ -1566,7 +1514,6 @@ def test_with_excel():
         contents = dumpWindow(xl)
         pprint.pprint(contents)
         
-    
     return excelWindows
 
 def test_with_pythonwin(topHwnd):
@@ -1587,7 +1534,6 @@ def test_with_komodo_messages():
     discussion on: http://community.activestate.com/node/10359
     
     """
-    
     komodoWindows = findTopWindows(wantedClass='MozillaWindowClass')
     for ko in komodoWindows:
         contents = dumpWindow(ko)
@@ -1634,7 +1580,7 @@ def hotshot_test_selection(editArea, selStart, selEnd):
     """
     setSelection(editArea, selStart, selEnd)
     time.sleep(1)
-    t = getEditText(editArea)
+    _t = getEditText(editArea)
     time.sleep(1)
     print('selection at: %s, %s'% (selStart, selEnd))
 
@@ -1666,7 +1612,7 @@ def hotshot_test(editArea, nTests):
     setEditText(editArea, ["", "", "And a 3rd one! This one is considerable longer, because there must be something to test. I hope this testing gives some reliable result.", "", ""], append=True)
 
 
-    for i in range(nTests):
+    for _i in range(nTests):
         t = getEditText(editArea)
         setEditText(editArea, t, append=True)
     result = getEditText(editArea)
@@ -1689,20 +1635,11 @@ def findPythonwinControl(topHwnd):
 def findDragonBar():
     db = findTopWindow(wantedClass='DgnBarMainWindowCls')
     
-#def findXplorer2():
-#    xpl = findTopWindow(wantedClass='ATL:ExplorerFrame')
-#    return xpl
-#    
-#def dumpXplorer2():
-#    xpl = findXplorer2()
-#    return dumpWindow(xpl)
-    
 def testExplorerViews(hndle):
     # PostMessage, 0x111, 28713,0,, ahk_pid %Win_pid% medium icons, AHK
     # PostMessage = ctypes.windll.user32.PostMessageA
     win32gui.PostMessage(hndle, 28713, 0, 0)
     win32gui.PostMessage(hndle, 28716, 0, 0)
-    pass
     
         
 if __name__ == '__main__':
