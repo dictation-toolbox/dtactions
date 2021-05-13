@@ -39,6 +39,7 @@ from pathlib import Path
 import collections
 import os.path  # only for getting the ahk exe path...
 import time
+from textwrap import dedent
 from dtactions.sendkeys import sendkeys
 ## get thisDir and other basics...
 try:
@@ -68,8 +69,13 @@ def do_ahk_script(script):
         return
     #print 'AHK with script: %s'% script
     scriptPath = ahkscriptfolder/'tempscript.ahk'
+    if isinstance(script, (list, tuple)):
+        script = '\n'.join(script)         
+    if not script.endswith('\n'):
+        script += '\n'
+    
     with open(scriptPath, 'w') as fp:
-        fp.write(script+'\n')
+        fp.write(script)
     call_ahk_script_path(scriptPath)
 
 def call_ahk_script_path(scriptPath):
@@ -104,12 +110,19 @@ def getProgInfo():
     toporchild 'top' or 'child', or '' if no valid window
           
     """
-    WinInfoFile = ahkscriptfolder/"proginfofromahk.txt"
-    if WinInfoFile.is_file():
-        WinInfoFile.unlink()
-    
-    script = """; put prog info of current window in file.
-;(prog, title, toporchild, classname, hndle)
+    ProgInfoFile = str(ahkscriptfolder/"proginfofromahk.txt")
+    script = getProgInfoScript(info_file=ProgInfoFile)
+    do_ahk_script(script)
+    return getProgInfoResult(info_file=ProgInfoFile)
+
+GetProgInfo = getProgInfo
+
+def getProgInfoScript(info_file):
+    """return the ahk script for getting the progInfo
+    """
+    script = """
+; put prog info of current window in file.
+;(progpath, prog, title, toporchild, classname, hndle)
 
 WinGet pPath, ProcessPath, A
 WinGetTitle, Title, A
@@ -123,33 +136,33 @@ if DllCall("GetParent", UInt, WinExist("A")) {
 WinGetClass, Class, A
 WinGetTitle, Title, A
 
-FileDelete, ##INFOfile##
-FileAppend, %pPath%`n, ##INFOfile##
-FileAppend, %Title%`n, ##INFOfile##
-FileAppend, %toporchild%`n, ##INFOfile##
-FileAppend, %Class%`n, ##INFOfile##
-FileAppend, %wHndle%, ##INFOfile##
+FileDelete, ##proginfofile##
+FileAppend, %pPath%`n, ##proginfofile##
+FileAppend, %Title%`n, ##proginfofile##
+FileAppend, %toporchild%`n, ##proginfofile##
+FileAppend, %Class%`n, ##proginfofile##
+FileAppend, %wHndle%, ##proginfofile##
 """
-    script = script.replace('##INFOfile##', str(WinInfoFile))
-    do_ahk_script(script)
+    script = script.replace('##proginfofile##', str(info_file))
+    return script
 
-    with open(WinInfoFile, 'r') as fp:
+def getProgInfoResult(info_file):
+    """extract the contents of the info_file, and return the progInfo
+    """
+    with open(info_file, 'r') as fp:
         progInfo = fp.read().split('\n')
         
     # note ahk returns 5 lines, but ProgInfo has 6 items.   
-        
     if len(progInfo) == 5:
         # make hndle decimal number:
-        pPath, wTitle, toporchild, classname, hndle = progInfo
+        progpath, title, toporchild, classname, hndle = progInfo
         if hndle:
             hndle = int(hndle)
         else:
             hndle = 0
-        prog = Path(pPath).stem
-        return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
+        prog = Path(progpath).stem
+        return ProgInfo(progpath, prog, title, toporchild, classname, hndle)
     raise ValueError(f'ahk script getProgInfo did not return correct result:\n    length {len(progInfo)}\n    text: {repr(progInfo)}')
-
-GetProgInfo = getProgInfo
 
 
 #def call_ahk_script_text(scriptText):
@@ -192,28 +205,10 @@ def copySampleAhkScripts(fromFolder, toFolder):
             #     print(f'AutoHotkey script "{inputName}" has been changed in "sample_ahk"\n   copy to "{toFolder}"\n   keep backup in {newOutputFile}')
             #     shutil.copyfile(outputFile, newOutputFile)
                 shutil.copyfile(inputFile, outputFile)
-          
-def GetRunWinwordScript(filepath, HNDLEfile):
-    """construct script than opens a word document
-    
-    filepath is the Word document to open.
-    HNDLEfile is a complete path to a file that will hold the windows handle after the script has run
-    The script can retrieve the handle from this file (for the moment see actions.UnimacroBringup)
-    
-    """
-    script = f'''Word := ComObjCreate("Word.Application")
-Word.Visible := True
-Word.Documents.Open("{filepath}")
-Word.Visible := 1
-Word.Activate
-WinGet, hWnd, ID, A
-FileDelete, {HNDLEfile}
-FileAppend, %%hWnd%%, {HNDLEfile}
-'''% (filepath, HNDLEfile, HNDLEfile)
-    return script
-
-def ahkBringup(app, filepath=None, title=None):
-    """start a program, folder, file, with AutoHotkey
+        
+def ahkBringup(app, filepath=None, title=None, extra=None,
+                    waitForStart=1, waitForActivate=1):
+    """start a program, folder, file, with AutoHotkey, or bring to foreground
     
     This functions is related to UnimacroBringup, which works with AppBringup from Dragon,
     but sometimes fails.
@@ -221,110 +216,241 @@ def ahkBringup(app, filepath=None, title=None):
     Besides, this function can also work without Dragon being on, not relying on natlink.
     So better fit for debugging purposes.
     
+    app:               can be without .exe (so notepad or notepad.exe), of the complete path
+                       of the app. Advised when you want to activate files in a specific app,
+                       that is not the default app for the filetype.
+    filepath:          optional, the file to open.
+    title:             activate title if the app already exists
+    extra:             do extra actions after finding the correct app in the foreground,
+                       such as opening a new document
+    waitForStart:      (default: 3), wait longer for a new process to start (in seconds)
+    waitForActivate:   (default: 1), wait longer for an existing process to come
+                       in the foreground
+    
     returns: progInfo if ahkBringup succeeded
     returns: error message if ahkBringup failed
-    
+
+    error messages (str):
+        1. when in python code, return direct
+        2. when raising an error in the ahk script, put text in errormessagefromahk.txt
+        
+    Uses two text files for getting the result:
+        1. errormessagefromahk.txt: retrieves error messages as reported from the ahk script
+        2. proginfofromahk.txt: gives the progInfo of the window that has been brought up
     """
+    # # pylint: disable=R0913, R0911
     if not ahk_is_active():
-        mess = 'cannot run ahkBringup, autohotkey is not active'
-        return mess
-    WinInfoFile = str(ahkscriptfolder/"WININFOfromAHK.txt")
+        return 'cannot run ahkBringup, autohotkey is not active'
+    ProgInfoFile = ahkscriptfolder/"proginfofromahk.txt"
+    if ProgInfoFile.is_file():
+        ProgInfoFile.unlink()
+    ErrorFile = ahkscriptfolder/"errormessagefromahk.txt"
+    with open(ErrorFile, 'w') as f:
+        f.write('\n')
+    
+    title  = title or ''
+    filepath = str(filepath or '')
+    extra = extra or ''
+    # if app.endswith('.exe'):
+    #     basename = app[:4]
+    # else:
+    #     basename = app
+    # app = app + '.exe'
+
     
     ## treat mode = open or edit, finding a app in actions.ini:
-    if ((app and app.lower() == "winword") or
+    if ((app and app.lower() == "winword") and
         (filepath and (str(filepath).endswith(".docx") or str(filepath).endswith('.doc')))):
-        script = GetRunWinwordScript(filepath, WinInfoFile)
-        do_ahk_script(script)
+        if Path(filepath).is_file():
+            script = _get_run_winword_script(filepath)
+        else:
+            return f'ahkBringup winword with filepath: "{filepath}": does not exist'
 
-    elif app and title:
-        ## start eg thunderbird.exe this way
-        ## can also give additional startup instructions in extra
-        extra = extra or ""
-        script = '''SetTitleMatchMode, 2
-Process, Exist, ##basename##
-if !ErrorLevel = 0
-{
-IfWinNotActive, ##title##,
-WinActivate, ##title##, 
-WinWaitActive, ##title##,,1
-if ErrorLevel {
-    return
-}
-}
-else
-{
-Run, ##app##
-WinWait, ##title##,,5
-if ErrorLevel {
-    MsgBox, AutoHotkey, WinWait for running ##basename## timed out
-    return
-}
-}
-##extra##
-WinGet pPath, ProcessPath, A
-WinGetTitle, Title, A
-WinGet wHndle, ID, A
-FileDelete, ##INFOfile##
-FileAppend, %pPath%`n, ##INFOfile##
-FileAppend, %Title%`n, ##INFOfile##
-FileAppend, %wHndle%, ##INFOfile##
-
-'''
-        basename = app.name
-        script = script.replace('##extra##', extra)
-        script = script.replace('##app##', app)
-        script = script.replace('##basename##', basename)
-        script = script.replace('##title##', title)
-        script = script.replace('##INFOfile##', WinInfoFile)
-        do_ahk_script(script)
-            
     else:
-        ## other programs:
-        if app and filepath:
-            script = ["Run, %s, %s,,NewPID"% (app, filepath)]
-        elif filepath:
-            script = ["Run, %s,,, NewPID"% filepath]
-        elif app:
-            script = ["Run, %s,,, NewPID"% app]
-    
-        script.append("WinWait, ahk_pid %NewPID%")
-    
-        script.append("WinGet, pPath, ProcessPath, ahk_pid %NewPID%")
-        script.append("WinGetTitle, Title, A")  ##, ID, ahk_pid %NewPID%")
-        script.append("WinGet, wHndle, ID, ahk_pid %NewPID%")
-        script.append("""wHndle := wHndle + 0
-toporchild := "top"
-if DllCall("GetParent", UInt, WinExist("A")) {
-    toporchild := "child"    
-}
-WinGetClass, Class, A
-WinGetTitle, Title, A
-""")
-        script.append('FileDelete, ' + WinInfoFile)
-        script.append('FileAppend, %pPath%`n, ' + WinInfoFile)
-        script.append('FileAppend, %Title%`n, ' + WinInfoFile)
-        script.append('FileAppend, %toporchild%`n, ' + WinInfoFile)
-        script.append('FileAppend, %Class%`n, ' + WinInfoFile)
-        script.append('FileAppend, %wHndle%, ' + WinInfoFile)
-        script = '\n'.join(script)
+        # get function and vars
+        Func, Vars = _get_run_function_vars(app, filepath, title)
+        if Func is None:
+            return f'ahkBringup, invalid combination of input variables\n    app: "{app}"\n    filepath: "{filepath}"\n    title: "{title}"'
+        script = Func(*Vars)
 
-        do_ahk_script(script)
+    if isinstance(script, str):
+        script = [script]
+    script.append("WinWait, ahk_pid %NewPID%")
+    script.append("WinGet, pPath, ProcessPath, ahk_pid %NewPID%")
+    if extra:
+        script.append(extra)
+    # always:    
+    script.append(getProgInfoScript(info_file=ProgInfoFile))
+    script = '\n'.join(script)
+    ## do the replacements:
+    script = script.replace('##waitForStart##', str(waitForStart))
+    script = script.replace('##waitForActivate##', str(waitForActivate))
+    script = script.replace('##proginfofile##', str(ProgInfoFile))
+    script = script.replace('##ErrorFile##', str(ErrorFile))
 
+    ## do the script!!
+    do_ahk_script(script)
+    message = open(ErrorFile, 'r').read().strip()
+    if message:
+        return message  
+
+    # see if there is an error message:
+    with open(ErrorFile, 'r') as f:
+        mess = f.read()
+        if mess.strip():
+            return f'autohotkeyactions.ahkBringup failed:\n===={mess}'
+
+    progInfo = getProgInfo()
     ## collect the progInfo:
-    progInfo = open(WinInfoFile, 'r').read().split('\n')
-    if len(progInfo) == 5:
-        pPath, wTitle, toporchild, classname, hndle = progInfo
-        if not hndle:
-            mess = 'autohotkeyactions, appBringup, no valid progInfo returned, hndle is empty'
-            return mess
-        hndle = int(hndle)
-        prog = Path(pPath).stem
-        return ProgInfo(pPath, prog, wTitle, toporchild, classname, hndle)
-
-    mess = f'autohotkeyactions, wrong length of getting progInfo in appBringup: "{repr(progInfo)}" (length: {len(progInfo)}'
-    return mess
+    if len(progInfo) != 6:
+        return 'progInfo returns tuple of invalid length (should be 6): {len(progInfo)}\n===={progInfo})'
+    if not progInfo.hndle:
+        return 'autohotkeyactions.appBringup, no valid progInfo returned, hndle is empty'
+    if progInfo and isinstance(progInfo, str):
+        ## error message:
+        return progInfo
+    ## OK!:
+    return progInfo
 
 autohotkeyBringup = ahkBringup
+
+## here the internal functions for appBringup:
+def _get_run_winword_script(filepath):
+    """construct script than opens an existing word document
+    
+    filepath is the Word document to open.
+
+    The retrieval of the progInfo is done in the appBringup function    
+    """
+    script = '''\
+        Word := ComObjCreate("Word.Application")
+        Word.Visible := True
+        Word.Documents.Open("##filepath##")
+        Word.Visible := 1
+        Word.Activate
+        if ErrorLevel {
+            FileAppend, ahkBringup: could not start winword with document ##filepath##te, ##ErrorFile##
+            return
+        }
+    '''
+    script = script.replace('##filepath##', filepath)
+    script = dedent(script)
+    return script
+
+def _get_run_function_vars(app, filepath, title):
+    """return _app_filepath or _app_title or _app, dependent on the variables being True
+    
+    input: values of app, filepath and title
+    output: callable function or None, tuple of input variables
+    
+>>> _get_run_function_vars('notepad', '', '')               #doctest: +ELLIPSIS
+(<function _get_run_app_script at ...>, ('notepad',))
+>>> _get_run_function_vars('notepad', '', 'window title')   #doctest: +ELLIPSIS
+(<function _get_run_app_title_script at ...>, ('notepad', 'window title'))
+
+# wrong call:
+>>> _get_run_function_vars('', '', '')   #doctest: +ELLIPSIS
+(None, ())
+    
+    
+    """
+    Parts = []
+    Vars = []
+    if app:
+        Vars.append(app)
+        Parts.append('_app')
+    if filepath:
+        Parts.append('_filepath')
+        Vars.append(filepath)
+    if title:
+        Parts.append('_title')
+        Vars.append(title)
+    func_name = f'_get_run{"".join(Parts)}_script'
+    if func_name in globals():
+        func = globals()[func_name]
+    else:
+        func = None
+    return func, tuple(Vars)
+
+def _get_run_app_title_script(app, title):
+    """constructs start of script switching or opening app, switching to window title if present
+    """
+    script = '''\
+        SetTitleMatchMode, 2
+        Process, Exist, ##app##
+        if ErrorLevel = 0
+        {
+        ; app does not exist
+        Run, ##app##,,,NewPID
+        WinWait ahk_pid %NewPID%,,1
+        if ErrorLevel {
+            FileAppend, Could not activate app ##app##, ##ErrorFile##
+            return
+            }
+        }
+        else
+        {
+        ; try to activate existing window    
+        IfWinNotActive, ##title##,
+        WinActivate, ##title##
+        WinWaitActive, ##title##,,##waitForActivate##
+        if ErrorLevel {
+            FileAppend, Could not activate window with title ##title##, ##ErrorFile##
+            WinWait ahk_pid %NewPID%,,##waitForActivate##
+            }
+        }
+        '''
+    script = script.replace('##app##', app)
+    script = script.replace('##title##', title)
+    script = dedent(script)
+    return script
+
+def _get_run_app_filepath_script(app, filepath):
+    """constructs start of script switching running app with a filepath
+    """
+    script = [f'Run, "{app} {filepath}",,, NewPID']
+    errorlines = '''
+        if ErrorLevel {
+            FileAppend, Could not activate app: "##app##" with filepath: "##filepath##", ##ErrorFile##
+            return
+            }
+        '''
+    errorlines = errorlines.replace('##app##', app)
+    errorlines = errorlines.replace('##filepath##', filepath)
+    errorlines = dedent(errorlines)
+        
+    script.append(errorlines)
+    return script
+
+def _get_run_filepath_script(filepath):
+    """constructs start of script switching running a filepath
+    """
+    script = [f'Run, "{filepath}",,, NewPID']
+    errorlines = '''
+        if ErrorLevel {
+            FileAppend, Could not start filepath: "##filepath##", ##ErrorFile##
+            return
+            }
+        '''
+    errorlines = errorlines.replace('##filepath##', filepath)
+    errorlines = dedent(errorlines)
+    script.append(errorlines)
+    return script
+
+def _get_run_app_script(app):
+    """constructs start of script switching running an app
+    """
+    script = [f'Run, "{app}",,, NewPID']
+    errorlines = '''
+        if ErrorLevel {
+            FileAppend, Could not start app: "##app##", ##ErrorFile##
+            return
+            }
+        '''
+    errorlines = errorlines.replace('##app##', app)
+    errorlines = dedent(errorlines)
+    script.append(errorlines)
+    return script
 
 def GetForegroundWindow():
     """return the hndle of the ForegroundWindow
@@ -332,22 +458,22 @@ def GetForegroundWindow():
     OK: return value, int, the hndle of the Foreground window
     Error: return value is str: error message explaining the failure
     """
-    WinInfoFile = ahkscriptfolder/"foregroundhndlefromahk.txt"
-    if WinInfoFile.is_file():
-        WinInfoFile.unlink()
+    ProgInfoFile = ahkscriptfolder/"foregroundhndlefromahk.txt"
+    if ProgInfoFile.is_file():
+        ProgInfoFile.unlink()
     
-    script = """; put window hndle of current window in file.
-
-WinGet pPath, ProcessPath, A
-WinGet wHndle, ID, A
-wHndle := wHndle + 0
-FileDelete, ##INFOfile##
-FileAppend, %wHndle%, ##INFOfile##
-"""
-    script = script.replace('##INFOfile##', str(WinInfoFile))
+    script = '''\
+        ; put window hndle of current window in file.
+        WinGet pPath, ProcessPath, A
+        WinGet wHndle, ID, A
+        wHndle := wHndle + 0
+        FileDelete, ##proginfofile##
+        FileAppend, %wHndle%, ##proginfofile##
+    '''
+    script = script.replace('##proginfofile##', str(ProgInfoFile))
     do_ahk_script(script)
 
-    with open(WinInfoFile, 'r') as fp:
+    with open(ProgInfoFile, 'r') as fp:
         gotHndle = fp.read().strip()
     try:
         if gotHndle:
@@ -371,18 +497,40 @@ def SetForegroundWindow(hndle):
     other return: message why it went wrong
     
     """
+    ErrorFile = ahkscriptfolder/"errormessagefromahk.txt"
+    if ErrorFile.is_file():
+        ErrorFile.unlink()
+    
     InfoFile = ahkscriptfolder/"INFOfromAHK.txt"
     if InfoFile.is_file():
         InfoFile.unlink()
 
-    script = f'''WinActivate, ahk_id {hndle}
-WinGet wHndle, ID, A
-wHndle := wHndle + 0
-FileDelete, ##INFOfile##
-FileAppend, %wHndle%, ##INFOfile##
-'''
-    script = script.replace('##INFOfile##', str(InfoFile))
-    do_ahk_script(script)
+    script = '''\
+        WinActivate, ahk_id ##hndle##
+        WinWait, ahk_pid ##hndle##,,1
+        if ErrorLevel {
+            FileAppend, Could not get window with hndle ##hndle## in the foreground, ##ErrorFile##
+            return
+        }
+
+        WinGet wHndle, ID, A
+        wHndle := wHndle + 0
+        FileDelete, ##proginfofile##
+        FileAppend, %wHndle%, ##proginfofile##
+        '''
+    script = script.replace('##hndle##', str(hndle))
+    script = script.replace('##proginfofile##', str(InfoFile))
+    script = script.replace('##ErrorFile##', str(ErrorFile))
+    do_ahk_script(dedent(script))
+    
+    if Path(ErrorFile).is_file():
+        mess = f'Error with SetForegroundWindow to {hndle}'
+        return mess
+
+    if not Path(InfoFile).is_file():
+        mess = f'Error with SetForegroundWindow to {hndle}, InfoFile cannot be found'
+        return mess
+        
     winHndle = open(InfoFile, 'r').read().strip()
     if winHndle:
         try:
@@ -537,23 +685,21 @@ def killWindow(hndle=None, key_close=None, key_close_dialog=None, silent=True):
 if ahkscriptfolder is None:
     GetAhkScriptFolder()
 
-
+def test():
+    # pylint: disable=C0115, C0116, C0415
+    import doctest
+    doctest.testmod()
 
 
 if __name__ ==  "__main__":
+    test()
     print(f'ahk_is_active: {ahk_is_active()}')
     Result = getProgInfo()
     print(f'\nresult of getProgModInfo: (start)\n{repr(Result)}')
     Result = ahkBringup("notepad")
     print(f'\nresult of ahkBringup("notepad"):\n{repr(Result)}')
-    Result = getProgInfo()
-    print(f'\nresult of getProgModInfo (should be notepad):\n{repr(Result)}')
-    time.sleep(1)
-    # quite notepad again...
-    sendkeys("{alt+f4}")
-    Result = getProgInfo()
-    print(f'\nresult of getProgModInfo:\n{repr(Result)}')
-    
+    if Result.hndle:
+        killWindow(Result.hndle)
     
     
 

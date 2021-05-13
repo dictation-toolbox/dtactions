@@ -1213,7 +1213,22 @@ def waitForForegroundWindow(className=None, nWait=50, waitingTime=0.5):
     return None
 
 def SendKeys(hndle, keysString):
-    """send the keys to the foreground window
+    """send the keys to the window with hndle
+    
+    This function could be useful when you want to send keystrokes to
+    other windows. But it fails, and should be repaired in that case.
+    
+    The :code:`SendMessage` trick, with windows messages, *does not work*,
+    
+    The :code:`SendInput` mechanism (as used in Dragonfly,
+    and so in the `sendkeys.py` module of this module) is favourable.
+ 
+    Example:
+    ::
+      hndle = getForegroundWindow()
+      SendKeys(hndle, "{shift+a}")   ## fails
+      SendKeys(hndle, "abc")         ## works
+    
     """
     keysList = splitKeysString(keysString)
     for key in keysList:
@@ -1320,13 +1335,13 @@ def _windowEnumerationHandler(hwnd, resultList):
     if hwnd == 0:
         print('_windowEnumerationHandler, hwnd == 0, skip')
         return None
-        try:
-            testHndle = win32gui.GetWindow(hwnd, 0)
-        except pywintypes.error:
-            if details[0] == 1400:
-                print('caught 1400 error, skip this window: %s'% hwnd)
-                return None
-            reraise
+    # try:
+    _testHndle = win32gui.GetWindow(hwnd, 0)
+    # except pywintypes.error:
+    #     if details[0] == 1400:
+    #         print(f'caught 1400 error, skip this window: {hwnd}'% hwnd)
+    #         return None
+    #     raise
     if checkI:
         text = className = None
         if wText:
@@ -1666,7 +1681,10 @@ if __name__ == '__main__':
     
     # view settings explorer (this one fails!)
     # testExplorerViews(986418)
-    g = getFolderFromCabinetWClass(1837622)
+    # g = getFolderFromCabinetWClass(1837622)
     # g = getFolderFromDialog(394720, '#32770')
-    print(g, type(g))
+    # print(g, type(g))
+    # hndle = getForegroundWindow()
+    # SendKeys(hndle, "{shift+a}")   ## fails
+    # SendKeys(hndle, "abc")         ## works
     pass

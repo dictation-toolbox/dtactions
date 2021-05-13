@@ -58,7 +58,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
             ahk.SetForegroundWindow(notepadHndle)
             sendkeys('xxx')
             ahk.SetForegroundWindow(thisHndle)
-
+    
         time.sleep(1)
         ahk.killWindow(notepadHndle)
         ahk.SetForegroundWindow(notepadHndle)
@@ -73,7 +73,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         self.assertNotEqual(result, 123, mess)
 
 
-    def testKillWindow(self):
+    def tttestKillWindow(self):
         """test the autohotkey version of killWindow
         """
         thisHndle = ahk.GetForegroundWindow()
@@ -121,7 +121,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         self.assertTrue(result is True, f'calling window should be in the foreground again {thisHndle}')
 
         result = ahk.killWindow(notepadHndle)
-        self.assertTrue(result is True, f'result of killing notepad should be 0, not {result}')
+        self.assertTrue(result is True, f'result of killing notepad should be True, not {result}')
         
         result = ahk.SetForegroundWindow(thisHndle)        
         self.assertTrue(result is True, f'calling window should be in the foreground again {thisHndle}')
@@ -159,9 +159,94 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         ## now do it good:
         result = ahk.killWindow()
         self.assertTrue(result is True, f'result of killing notepad should be True, not:\n\t{result}')
-        
+
         result = ahk.SetForegroundWindow(thisHndle)        
         self.assertTrue(result is True, f'calling window should be in the foreground again {thisHndle}')
+
+    def tttestAhkBringupNotePad(self):
+        """test easy bringup of Notepad
+
+        second call tries to activate to the first openend instance        
+        """
+        ### test notepad:
+        thisHndle = ahk.GetForegroundWindow()
+        notepadInfo = ahk.ahkBringup("notepad")
+        notepadHndle = notepadInfo.hndle
+        self.assertGreater(notepadHndle, 0, "notepad should have a valid window hndle, not {notepadHndle}")
+        self.assertEqual(notepadInfo.prog, 'notepad', 'notepadInfo, prog does not match')
+        notepadTitle = notepadInfo.title
+        searchTitle = notepadTitle.split()[0]   ## only Naamloos
+        
+        # go back, then pick up window with same title:
+        ahk.SetForegroundWindow(thisHndle)
+        notepadInfo2 = ahk.ahkBringup("notepad", title=searchTitle)
+        notepadHndle2 = notepadInfo2.hndle
+        self.assertGreater(notepadHndle2, 0, "notepad 2 should have a valid window hndle, not {notepadHndle2}")
+        self.assertEqual(notepadHndle2, notepadHndle, "notepad 2 should be same window as notepad")
+        self.assertTupleEqual(notepadInfo2, notepadInfo2, 'notepadInfo2 should equal notepadInfo')
+        
+        ahk.killWindow(notepadHndle)
+        ahk.killWindow(notepadHndle2)
+        nowThisHndle = ahk.GetForegroundWindow()
+        self.assertEqual(nowThisHndle, thisHndle, 'test should end up in same window as it started')
+
+        ## open a filepath, the errormessagefromahk.txt file (1 empty line)
+        filepath = Path.home()/'.autohotkey'/'errormessagefromahk.txt'
+        self.assertTrue(filepath.is_file(), f'file {filepath} should exist')
+        notepadInfo3 = ahk.ahkBringup("notepad", filepath=filepath)
+        notepadHndle3 = notepadInfo3.hndle
+        self.assertGreater(notepadHndle3, 0, "notepad 3 should have a valid window hndle, not {notepadHndle2}")
+        self.assertEqual(notepadInfo3.title, str(filepath), f'filepath should be in window title: {filepath}')
+
+
+
+    def tttestAhkBringupThunderbird(self):
+        """test starting or bringing to the foreground Thunderbird
+        
+        Note the default waitForStart is increased from 1 to 3 seconds, as starting Thunderbird takes
+        a bit of time.
+        """
+        ### test Thunderbird, app and title, activate if already open...
+        thisHndle = ahk.GetForegroundWindow()
+        ## if thunderbird is not open, and you remove waitForStart, you probably get the fail message below,
+        ## as it takes more than a second to start thunderbird...
+        thunderbirdInfo = ahk.ahkBringup("thunderbird", title="Mozilla Thunderbird", waitForStart=3)
+        if isinstance(thunderbirdInfo, str):
+            self.fail(f'starting thunderbird failed, message: {thunderbirdInfo}')
+        thunderbirdHndle = thunderbirdInfo.hndle
+        
+        ahk.SetForegroundWindow(thisHndle)
+      
+        self.assertGreater(thunderbirdHndle, 0, "thunderbird should have a valid window hndle, not {thunderbirdHndle}")
+        self.assertEqual(thunderbirdInfo.prog, 'thunderbird', 'thunderbirdInfo, prog does not match')
+
+        # leave thunderbird open after testing
+        # ahk.killWindow(thunderbirdHndle)
+        nowThisHndle = ahk.GetForegroundWindow()
+        self.assertEqual(nowThisHndle, thisHndle, 'test should end up in same window as it started')
+
+    def tttestAhkBringupWindword(self):
+        """test starting or bringing to the foreground Windword
+        
+        """
+        ### test winword, app and title, activate if already open...
+        thisHndle = ahk.GetForegroundWindow()
+        ## if winword is not open, and you remove waitForStart, you probably get the fail message below,
+        ## as it takes more than a second to start winword...
+        winwordInfo = ahk.ahkBringup("winword", title="Word", waitForStart=10)
+        if isinstance(winwordInfo, str):
+            self.fail(f'starting winword failed, message: "{winwordInfo}"')
+        winwordHndle = winwordInfo.hndle
+        
+        ahk.SetForegroundWindow(thisHndle)
+      
+        self.assertGreater(winwordHndle, 0, "winword should have a valid window hndle, not {winwordHndle}")
+        self.assertEqual(winwordInfo.prog, 'WINWORD', 'winwordInfo, prog does not match')
+
+        # leave winword open after testing
+        ahk.SetForegroundWindow(thisHndle)
+        nowThisHndle = ahk.GetForegroundWindow()
+        self.assertEqual(nowThisHndle, thisHndle, 'test should end up in same window as it started')
 
 def run():
     """run the unittest procedure"""

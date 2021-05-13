@@ -4,75 +4,88 @@ and provide functions for moving a (top level) window to a position on
 the current or on a different monitor.
 
 The start of this module was taken from O'Reilly, and has been enhanced for use
-with NatLink speech recognition commands, see http://qh.antenna.nl and
-http://qh.antenna.nl/unimacro. Quintijn Hoogenboom, february 2010.
+with NatLink speech recognition commands, see Unimacro_
+
+Quintijn Hoogenboom, february 2010/May 2021
+
+.. _Unimacro: http://qh.antenna.nl/unimacro
 
 
-The basic information is collected in
--MONITOR_INFO, a dictionary with keys the handles of the monitor
- These keys are converted to int, and for 2 monitors probably 65537 and
- 65539, and put in global variable MONITOR_HNDLES (a list)
 
- Each item of MONITOR_INFO is again a dictionary with for example my second monitor info:
- ``   {'Device': '\\\\.\\DISPLAY2',
-     'Flags': 0,
-     'Monitor': (1680, 0, 2704, 768),
-     'Work': (1787, 0, 2704, 768),
-     'offsetx': 107,
-     'offsety': 0}``
- Thus holding the Monitor info and the Work info. As a extra offsetx and offsety are calculated,
- which give the width/height of task bar and possibly other "bars". In this example I have the task bar
- vertically placed at the left side of this second monitor, and it has a width of 107 pixels.``
+**The basic information** is collected in:
 
--MONITOR_HNDLES: a list of the available monitors (the handles are int, see above)
--VIRTUAL_SCREEN: a 4 tuple giving the (left, top, right, bottom) of the complete (virtual) screen
--BORDERX, BORDERY: the border width of windows. With this a window can be size a little
+- :code:`MONITOR_INFO`, a `dict` with keys the handles of the monitor.
+  These keys are converted to `int`, and for 2 monitors probably 65537 and
+  65539, and put in global variable :code:`MONITOR_HNDLES` (a `list`)
 
-MA, WA, RA
-Each area (MA: Monitor, WA: Work, RA: restore area of a window) is a 4 length tuple
-giving (left, top, right, bottom).
+- Each item of `MONITOR_INFO` is again a dictionary with for example my second monitor info:
+  |  {'Device': '\\\\.\\DISPLAY2',
+  |  'Flags': 0,
+  |  'Monitor': (1680, 0, 2704, 768),
+  |  'Work': (1787, 0, 2704, 768),
+  |  'offsetx': 107,
+  |  'offsety': 0}
+   
+  Thus holding the Monitor info and the Work info. The `Work` info gives the space for normal windows,
+  so exclusive of the Windows Taskbar and the Dragon Bar (the old fashioned one).
+ 
+  As an extra `offsetx` and `offsety` are calculated,
+  which give the width/height of task bar and possibly other "bars". In this example I have the task bar
+  vertically placed at the left side of this second monitor, and it has a width of 107 pixels.``
+
+- :code:`MONITOR_HNDLES`: a list of the available monitors (the handles are int, see above)
+- :code:`VIRTUAL_SCREEN`: a 4 tuple giving the (left, top, right, bottom) of the complete (virtual) screen
+- :code:`BORDERX`, :code:`BORDERY`: the border width of windows. With this a window can be sized a little bit.
+
+- :code:`MA`, :code:`WA`, :code:`RA`
+
+  Each area (`MA`: Monitor, `WA`: Work, `RA`: restore area of a window) is a 4 length tuple
+  giving (left, top, right, bottom).
 
 Biggest puzzle of the calculations is changing the restore_area (from GetWindowPlacement) to the Work area of
-a new monitor. Important is the offsetx and offsety (difference between Monitor coordinates and Work area
-coordinates). The RA (restore_area) is relative to the Work area of the monitor it is on, so the offsetx and offsety
+a new monitor. Important is the `offsetx` and `offsety` (difference between Monitor coordinates and Work area
+coordinates). The `RA` (restore_area) is relative to the Work area of the monitor it is on,
+so the `offsetx` and `offsety`
 must be subtracted from the calculated coordinates. (something like that)
 
-This module provides functions for getting:
+**This module provides functions for getting:**
 
---all the info: monitor_info(force=None): giving the above mentioned data
+all the info:
+  :code:`monitor_info(force=None)`:       giving the above mentioned data
 
---which is the nearest monitor, using API functions:
-    get_nearest_monitor_window(winHndle)
-    get_nearest_monitor_point(point)
-(could also make get_nearest_monitor_rect, but was not needed here)
+which is the nearest monitor, using API functions:
+  :code:`get_nearest_monitor_window(winHndle)`
 
---further info:
-    get_other_monitors(mon): give a list of the other monitor hndles (after collecting the current monitor)
+  :code:`get_nearest_monitor_point(point)`
+
+  (you could also use :code:`get_nearest_monitor_rect`, but this was not needed here)
+
+further info:
+  :code:`get_other_monitors(mon)`:     give a list of the other monitor hndles (after collecting the current monitor)
     
--- for individual points (used by natlinkutilsqh.py in Unimacro (NatLink, speech recognition)
-    is_inside_monitor(point): returns True if the point is inside one of the monitors (monitor area)
-    get_closest_position(point) returns a point that is closest to an outside point on one of the monitors
+for individual points:
+  (used by natlinkutilsqh.py in Unimacro (NatLink, speech recognition)
+  
+  :code:`is_inside_monitor(point)`:             returns True if the point is inside one of the monitors (monitor area)
+  :code:`get_closest_position(point)`:          returns a point that is closest to an outside point on one of the monitors
     
--- for user calls:
-    maximize_window(winHndle): just maximize
-    minimize_window(winHndle): just minimize
+for user calls:
+  :code:`maximize_window(winHndle)`:            just maximize
+  :code:`minimize_window(winHndle)`:            just minimize
 
-    move_to_monitor(winHndle, newMonitor, oldMonitor, resize): move to another monitor
-        preserving position of restore_area as much as possible.
-        resize: 0 if window is (assumed to be) fixed in size, can be found with:
-    window_can_be_resized(winHndle):
-        return 1 if a window can be resized (like Komodo etc). Not eg calc.
+  :code:`move_to_monitor(winHndle, newMonitor, oldMonitor, resize)`: move to another monitor
+  preserving position of restore_area as much as possible.
+  resize: 0 if window is (assumed to be) fixed in size.
+  This can be found with: :code:`window_can_be_resized(winHndle)`
         
-    restore_window(winHndle, monitor, ...): placing in various spots and widths/heights
-        see at definition for parameters
+  :code:`restore_window(winHndle, monitor, ...)`: placing in various spots and widths/heights
+  see at definition for parameters
     
-
 Several test functions demonstrate the result of different monitor functions.
 Switch them on or of at the bottom of the file
 
-Below if the documentation of the different functions:
-
-    
+Functions:
+==========
 """
 # pylint: disable=C0302
 import pprint
@@ -149,9 +162,12 @@ def fake_monitor_info_for_testing(nmon, virtual_screen):
 def get_nearest_monitor_window(winHndle):
     """give monitor number of the monitor which is nearest to the window
     
-    input the handle of the window, most often got by:
-        winHndle = win32gui.GetForegroundWindow()
-    output: the monitor handle as an integer (65537, 65539 often on a 2 monitor configuration)
+    input:
+      the handle of the window, most often got by:
+      winHndle = win32gui.GetForegroundWindow()
+               
+    output:
+      the monitor handle as an integer (65537, 65539 often on a 2 monitor configuration)
     """
     mon = win32api.MonitorFromWindow(winHndle, win32con.MONITOR_DEFAULTTONEAREST)
     return int(mon)
@@ -315,13 +331,15 @@ def move_window(winHndle, direction, amount, units='pixels',
                 keepinside=None, keepinsideall=1, monitor=None):
     """moves a window, can go across monitor borders and out of the total area
     
-        winHndle: hndle of the program
-        monitor: hdnle of the monitor (is collected if not passed)
-        direction: a string, left, right, up, down or
-        a direction in degrees (0 = up, 90 = right, 180 = down, 270 = left)
-        amount: number of pixels (for moving to left edge, use restore_window)
-        keepinside: keep inside the work area of the monitor
-        keepinsideall: keep inside the virtual area of all monitors.
+        :`winHndle`: hndle of the program
+        :`monitor`:
+          hndle of the monitor (is collected if not passed)
+        :`direction`:
+          - a string, left, right, up, down or
+          - a direction in degrees (0 = up, 90 = right, 180 = down, 270 = left)
+        :`amount`: number of pixels (for moving to left edge, use restore_window)
+        :`keepinside`: keep inside the work area of the monitor
+        :`keepinsideall`: keep inside the virtual area of all monitors.
         
     """
     # pylint: disable=R0913
