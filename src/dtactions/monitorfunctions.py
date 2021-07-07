@@ -3,10 +3,13 @@
 and provide functions for moving a (top level) window to a position on
 the current or on a different monitor.
 
+Note: Windows only...
+
 The start of this module was taken from O'Reilly, and has been enhanced for use
 with NatLink speech recognition commands, see http://qh.antenna.nl and
 http://qh.antenna.nl/unimacro. Quintijn Hoogenboom, february 2010.
 
+Package is converted to the `dtactions` repository of the `dictation-toolbox` (April 2021)
 
 The basic information is collected in
 -MONITOR_INFO, a dictionary with keys the handles of the monitor
@@ -14,12 +17,13 @@ The basic information is collected in
     65539, and put in global variable MONITOR_HNDLES (a list)
 
     Each item of MONITOR_INFO is again a dictionary with for example my second monitor info:
-    {'Device': '\\\\.\\DISPLAY2',
+    ```{'Device': '\\\\.\\DISPLAY2',
      'Flags': 0,
      'Monitor': (1680, 0, 2704, 768),
      'Work': (1787, 0, 2704, 768),
      'offsetx': 107,
      'offsety': 0}
+     ```
     Thus holding the Monitor info and the Work info. As a extra offsetx and offsety are calculated,
     which give the width/height of task bar and possibly other "bars". In this example I have the task bar
     vertically placed at the left side of this second monitor, and it has a width of 107 pixels.
@@ -39,34 +43,32 @@ must be subtracted from the calculated coordinates. (something like that)
 
 This module provides functions for getting:
 
---all the info: monitor_info(force=None): giving the above mentioned data
+--all the info: `monitor_info(force=None)`: giving the above mentioned data
 
 --which is the nearest monitor, using API functions:
-    get_nearest_monitor_window(winHndle)
-    get_nearest_monitor_point(point)
+    `get_nearest_monitor_window(winHndle)`
+    `get_nearest_monitor_point(point)`
 (could also make get_nearest_monitor_rect, but was not needed here)
 
 --further info:
-    get_other_monitors(mon): give a list of the other monitor hndles (after collecting the current monitor)
+    `get_other_monitors(mon)`: give a list of the other monitor hndles (after collecting the current monitor)
     
 -- for individual points (used by natlinkutilsqh.py in Unimacro (NatLink, speech recognition)
-    is_inside_monitor(point): returns True if the point is inside one of the monitors (monitor area)
-    get_closest_position(point) returns a point that is closest to an outside point on one of the monitors
+    `is_inside_monitor(point)`: returns True if the point is inside one of the monitors (monitor area)
+    `get_closest_position(point)` returns a point that is closest to an outside point on one of the monitors
     
 -- for user calls:
-    maximize_window(winHndle): just maximize
-    minimize_window(winHndle): just minimize
+    `maximize_window(winHndle)`: just maximize
+    `minimize_window(winHndle)`: just minimize
 
-    move_to_monitor(winHndle, newMonitor, oldMonitor, resize): move to another monitor
+    `move_to_monitor(winHndle, newMonitor, oldMonitor, resize)`: move to another monitor
         preserving position of restore_area as much as possible.
         resize: 0 if window is (assumed to be) fixed in size, can be found with:
-    window_can_be_resized(winHndle):
+    `window_can_be_resized(winHndle)`:
         return 1 if a window can be resized (like Komodo etc). Not eg calc.
         
-    restore_window(winHndle, monitor, ...): placing in various spots and widths/heights
+    `restore_window(winHndle, monitor, ...)`: placing in various spots and widths/heights
         see at definition for parameters
-    
--- helper functions:
     
 """
 # pylint: disable=C0302
