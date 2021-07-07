@@ -2,16 +2,14 @@
 # (c) Copyright 2007, 2008 by Christo Butcher
 # (c) Copyright 2002, by Quintijn Hoogenboom
 # Licensed under the LGPL.
-"""shortcut to the sendkeys mechanism of Natlink/Vocola
+"""Sending keystrokes to the foreground window.
 
-usage: :code:`from dtactions.sendkeys import sendkeys`
+Usage:  :code:`from dtactions.sendkeys import sendkeys`
 
-and then: :code"`sendkeys("keystrokes")`
+and then: :code:`sendkeys"("keystrokes")`
 
-This module now adopts the dragonfly action_key and action_text modules,
-so {alt+w} must be converted to "a-w" etc.
-
-Some keys require a synonym, for example "esc", which is "escape" in action_key.py
+This module now adopts the Dragonfly :code:`action_key` module,
+so `"{alt+w}"` is (in the function) converted to `"a-w"` etc.
 
 (Quintijn Hoogenboom, 2021-04-04)
 """
@@ -21,21 +19,29 @@ from dragonfly.actions import action_key
 chord_pattern = re.compile(r'(\{.*?\})')
 split_text_from_key = re.compile(r'(\w+)(.*$)')
 
+# more synonyms can be defined here if necessary:
 synonym_keys = dict(esc="escape")
 def sendkeys(keys):
-    """send keystrokes via dragonfly action_key.Keys() function
+    """sends keystrokes via dragonfly class :code:`action_key.Keys`
    
-   Keystrokes following Unimacro/Vocola convention are translated into Dragonfly notation:
-   `{shift+right 4}` is translated to `s-right:4`
-   
-   Pause before the keys and after the keys can be given in Dragonfly notation:
-   `{down/25:10/100}` goes 10 times down, with pause before next key of 25/100 seconds
-                      and 1 second after the 10 down presses
+Keystrokes following Unimacro/Vocola convention are translated into Dragonfly notation:
 
-    extra notation (Quintijn):   
-    "!" at the end of a chord, triggers use_hardware=True
-    
-    tested at bottom of this file interactively...
+:code:`"{shift+right 4}"` is translated to :code:`"s-right:4"`.
+   
+Multiple keystrokes, pauses before the individual keys and a pause after all the keys can be given in Dragonfly notation:
+
+:code:`"{down/25:12/100}"` presses the `down` key 12 times,
+with a pause before each key of 25/100 seconds
+and a pause of 1 second (100/100 seconds) after the 12 down presses
+
+
+Extra notation (Quintijn):
+
+:code:`"!"` at the end of a chord (the keystrokes definition between the braced, :code:`{` and :code:`}`,
+triggers the `use_hardware=True` event,
+comparable with the SendSystemKeys mechanism of Dragon.
+
+Tested at bottom of this file interactively...
     """
     m = chord_pattern.search(keys)
     if m:
