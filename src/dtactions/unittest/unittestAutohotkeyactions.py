@@ -84,9 +84,9 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         notepadHndle = notepadInfo.hndle
         self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
         
-        self.SetForegroundWindow(thisHndle)
-        self.SetForegroundWindow(notepadHndle)
-        self.SetForegroundWindow(thisHndle)
+        ahk.SetForegroundWindow(thisHndle)
+        ahk.SetForegroundWindow(notepadHndle)
+        ahk.SetForegroundWindow(thisHndle)
         
         
         ## create a child window
