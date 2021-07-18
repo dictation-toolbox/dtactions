@@ -36,8 +36,8 @@ class UnittestAutohotkeyactions(unittest.TestCase):
             if ahk.SetForegroundWindow(hndle) == 0:
                 ahk.killWindow()
 
-    @profile(filename=dataDir/'profileinfo.txt')
-    def testSimple(self):
+    # @profile(filename=dataDir/'profileinfo.txt')
+    def tttestSimple(self):
         """only testing GetForegroundWindow and getProgInfo (or GetProgInfo)
         
         Also used for timing the getProgInfo routine
@@ -73,7 +73,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         self.assertNotEqual(result, 123, mess)
 
 
-    def tttestKillWindow(self):
+    def testKillWindow(self):
         """test the autohotkey version of killWindow
         """
         thisHndle = ahk.GetForegroundWindow()
@@ -84,15 +84,20 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         notepadHndle = notepadInfo.hndle
         self.assertTrue(notepadHndle > 0, "notepad should have a valid window hndle, not {notepadHndle}")
         
-        ## create a child window
-        sendkeys("{ctrl+o}")
-        time.sleep(0.5)
-        childInfo = ahk.getProgInfo()
-        childHndle = childInfo[-1]
+        self.SetForegroundWindow(thisHndle)
+        self.SetForegroundWindow(notepadHndle)
+        self.SetForegroundWindow(thisHndle)
         
+        
+        ## create a child window
+        # sendkeys("{ctrl+o}")
+        # time.sleep(0.5)
+        # childInfo = ahk.getProgInfo()
+        # childHndle = childInfo[-1]
+        # 
         # print(f'notepad, notepadHndle: {notepadHndle}, child: {childHndle}\n{childInfo}')
 
-        result = ahk.SetForegroundWindow(thisHndle)        
+        # result = ahk.SetForegroundWindow(thisHndle)        
         ## failed experiment: cannot find back the child window, when you get the top window in the foreground:
         # self.assertTrue(result is True, f'calling window should be in the foreground again {thisHndle}')
         # result = ahk.SetForegroundWindow(notepadHndle)        
@@ -107,8 +112,8 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         
         # when the hndle of the open child window is given, this works all right
         # the child window is closed, with {esc}, and then the normal killWindow procedure follows.
-        result = ahk.killWindow(childHndle)
-        self.assertTrue(result is True, f'result of killing notepad should be 0, not {result}')
+        # result = ahk.killWindow(childHndle)
+        # self.assertTrue(result is True, f'result of killing notepad should be 0, not {result}')
 
         ## now with text in the window:
         notepadHndle = ahk.ahkBringup("notepad")[-1]
@@ -200,7 +205,7 @@ class UnittestAutohotkeyactions(unittest.TestCase):
 
 
 
-    def tttestAhkBringupThunderbird(self):
+    def tttestAhkBringupThunderbirdAppTitle(self):
         """test starting or bringing to the foreground Thunderbird
         
         Note the default waitForStart is increased from 1 to 3 seconds, as starting Thunderbird takes
@@ -210,9 +215,9 @@ class UnittestAutohotkeyactions(unittest.TestCase):
         thisHndle = ahk.GetForegroundWindow()
         ## if thunderbird is not open, and you remove waitForStart, you probably get the fail message below,
         ## as it takes more than a second to start thunderbird...
-        thunderbirdInfo = ahk.ahkBringup("thunderbird", title="Mozilla Thunderbird", waitForStart=3)
+        thunderbirdInfo = ahk.ahkBringup("thunderbird", title="Mozilla Thunderbird", waitForStart=5)
         if isinstance(thunderbirdInfo, str):
-            self.fail(f'starting thunderbird failed, message: {thunderbirdInfo}')
+            self.fail(f'starting/activating thunderbird failed, message: {thunderbirdInfo}')
         thunderbirdHndle = thunderbirdInfo.hndle
         
         ahk.SetForegroundWindow(thisHndle)
@@ -222,8 +227,25 @@ class UnittestAutohotkeyactions(unittest.TestCase):
 
         # leave thunderbird open after testing
         # ahk.killWindow(thunderbirdHndle)
+
+        ahk.SetForegroundWindow(thisHndle)
         nowThisHndle = ahk.GetForegroundWindow()
         self.assertEqual(nowThisHndle, thisHndle, 'test should end up in same window as it started')
+        
+        ## switch to thunderbird twice, and then back:
+        thunderbirdInfoTwo = ahk.ahkBringup("thunderbird", title="Mozilla Thunderbird", waitForStart=5)
+        if isinstance(thunderbirdInfoTwo, str):
+            self.fail(f'starting/activating thunderbird failed, message: {thunderbirdInfoTwo}')
+        thunderbirdInfoThree = ahk.ahkBringup("thunderbird", title="Mozilla Thunderbird", waitForStart=5)
+        if isinstance(thunderbirdInfoThree, str):
+            self.fail(f'starting/activating thunderbird failed, message: {thunderbirdInfoThree}')
+
+        ## back to calling window:        
+        ahk.SetForegroundWindow(thisHndle)
+        nowThisHndle = ahk.GetForegroundWindow()
+        self.assertEqual(nowThisHndle, thisHndle, 'test should end up in same window as it started')
+
+        
 
     def tttestAhkBringupWindword(self):
         """test starting or bringing to the foreground Windword

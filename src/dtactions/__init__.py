@@ -26,7 +26,7 @@ thisDir = getThisDir(__file__) # optional: ... , warnings=True)
 ```
 """
 
-__version__ = '1.1.0'  # Quintijn to test
+__version__ = '1.1.1'  # Quintijn to test
 
 import sys
 from pathlib import Path
