@@ -2145,7 +2145,17 @@ class Action:
     do_CLEARBRINGUPS = clearBringups
     do_BRINGUP = UnimacroBringUp      
     
-    
+def doAction(action):
+    """make an instance of Action class and perform action
+    """
+    _action = Action()
+    _action.doAction(action)
+
+def doKeystroke(keystrokes):
+    """make an instance of Action class and do keystrokes
+    """
+    _action = Action()
+    _action.doKeystroke(keystrokes)
 
 if debug:
     try:
