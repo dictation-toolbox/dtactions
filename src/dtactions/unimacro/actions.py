@@ -8,6 +8,7 @@
 #  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
 #  June 2003/restructure March 2021
 #
+#pylint:disable=C0302
 
 """This module contains actions that can be called from natlink grammars.
 
@@ -33,31 +34,31 @@ from pathlib import Path
 import html.entities
 import time
 import datetime
-import subprocess  # for calling a ahk script
 
+from natlinkcore import utilsqh
 from natlinkcore import inivars
-from dtactions import monitorfunctions
-from dtactions import messagefunctions
-from dtactions import autohotkeyactions
-from dtactions import sendkeys
 # import natlinkcore.natlinkutils as natut
 # import unimacro.natlinkutilsqh as unimacroutils
 # from natlinkcore import natlink
 # from natlinkcore import natlinkcorefunctions # extended environment variables....
 # from natlinkcore import natlinkstatus
-from natlinkcore import utilsqh
+from dtactions import monitorfunctions
+from dtactions import autohotkeyactions
+from dtactions import sendkeys
 from dtactions.unimacro import unimacroutils
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
      
-class ActionError(Exception): pass
-class KeystrokeError(Exception): pass
-class UnimacroError(Exception): pass
-# pendingMessage = ''
+class ActionError(Exception):
+    """ActionError"""
+class KeystrokeError(Exception):
+    """KeystrokeError"""
+class UnimacroError(Exception):
+    """UnimacroError"""
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
 except ModuleNotFoundError:
-    print(f'Run this module after "build_package" and "flit install --symlink"\n')
+    print('Run this module after "build_package" and "flit install --symlink"\n')
     raise
 
 dtactionsDir = thisDir = getThisDir(__file__)
@@ -66,7 +67,7 @@ sampleDirectory = dtactionsDir.parent
 sampleDirectory = sampleDirectory/'samples'/'unimacro'
 checkDirectory(sampleDirectory, create=False)
 inifilename = 'unimacroactions.ini'
-
+ 
 sampleInifile = sampleDirectory/inifilename
 if not sampleInifile.is_file():
     raise OSError(f'\nNo ini file "{inifilename}" found in {sampleDirectory}\nCHECK YOUR CONFIGURATION!\n')
@@ -77,24 +78,13 @@ checkDirectory(userDirectory)
 inifile = userDirectory/inifilename
 if not inifile.is_file():
     shutil.copy(sampleInifile, inifile)
-
-print(f'inifile: {inifile}')
+print('actions in dtactions not working yet, Unimacro and Vocola should revert to actions.py in Unimacro')
+print(f'dtaction/unimacro/actions, inifile: {inifile}')
 
 whatFile = userDirectory/(__name__ + '.txt')
 debugSock = None
 debugFile = userDirectory/'dtactions_debug.txt'
 samples = []
-
-try:  #
-    ini = inivars.IniVars(inifile)
-except inivars.IniError:
-    
-    print('Error in unimacroactions inifile: %s'% inifile)
-    m = str(sys.exc_info()[1])
-    print('message: %s'% m)
-    print('unimacroactions cannot work')
-    pendingMessage = 'Please repair action.ini file\n\n' + m
-    ini = None
 
 # ========================================
 metaActions = re.compile(r'(<<[^>]+>>)')
@@ -127,9 +117,10 @@ class Action:
     """central class, performing a variety of actions
     
     """
+    #pylint:disable=R0902, R0904
     def __init__(self, action=None, pauseBA=None, pauseBK=None, 
-                 progInfo=None, modInfo=None, sectionList=None, comment='', comingFrom=None,
-                 debug=None):
+                 progInfo=None, modInfo=None, sectionList=None, comment='', comingFrom=None):
+        #pylint:disable=R0913
         self.action = action
         self.pauseBA = pauseBA
         self.pauseBK = pauseBK
@@ -138,64 +129,83 @@ class Action:
         self.sectionList = sectionList
         self.comment = comment
         self.comingFrom = comingFrom
-        self.debug = debug or 0
+        self.completeAction = None
+        
+        try:
+            self.__class__.ini
+        except AttributeError:
+            try:  #
+                self.__class__.topchildDict = {}
+                self.__class__.childtopDict = {}
+                self.__class__.pendingMessage = None
+                self.__class__.checkForChanges = False
+                self.__class__.ini = inivars.IniVars(inifile)
+                self.__class__.iniFileDate = unimacroutils.getFileDate(inifile)
+                
+            except inivars.IniError:
+                print(f'Error in unimacroactions inifile: {inifile}')
+                m = str(sys.exc_info()[1])
+                print(f'message: {m}')
+                print('dtactions cannot work')
+                self.pendingMessage = 'Please repair action.ini file\n\n' + m
+                self.__class__.ini = None
+                self.__class__.iniFileDate = 0
+
 
     def __call__(self, action):
         return self.doAction(action)
 
+    def doCheckForChanges(self):
+        """open or refresh inifile
+        """
+        # global  ini, iniFileDate, topchildDict, childtopDict
+        prevIni = copy.deepcopy(self.__class__.ini)
+        prevDate = self.__class__.iniFileDate
+        newDate = unimacroutils.getFileDate(inifile)  ## inifile is global var
+        if newDate > self.__class__.iniFileDate:
+            D(1, '----------reloading ini file')
+            try:
+                self.__class__.topchildDict.clear()
+                self.__class__.childtopDict.clear()
+                self.__class__.ini = inivars.IniVars(inifile)
+                self.__class__.iniFileDate = unimacroutils.getFileDate(inifile)
+            except inivars.IniError:
+                msg = 'repair actions ini file: \n\n' + str(sys.exc_info()[1])
+                #win32api.ShellExecute(0, "open", inifile, None , "", 1)
+                time.sleep(0.5)
+                Message(msg)
+                self.__class__.iniFileDate = 0
+                self.__class__.ini = copy.deepcopy(prevIni)
+                self.__class__.iniFileDate = prevDate
+
     def doAction(self, action):
-        global pendingMessage, checkForChanges
-        topLevel = 0
+        """central method, do an action
+        """
+        #pylint:disable=R0911
+        # global pendingMessage, checkForChanges
+        # topLevel = 0
         if self.comingFrom and self.comingFrom.interrupted:
             print('command was interrupted')
-            return
+            return None
         self.completeAction = action
-        if self.debug > 4: D(f'doAction: {self.completeAction}')
+        D(4, f'doAction: {self.completeAction}')
     
-        if not ini:
-            checkForChanges = 1
-            if pendingMessage:
-                m = pendingMessage
-                pendingMessage = ''
-                Message(m, alert=1)
-                D('no valid inifile for actions')
-                return
-        if checkForChanges:
-            if debug > 5: D('checking for changes')
-            doCheckForChanges() # resetting the ini file if changes were made
-        if not ini:
-            D('no valid inifile for actions')
-            return
-        # if self.modInfo is None:
-        #     try:
-        #         modInfo = natlink.getCurrentModule()
-        #         # print("modInfo through natlink: %s"% repr(modInfo))
-        #     except:
-        #         modInfo = autohotkeyactions.getModInfo()
-        #         # print("modInfo through AHK: %s"% repr(modInfo))
-        #    
-        # progNew = unimacroutils.getProgName(modInfo)    
-        # 
-        # if progInfo is None:
-        #     progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
-        # #D('new progInfo: %s'% repr(progInfo))
-        # prog, title, topchild, classname, hndle = progInfo
-        # if sectionList == None:
-        #     sectionList = getSectionList(progInfo)
-        # if pauseBA == None:
-        #     pauseBA = float(setting('pause between actions', '0', sectionList=sectionList))
-        # if pauseBK == None:
-        #     pauseBK = float(setting('pause between keystrokes', '0', sectionList=sectionList))
-        # 
-        # if debug: D('------new action: %(action)s, '% locals())
-        # if debug > 3 and comment:
-        #     D('extra info: %(comment)s'% locals())
-        # if debug > 3: D('\n\tprogInfo: %(progInfo)s, '
-        #                 'pause between actions: %(pauseBA)s' % locals())
-        # if debug > 5: D('sectionList at start action: %s'% sectionList)
-            
-        # now get a list of the separate actions, separated by a ";":
-        actionsList = list(inivars.getIniList(action))
+        if not self.__class__.ini:
+            self.__class__.checkForChanges = 1
+            if self.__class__.pendingMessage:
+                mess = pendingMessage
+                self.__class__.pendingMessage = None
+                Message(mess, alert=1)
+                D(1, 'no valid inifile for actions')
+                return None
+        if self.__class__.checkForChanges:
+            D(5, 'checking for changes')
+            self.doCheckForChanges() # resetting the ini file if changes were made
+        if not self.__class__.ini:
+            D(1, 'no valid inifile for actions')
+            return None
+
+        actionsList = list(self.__class__.ini.getIniList(action))
         # if action.find('USC') >= 0:
         #     bList = []
         #     for a in actionsList:
@@ -205,19 +215,20 @@ class Action:
         #             bList.append(a)
         #     actionsList= [t.strip() for t in bList if t]
             
-        if debug > 2: D(f'action: {action}, actionsList: {actionsList}')
+        D(2, f'action: {action}, actionsList: {actionsList}')
         if not actionsList:
-            return
+            return None
         for a in actionsList:
             result = self.doPartialAction(a)
             if result:
                 return result  # error message??
-            if comingFrom and comingFrom.interrupted:
+            if self.comingFrom and self.comingFrom.interrupted:
                 return "interrupted"
             if self.pauseBA and a != actionsList[-1]:
                 self.do_W(self.pauseBA)
         # no errors, return None
-        
+        return None
+    
     def doPartialAction(self, action):
         """do a "partial action", keystroke, USC, etc.
         
@@ -226,42 +237,35 @@ class Action:
         return a message if an error occurs
         return None if all OK
         """
-        
+        #pylint:disable=R0914, R0911, R0912, R0915
         if metaAction.match(action):  # exactly a meta action, <<....>>
             a = metaAction.match(action).group(1)
-            aNew = getMetaAction(a, sectionList, progInfo)
-            if type(aNew) == tuple:
+            aNew = self.getMetaAction(a, sectionList, progInfo)
+            if isinstance(aNew, tuple):
                 # found function
                 func, number = aNew
-                if type(func) in (types.FunctionType, types.UnboundMethodType):
-                    func(number)
-                    return 1
-                else:
-                    print('Error, not a valid action "%s" for "%s" in program "%s"'% (func, action, prog))
-                    return
-            if debug > 5: D('doing meta action: <<%s>>: %s'% (a, aNew))
+                func(number)
+                return 1
+            D(5, 'doing meta action: <<%s>>: %s'% (a, aNew))
             if aNew:
                 aNewList = list(inivars.getIniList(aNew))
                 res = 0
                 for aa in aNewList:
                     if aa:
-                        if debug > 3: D('\tdoing part of meta action: <<%s>>: %s'% (a, aa))
-                        res = doAction(aa, completeAction=completeAction,
-                                 pauseBA=pauseBA, pauseBK=pauseBK,
-                                 progInfo=progInfo, sectionList=sectionList,
-                                 comment=comment, comingFrom=comingFrom)
-                        if not res: return
+                        D(3, '\tdoing part of meta action: <<%s>>: %s'% (a, aa))
+                        res = self.doPartialActionAction(aa)
+                        if not res:
+                            return None
                 return res
-            elif aNew == '':
-                if debug > 1: D('empty action')
+            if aNew == '':
+                D(1, 'empty action')
                 return 1
-            else:
-                if debug > 3: D('error in meta action: "%s"'% a)
-                partCom = '<<%s>>'%a
-                t = '_actions, no valid meta action: "%s"'% partCom
-                if partCom != completeAction:
-                    t += '\ncomplete command: "%s"'% completeAction
-                raise ActionError(t)
+            D(3, 'error in meta action: "%s"'% a)
+            partCom = '<<%s>>'%a
+            t = '_actions, no valid meta action: "%s"'% partCom
+            if partCom != completeAction:
+                t += '\ncomplete command: "%s"'% completeAction
+            raise ActionError(t)
     
         # try qh command:
         if action.find('(') > 0 and action.strip().endswith(')'):
@@ -281,8 +285,9 @@ class Action:
             func = globals()[funcName]
             if not type(func) == types.FunctionType:
                 raise UnimacroError('appears to be not a function: %s (%s)'% (funcName, func))
-            if debug > 5: D('doing USC command: |%s|, with args: %s and kw: %s'% (com, repr(args), kw))
-            if debug > 1: do_W(debug*0.2)
+            D(5, 'doing USC command: |%s|, with args: %s and kw: %s'% (com, repr(args), kw))
+            if debug > 1:
+                do_W(debug*0.2)
             if args:
                 result = func(*args, **kw)
             else:
@@ -297,14 +302,12 @@ class Action:
         # try meta actions inside:
         if metaActions.search(action): # action contains meta actions
             As = [t.strip() for t in metaActions.split(action)]
-            if debug > 5: D('meta actions: %s'% As)
+            D(5, 'meta actions: %s'% As)
             for a in As:
                 if not a: continue
-                res = doAction(a, completeAction,
-                         pauseBA=pauseBA, pauseBK=pauseBK, 
-                         progInfo=progInfo, sectionList=sectionList,
-                         comment=comment, comingFrom=comingFrom)
-                if not res: return
+                res = self.doPartialAction(a)
+                if not res:
+                    return None
                 do_W(pauseBA)
                 # skip pause between actions
                 #do_W(pauseBA)
@@ -315,22 +318,24 @@ class Action:
         if com in natspeakCommands:
             rest = convertToDvcArgs(rest)
             C = com + ' ' + rest
-            if debug: D('do dvc command: |%s|'% C)
-            if debug > 1: do_W(debug*0.2)
+            D(1, 'do dvc command: |%s|'% C)
+            if debug > 1:
+                do_W(debug*0.2)
             natlink.execScript(com + ' ' + rest)
-            if debug > 5: print('did it')
-            if debug > 1: do_W(debug*0.2)
+            if debug > 1:
+                do_W(debug*0.2)
             # skip pause between actions
             #do_W(pauseBA)
             return 1
     
         # all the rest:
-        if debug > 5: D('do string: |%s|'% action)
-        if debug > 1: do_W(debug*0.2)
+        D(5, 'do string: |%s|'% action)
+        if debug > 1:
+            do_W(debug*0.2)
         if action:
             self.doKeystroke(action)
-            if debug > 5: print('did it') 
-            if debug > 1: do_W(debug*0.2)
+            if debug > 1:
+                do_W(debug*0.2)
             # skip pause between actions
             #do_W(pauseBA)
             # if topLevel: # first (nonrecursive) call,
@@ -339,7 +344,8 @@ class Action:
         else:
             if debug:
                 print('empty keystrokes')
-             #     
+        ## all else failed...
+        return None     
         
     def doKeystroke(self, keystrokes):
         global pendingMessage, checkForChanges
@@ -353,13 +359,13 @@ class Action:
                 m = pendingMessage
                 pendingMessage = ''
                 Message(m, alert=1)
-                D('no valid inifile for actions')
+                D(1, 'no valid inifile for actions')
                 return
         if checkForChanges:
-            if debug > 5: D('checking for changes')
+            D(5, 'checking for changes')
             self.doCheckForChanges() # resetting the ini file if changes were made# 
         if not ini:
-            D('no valid inifile for keystrokes')
+            D(1, 'no valid inifile for keystrokes')
             self.hardKeys = ['none']
             self.pauseBK = 0
         # if type(hardKeys) != str:
@@ -386,13 +392,13 @@ class Action:
                else:
                    for K in k:
                        doKeystroke(K, hardKeys=hardKeys, pauseBK = 0)
-               if debug > 5: D('pausing: %s msec after keystroke: |%s|'%
+               D(5, 'pausing: %s msec after keystroke: |%s|'%
                                (pauseBK, k))
                # skip pausing between keystrokes
                #do_W(pauseBK)
         elif braceExact.match(keystrokes):
             # exactly 1 {key}:
-            if debug > 5: D('exact keystrokes, hardKeys[0]: %s'% hardKeys[0])
+            D(5, 'exact keystrokes, hardKeys[0]: %s'% hardKeys[0])
             if hardKeys[0] == 'none':
                 sendkeys.sendkeys(keystrokes)  # the fastest way
                 return
@@ -408,16 +414,16 @@ class Action:
                 for mod in 'shift+', 'ctrl+', 'alt+':
                     if keyPart.find(mod)>0: keyPart = keyPart.replace(mod, '')
                 if keyPart in hardKeys:
-                    if debug > 3: D('doing "hard": |%s|'% keystrokes)
+                    D(3, 'doing "hard": |%s|'% keystrokes)
                     ### TODOQH, later hard keys
                     sendkeys.sendkeys(keystrokes)
                     return
                 else:
-                    if debug > 3: D('doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
+                    D(3, 'doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
                     sendkeys.sendkeys(keystrokes)
                     return
             else:
-                if debug > 3: D('doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
+                D(3, 'doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
                 sendkeys.sendkeys(keystrokes)
                 return
             
@@ -433,13 +439,14 @@ class Action:
         if hasBraces.search(keystrokes):
             keystrokeList = hasBraces.split(keystrokes)
             for k in keystrokeList:
-                if debug > 5: D('part of keystrokes: |%s|' % k)
-                if not k: continue
+                D(5, 'part of keystrokes: |%s|' % k)
+                if not k:
+                    continue
                 #print 'recursing? : %s (%s)'% (k, keystrokeList)
                 sendkeys.sendkeys(keystrokes)
                 # self.doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
         else:
-            if debug > 5: D('no braces keystrokes: |%s|' % keystrokes)
+            D(5, 'no braces keystrokes: |%s|' % keystrokes)
             sendkeys.sendkeys(keystrokes)
             ##T
     def getMetaAction(self, ma, sectionList=None, progInfo=None):
@@ -464,14 +471,13 @@ class Action:
             funcName = 'metaaction_%s'% actionName
             func = getattr(ext_instance,funcName, None)
             if func:
-                if debug > 1:
-                    D('action by function from prog %s: |%s|(%s), arg: %s'% (prog, actionName, funcName, number))
+                D(1, 'action by function from prog %s: |%s|(%s), arg: %s'% (prog, actionName, funcName, number))
                 result = func, number
                 if result: return result
                 # otherwise go on with "normal" meta actions...
     
         # no result in actions_prog module, continue normal way:
-        if debug > 5: D('search for action: |%s|, sectionList: %s' %
+        D(5, 'search for action: |%s|, sectionList: %s' %
                         (A, sectionList))
         
         aNew = setting(A, default=None, sectionList=sectionList)
@@ -483,7 +489,7 @@ class Action:
             aNew = metaNumberBack.sub(number, aNew)
         if debug:
             section = ini.getMatchingSection(sectionList, A)
-            D('<<%s>> from [%s]: %s'% (A, section, aNew)) 
+            D(1, '<<%s>> from [%s]: %s'% (A, section, aNew)) 
         return aNew        
         
     # last one undocumented, only for version 7
@@ -491,18 +497,16 @@ class Action:
     def getSectionList(self, progInfo=None):
         if not progInfo:
             progInfo = unimacroutils.getProgInfo()
-        prog, title, topchild, classname, hndle = progInfo
-        if debug > 5:
-            D('search for prog: %s and title: %s' % (prog, title))
-            D('type prog: %s, type title: %s'% (type(prog), type(title)))
-        L = ini.getSectionsWithPrefix(prog, title)
-        L2 = ini.getSectionsWithPrefix(prog, topchild)  # catch program top or program child
+        prog, title, topchild, _classname, _hndle = progInfo
+        D(5, 'search for prog: %s and title: %s' % (prog, title))
+        D(5, 'type prog: %s, type title: %s'% (type(prog), type(title)))
+        L = self.ini.getSectionsWithPrefix(prog, title)
+        L2 = self.ini.getSectionsWithPrefix(prog, topchild)  # catch program top or program child
         for item in L2:
             if not item in L:
                 L.append(item)
-        L.extend(ini.getSectionsWithPrefix('default', topchild)) # catcg default top or default child
-        if debug > 5: D('section list with progInfo: %s:\n===== %s' %
-                        (progInfo, L))
+        L.extend(self.ini.getSectionsWithPrefix('default', topchild)) # catcg default top or default child
+        D(5, 'section list with progInfo: %s:\n===== %s' % (progInfo, L))
                         
         return L
     
@@ -514,88 +518,6 @@ class Action:
         L = list(map(_convertToDvcArg, L))
         return ', '.join(L)
     
-    hasDoubleQuotes = re.compile(r'^".*"$')
-    hasSingleQuotes = re.compile(r"^'.*'$")
-    hasDoubleQuote = re.compile(r'"')
-    def _convertToDvcArg(self, t):
-        t = t.strip()
-        if not t: return ''
-        if debug > 1: D('convertToDvcArg: |%s|'%t)
-    
-        # if input string is a number, return string directly
-        try:
-            i = int(t)
-            return t
-        except ValueError:
-            pass
-        try:
-            f = float(t)
-            return t
-        except ValueError:
-            pass
-    
-        # now proceeding with strings:    
-        if hasDoubleQuotes.match(t):
-            return t
-        elif hasSingleQuotes.match(t):
-            if len(t) > 2:
-                return '"' + t[1:-1] + '"'
-            else:
-                return ""
-        if t.find('"') > 0:
-            t = t.replace('"', '""')
-        return '"%s"'%t
-    
-    def convertToPythonArgs(self, text):
-        """convert to numbers and strings,
-    
-        IF argument is enclosed in " " or ' ' it is kept as a string.
-    
-        """    
-        text = text.strip()
-        if not text:
-            return    # None
-        L = text.split(',')
-        L = [self._convertToPythonArg[l] for l in L]
-        return tuple(L)
-    
-    def _convertToPythonArg(self, t):
-        t = t.strip()
-        if not t: return ''
-        if debug > 1: D('convertToPythonArg: |%s|'%t)
-    
-        # if input string is a number, return string directly
-        try:
-            i = int(t)
-            if t == '0':
-                return 0
-            if t.startswith('0'):
-                print('warning convertToPythonArg, could be int, but assume string: %s'% t)
-                return '%s'% t
-            return i
-        except ValueError:
-            pass
-        try:
-            f = float(t)
-            if t.find(".") >= 0:
-                return f
-            else:
-                print('warning convertToPythonArg, can be float, but assume string: %s'% t)
-                return '%s'% t
-        except ValueError:
-            pass
-    
-        # now proceeding with strings:    
-        if hasDoubleQuotes.match(t):
-            return t[1:-1]
-        elif hasSingleQuotes.match(t):
-            return t[1:-1]
-        else:
-            return t
-    ##    elif hasDoubleQuote.search(t):
-    ##        return "'%s'"% t
-    ##    else:
-    ##        return '"%s"'% t
             
     
     def getFromIni(self, keyword, default='',
@@ -607,9 +529,9 @@ class Action:
             prog, title, topchild, classname, hndle = progInfo
             sectionList = ini.getSectionsWithPrefix(prog, title) + \
                           ini.getSectionsWithPrefix('default', title)
-            if debug > 5: D('getFromIni, sectionList: |%s|' % sectionList)
+            D(5, 'getFromIni, sectionList: |%s|' % sectionList)
         value = ini.get(sectionList, keyword, default)
-        if debug > 5: D('got from setting/getFromIni: %s (keyword: %s'% (value, keyword))
+        D(5, 'got from setting/getFromIni: %s (keyword: %s'% (value, keyword))
         return value
     
     setting = getFromIni
@@ -622,16 +544,15 @@ class Action:
         if not self.sectionList:
             raise ValueError(f'action, getHardkeySettings, sectionList should be filled')
         hardKeys = self.setting('keystrokes with systemkeys', 'none', sectionList=self.sectionList)
-        if debug > 5: D(f'hardKeys setting: {self.hardKeys}')
+        D(5, f'hardKeys setting: {self.hardKeys}')
     
         hardKeys = actionIsList.split(hardKeys)
         if hardKeys:
             hardKeys = [k.strip() for k in hardKeys]
-            if debug > 5: D('hardKeys as list: |%s|'% hardKeys)
-    
-            if debug > 5: D('new keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
+            D(5, 'hardKeys as list: |%s|'% hardKeys)
+            D(5, 'new keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
                             (keystrokes, hardKeys, pauseBK))
-    if debug > 5: D('doKeystroke, pauseBK: %s, hardKeys: %s'% (pauseBK, hardKeys))
+    D(5, 'doKeystroke, pauseBK: %s, hardKeys: %s'% (pauseBK, hardKeys))
 
 
     
@@ -681,50 +602,8 @@ class Action:
     
         return instance
     
-    def doCheckForChanges(self, previousIni=None):
-        global  ini, iniFileDate, topchildDict, childtopDict
-        newDate = unimacroutils.getFileDate(inifile)
-        if newDate > iniFileDate:
-            D('----------reloading ini file')
-            try:
-                topchildDict = None
-                childtopDict = None
-                ini = inivars.IniVars(inifile)
-            except inivars.IniError:
-                msg = 'repair actions ini file: \n\n' + str(sys.exc_info()[1])
-                #win32api.ShellExecute(0, "open", inifile, None , "", 1)
-                time.sleep(0.5)
-                Message(msg)
-                iniFileDate = newDate
-                ini = previousIni
-            iniFileDate = newDate
     
     
-    def writeDebug(self, s):
-        if debugSock:
-            debugSock.write(s+'\n')
-            debugSock.flush()
-            print(f'_actions: {s}')
-        else:
-            print(f'_actions debug: {s}')
-           
-    D =writeDebug
-    def debugActions(self, n, openMode='w'):
-        global debug, debugSock
-        debug = n
-        print('setting debug actions: %s'% debug)
-        if debugSock:
-            debugSock.close()
-            debugSock = None
-        if n:
-            debugSock = open(debugFile, openMode)
-            
-            
-    
-    
-    def debugActionsShow(self):
-        print(f'opening debugFile: {debugFile} automatically is disabled.')
-        #win32api.ShellExecute(0, "open", debugFile, None , "", 1)
         
     
     def showActions(self, progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
@@ -853,14 +732,12 @@ class Action:
                 words = words[0].split()
                         
         try:
-            if debug > 3:
-                D('words for HW(recognitionMimic): |%s|'% words)
+            D(3, 'words for HW(recognitionMimic): |%s|'% words)
             natlink.recognitionMimic(words)
         except:
             if words != origWords:
                 try:
-                    if debug > 3:
-                        D('words for HW(recognitionMimic): |%s|'% origWords)
+                    D(3, 'words for HW(recognitionMimic): |%s|'% origWords)
                     natlink.recognitionMimic(origWords)
                 except:
                     print("action HW probably has invalid words (splitted: %s) or (glued together: %s)" % \
@@ -1173,8 +1050,8 @@ class Action:
     # waiting function:
     def do_W(self, t=None, **kw):
         t = t or 0.1
-        if debug > 7: D('waiting: %s'%t)
-        elif debug and t > 2: D('waiting: %s'%t)
+        D(7, 'waiting: %s'%t)
+        if debug and t > 2: D(1, 'waiting: %s'%t)
         unimacroutils.Wait(t)
         return 1
             
@@ -1490,7 +1367,7 @@ class Action:
         t = unimacroutils.getClipboard()
         if t:
             return 1
-        D('empty clipboard found, restore and return')
+        D(1, 'empty clipboard found, restore and return')
         unimacroutils.restoreClipboard()
         
     def do_GETCLIPBOARD(self, **kw):
@@ -1570,22 +1447,20 @@ class Action:
             # no break occurred, false return:
             return 0 
         return 1
-    
-    topchildDict = None
-    childtopDict = None
-    
+   
     def topWindowBehavesLikeChild(self, modInfo):
         """return the result of the ini file dict
         
         cache the contents in topchildDict
         """
+        #pylint:disable=W0702       
         global topchildDict
         if topchildDict is None:
             topchildDict = ini.getDict('general', 'top behaves like child')
             #print 'topchildDict: %s'% topchildDict
         if topchildDict == {}:
             return
-        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo(modInfo)
+        prog, title, topchild, classname, hndle = getProgInfo(modInfo)
         result = matchProgTitleWithDict(prog, title, topchildDict, matchPart=1)
         if result: return result
         className = win32gui.GetClassName(hndle)
@@ -1599,14 +1474,17 @@ class Action:
         input: modInfo (module info: (progpath, windowTitle, hndle) )
         cache the contents in childtopDict
         """
+        #pylint:disable=W0603
         global childtopDict
         if childtopDict is None:
             childtopDict = ini.getDict('general', 'child behaves like top')
             #print 'childtopDict: %s'% childtopDict
         if childtopDict == {}:
             return
-        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo(modInfo)
+        prog, title, topchild, _classname, _hndle = getProgInfo(modInfo)
         return matchProgTitleWithDict(prog, title, childtopDict, matchPart=1)
+
+    
     
     def matchProgTitleWithDict(self, prog, title, Dict, matchPart=None):
         """see if prog is in dict, if so, check title with value(s)
@@ -1959,7 +1837,7 @@ class Action:
                 else:
                     app = None
         else:
-            if debug: D('starting UnimacroBringUp for app: %s'% app)
+            D(1, 'starting UnimacroBringUp for app: %s'% app)
             specialApp = app + 'App'
             specialFunc = app + 'BringUp'
             if specialApp in globals() or specialFunc in globals():
@@ -1967,7 +1845,7 @@ class Action:
                     appS = globals()[specialApp]
             ##        print 'do special: %s'% appS
                     if not UnimacroBringUp(appS):
-                        D('could not bringup: %s'% appS)
+                        D(1, 'could not bringup: %s'% appS)
                         return
                 if specialFunc in globals():
                     func = globals()[specialFunc]
@@ -2041,7 +1919,7 @@ class Action:
             progFull, titleFull, hndle = natlink.getCurrentModule()
         
             if self.windowCorrespondsToApp(app, appName, prog, title):
-                if debug > 1: D('already in this app: %s'% app)
+                D(1, 'already in this app: %s'% app)
                 if app not in bringups:
                     bringups[app] = (prog, title, hndle)
                 return 1
@@ -2051,7 +1929,7 @@ class Action:
                 try:
                     do_RW()
                     hndle = bringups[app][2]
-                    if debug: D('hndle to switch to: %s'% hndle)
+                    D(1, 'hndle to switch to: %s'% hndle)
                     if not unimacroutils.SetForegroundWindow(hndle):
                         print('could not bring to foreground: %s, exit action'% hndle)
                         
@@ -2060,9 +1938,9 @@ class Action:
                         if prog == appName:
                             return 1
                 except:
-                    if debug: D('error in switching to previous app: %s'% app)
-                    if debug > 2: D('bringups: %s'% bringups)
-                    if debug: D('delete %s from bringups'% app)
+                    D(1, 'error in switching to previous app: %s'% app)
+                    D(2, 'bringups: %s'% bringups)
+                    D(1, 'delete %s from bringups'% app)
                     del bringups[app]
                     
         result = unimacroutils.AppBringUp(appName, appPath, appArgs, appWindowStyle, appDirectory)
@@ -2157,6 +2035,122 @@ def doKeystroke(keystrokes):
     _action = Action()
     _action.doKeystroke(keystrokes)
 
+def Message(mess, title=None, icon=64, alert=None, switchOnMic=None, progInfo=None, comingFrom=None):
+    """make an instance of Action class and send a message
+    """
+    _action = Action()
+    _action.Message(mess, title, icon, alert, switchOnMic, progInfo, comingFrom)
+
+
+hasDoubleQuotes = re.compile(r'^".*"$')
+hasSingleQuotes = re.compile(r"^'.*'$")
+hasDoubleQuote = re.compile(r'"')
+def _convertToDvcArg(t):
+    #pylint:disable=R0911, C0321
+    t = t.strip()
+    if not t: return ''
+    D(1, 'convertToDvcArg: |%s|'%t)
+
+    # if input string is a number, return string directly
+    try:
+        _i = int(t)
+        return t
+    except ValueError:
+        pass
+    try:
+        _f = float(t)
+        return t
+    except ValueError:
+        pass
+
+    # now proceeding with strings:    
+    if hasDoubleQuotes.match(t):
+        return t
+    if hasSingleQuotes.match(t):
+        if len(t) > 2:
+            return '"' + t[1:-1] + '"'
+        return ""
+    if t.find('"') > 0:
+        t = t.replace('"', '""')
+    return '"%s"'%t
+
+def _convertToPythonArg(t):
+    t = t.strip()
+    if not t:
+        return ''
+    D(1, 'convertToPythonArg: |%s|'%t)
+
+    # if input string is a number, return string directly
+    try:
+        i = int(t)
+        if t == '0':
+            return 0
+        if t.startswith('0'):
+            print('warning convertToPythonArg, could be int, but assume string: %s'% t)
+            return '%s'% t
+        return i
+    except ValueError:
+        pass
+    try:
+        f = float(t)
+        if t.find(".") >= 0:
+            return f
+        else:
+            print('warning convertToPythonArg, can be float, but assume string: %s'% t)
+            return '%s'% t
+    except ValueError:
+        pass
+
+    # now proceeding with strings:    
+    if hasDoubleQuotes.match(t):
+        return t[1:-1]
+    if hasSingleQuotes.match(t):
+        return t[1:-1]
+    return t
+
+def convertToPythonArgs(text):
+    """convert to numbers and strings,
+
+    IF argument is enclosed in " " or ' ' it is kept as a string.
+
+    """    
+    text = text.strip()
+    if not text:
+        return None  # None
+    L = text.split(',')
+    L = [_convertToPythonArg(l) for l in L]
+    return tuple(L)
+
+def writeDebug(s):
+    """write line to debug file
+    """
+    if debugSock:
+        debugSock.write(s+'\n')
+        debugSock.flush()
+        print(f'_actions: {s}')
+    else:
+        print(f'_actions debug: {s}')
+       
+def D(debugNum, mess):
+    """write if debug > global debug option
+    """
+    if debugNum >= debug:
+        writeDebug(mess)
+
+def debugActions(n, openMode='w'):
+    global debug, debugSock
+    debug = n
+    print(f'dtactions/unimacro/actions, setting debug actions: {debug}')
+    if debugSock:
+        debugSock.close()
+        debugSock = None
+    if n:
+        debugSock = open(debugFile, openMode)
+
+def debugActionsShow(self):
+    print(f'opening debugFile: {debugFile} automatically is disabled.')
+    #win32api.ShellExecute(0, "open", debugFile, None , "", 1)
+
 if debug:
     try:
         debugSock = open(debugFile, 'w')
@@ -2169,8 +2163,8 @@ else:
         pass
 
 if __name__ == '__main__':
-    act = Action()
-    result = act('T')
+    Act = Action()
+    Result = Act('T')
     print(f'result of do_T: {result}')
     
     
