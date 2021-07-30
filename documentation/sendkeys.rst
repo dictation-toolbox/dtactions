@@ -13,6 +13,14 @@ actions.
 This replaces the :code:`natlink.playString` function of Natlink
 and the :code:`SendInput` of Vocola.
 
+At top of module insert:
+    
+:code:`from dtactions.sendkeys import sendkeys`
+
+And then in the appropriate place in the code:
+
+    :code:`sendkeys("keystrokes")`
+
 sendkeys module
 ---------------
 .. automodule:: dtactions.sendkeys

@@ -4,9 +4,15 @@
 # Licensed under the LGPL.
 """Sending keystrokes to the foreground window.
 
-Usage:  :code:`from dtactions.sendkeys import sendkeys`
+Usage:
 
-and then: :code:`sendkeys"("keystrokes")`
+At top your module insert:
+
+:code:`from dtactions.sendkeys import sendkeys`
+
+and then in a function:
+    
+    :code:`sendkeys("keystrokes")`
 
 This module now adopts the Dragonfly :code:`action_key` module,
 so `"{alt+w}"` is (in the function) converted to `"a-w"` etc.
