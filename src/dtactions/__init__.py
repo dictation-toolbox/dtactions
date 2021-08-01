@@ -26,8 +26,9 @@ thisDir = getThisDir(__file__) # optional: ... , warnings=True)
 ```
 """
 
-__version__ = '1.2.0'  # Quintijn to pip
-
+## version to be updated when a new release is sent to pypi:
+__version__ = '1.3.1'  
+##----------------------
 import sys
 from pathlib import Path
 
