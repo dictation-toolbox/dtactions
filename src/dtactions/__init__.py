@@ -24,13 +24,62 @@ except ModuleNotFoundError:
    
 thisDir = getThisDir(__file__) # optional: ... , warnings=True)
 ```
+
+Also retrieve the DtactionsDirectory and DtactionsUserDirectory from here:
+
+```
+from Dtactionscore.__init__ import getDtactionsDirectory, getDtactionsUserDirectory
+
+print(f'DtactionsDirectory: {getDtactionsDirectory()})
+print(f'DtactionsUserDirectory: {getDtactionsUserDirectory()})
+```
+
+NOTE: these two directories can also be obtained via Dtactionsstatus:
+```
+import natlinkstatus
+status = natlinkstatus.DtactionsStatus()
+status.getDtactionsDirectory()
+status.getDtactionsUserDirectory()
+```
+
 """
 
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.3.2'  
+__version__ = '1.3.4'     # adding getDtactionsDirectory and getDtactionsUserDirectory
+# __version__ = '1.3.3'   # setting the user directory 
 ##----------------------
 import sys
-from pathlib import Path
+import os
+from pathlib import Path, WindowsPath
+
+def getDtactionsDirectory():
+    """return the directory of natlinkcore, where natlink.pyd is
+    """
+    return getThisDir(__file__)
+
+def getDtactionsUserDirectory():
+    """get the NatlinkUserDirectory
+    
+    Here are config files, especially .natlink
+    
+    By default the users home directory is taken. This directory can be overridden by setting
+    the environment variable DICTATIONTOOLBOXUSER to an existing directory.
+    Restart then the calling program
+    """
+    # default dtHome:
+    dictation_toolbox_user = os.getenv("DICTATIONTOOLBOXUSER")
+    if dictation_toolbox_user:
+        dtHome = Path(dictation_toolbox_user)
+        if not dtHome.is_dir():
+            print(f'environment variable DICTATIONTOOLBOXUSER does not point to a valid directory: {dictation_toolbox_user}')
+            dtHome = WindowsPath.home()
+    else:
+        dtHome = WindowsPath.home()
+
+    dtactions_ini_folder = dtHome / ".dtactions"
+    if not dtactions_ini_folder.is_dir():
+        dtactions_ini_folder.mkdir()   #make it if it doesn't exist
+    return str(dtactions_ini_folder)
 
 def getThisDir(fileOfModule, warnings=False):
     """get directory of calling module, if possible in site-packages
@@ -123,4 +172,8 @@ def warning(text):
         return
     warningTexts.append(textForeward)
     print(text)
+    
+
+if __name__ == "__main__":
+    print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
     

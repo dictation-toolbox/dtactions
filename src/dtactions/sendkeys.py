@@ -87,11 +87,11 @@ Tested at bottom of this file interactively...
                 # print(f'sendkeys, key: {key}')        
                 action_key.Key(key, use_hardware=use_hardware).execute()
             else:
-                part_keys = ','.join(t for t in part)
+                part_keys = ','.join(t for t in part).replace(" ", "space")
                 action_key.Key(part_keys).execute()
                 # action_text.Text(part).execute()
     else:
-        all_keys = ','.join(t for t in keys)
+        all_keys = ','.join(t for t in keys).replace(" ", "space")
         action_key.Key(all_keys).execute()
         # action_text.Text(keys).execute()
     
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     # (first selects slow 4 lines, then fast, then goes back to start)
     # sendkeys("{shift:down}{down/25:4}{shift:up/100}")
     # sendkeys("{shift:down}{down:4/100}{shift:up}")
-    # sendkeys("{up 8}")
+    # sendkeys("{up:8}")  #
     
     # leaves empty:
     # t3 = 'abc{shift+left/50}{del/100}def{shift+left 2/50}ghi{left 4/100}{shift+end/100}{del/100}{backspace 2}'  
@@ -111,7 +111,8 @@ if __name__ == "__main__":
 
     # When running next 3 lines several times, starting with cursor on the last line (after #),
     # you will see abcde appear several times:
-    # sendkeys("abcde")  
+    # sendkeys("a b c d e")  
+    sendkeys("x y z {home}")  
     # sendkeys("{ctrl+a/100}") #
     # sendkeys("{ctrl+end!}{up/50}{end}")
     # 
