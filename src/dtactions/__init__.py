@@ -45,8 +45,8 @@ status.getDtactionsUserDirectory()
 """
 
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.3.4'     # adding getDtactionsDirectory and getDtactionsUserDirectory
-# __version__ = '1.3.3'   # setting the user directory 
+__version__ = '1.3.3'   # setting the user directory
+                        # adding getDtactionsDirectory and getDtactionsUserDirectory
 ##----------------------
 import sys
 import os
