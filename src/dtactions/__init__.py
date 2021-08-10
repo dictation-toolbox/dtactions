@@ -45,7 +45,8 @@ status.getDtactionsUserDirectory()
 """
 
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.3.3'   # setting the user directory
+__version__ = '1.3.4'     # possible typo, sync with natlinkcore
+# __version__ = '1.3.3'   # setting the user directory
                         # adding getDtactionsDirectory and getDtactionsUserDirectory
 ##----------------------
 import sys
@@ -53,7 +54,7 @@ import os
 from pathlib import Path, WindowsPath
 
 def getDtactionsDirectory():
-    """return the directory of natlinkcore, where natlink.pyd is
+    """return the root directory of dtactions
     """
     return getThisDir(__file__)
 
