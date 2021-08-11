@@ -45,7 +45,7 @@ status.getDtactionsUserDirectory()
 """
 
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.3.4'     # possible typo, sync with natlinkcore
+__version__ = '1.3.5'     # working on path details, with HOME or DICTATIONTOOLBOXUSER
 # __version__ = '1.3.3'   # setting the user directory
                         # adding getDtactionsDirectory and getDtactionsUserDirectory
 ##----------------------
@@ -72,8 +72,8 @@ def getDtactionsUserDirectory():
     if dictation_toolbox_user:
         dtHome = Path(dictation_toolbox_user)
         if not dtHome.is_dir():
-            print(f'environment variable DICTATIONTOOLBOXUSER does not point to a valid directory: {dictation_toolbox_user}')
             dtHome = WindowsPath.home()
+            print(f'dtactions.getDtactionsUserDirectory: environment variable DICTATIONTOOLBOXUSER does not point to a valid directory: "{dictation_toolbox_user}", take "{dtHome}"')
     else:
         dtHome = WindowsPath.home()
 
