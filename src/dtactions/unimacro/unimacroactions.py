@@ -1,66 +1,39 @@
-# (unimacro - natlink macro wrapper/extensions)
-# (c) copyright 2003 Quintijn Hoogenboom (quintijn@users.sourceforge.net)
-#                    Ben Staniford (ben_staniford@users.sourceforge.net)
-#                    Bart Jan van Os (bjvo@users.sourceforge.net)
-#
-# This file is part of a SourceForge project called "unimacro" see
-# http://unimacro.SourceForge.net).
-#
-# "unimacro" is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License, see:
-# http://www.gnu.org/licenses/gpl.txt
-#
-# "unimacro" is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; See the GNU General Public License details.
-#
-# "unimacro" makes use of another SourceForge project "natlink",
-# which has the following copyright notice:
-#
-# Python Macro Language for Dragon NaturallySpeaking
-#   (c) Copyright 1999 by Joel Gould
-#   Portions (c) Copyright 1999 by Dragon Systems, Inc.
-#
-# _actions.py 
+# unimacroactions.py (was actions.py in unimacro)
 #  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
-#  June 2003
+#  June 2003/August 2021
 #
-
+#pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
 
-Extensive use is made from the ini file "actions.ini".
+Extensive use is made from the ini file "unimacroactions.ini".
 
 Editing actions, debugging actions and showing actions is performed through
-special functions inside this module, but calling from another file (with
-natlink grammar) is needed to activate these functions by voice.
-
+special functions inside this module, but calling from another file
+(Unimacro grammar _control.py) is needed to activate these functions by voice.
 """
 import re
 import os
+import os.path
 import sys
 import types
 import shutil
-import os.path
 import copy
+import time
+import datetime
+from pathlib import Path
+import html.entities
 import win32api
 import win32gui
 import win32con
-import win32com.client
-import html.entities
-import time
-import datetime
-import subprocess  # for calling a ahk script
+# import win32com.client
 
 from natlinkcore import inivars
+import dtactions
 from dtactions import monitorfunctions
-from dtactions import messagefunctions
+# from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
-try:
-    from dtactions.__init__ import getThisDir
-except ModuleNotFoundError:
-    print('Run this module after "build_package" and "flit install --symlink"\n')
-    raise
 
 import natlinkcore.natlinkutils as natut
 # import unimacro.natlinkutilsqh as natqh
@@ -72,141 +45,125 @@ from natlinkcore import utilsqh
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
      
-class ActionError(Exception): pass
-class KeystrokeError(Exception): pass
-class UnimacroError(Exception): pass
+class ActionError(Exception):
+    "ActionError"
+class KeystrokeError(Exception):
+    "KeystrokeError"
+# class UnimacroError(Exception):
+#     "UnimacroError"
+
 pendingMessage = ''
-thisDir = getThisDir(__file__)
-dtactionsDir = os.path.normpath(os.path.join(str(thisDir), ".."))
-dtactionsDir = getThisDir(dtactionsDir)
-#####
+thisDir = dtactions.getThisDir(__file__)
+dtactionsDir = dtactions.getDtactionsDirectory()
+dtactionsUserDir = dtactions.getDtactionsUserDirectory()
+
 ##### get actions.ini from baseDirectory or SampleDirectory into userDirectory:
-baseDirectory = thisDir
-if not baseDirectory:
-    raise ImportError( 'no baseDirectory found while loading actions.py, stop loading this module')
-sampleBase = baseDirectory
+# baseDirectory = thisDir
+# if not baseDirectory:
+#     raise ImportError( 'no baseDirectory found while loading actions.py, stop loading this module')
+sampleDirectory = Path(dtactionsDir)/"samples"/"unimacro"
 
-# get Unimacro sample directory:                 
-sampleDirectory = os.path.join(baseDirectory, 'sample_ini')
+if not sampleDirectory.is_dir():
+    raise OSError("dtactions: no sample directory for unimacroactions.ini Inifile found: {sampleDirectory}")
+
+sampleInifile = sampleDirectory/"unimacrosamples.ini"
+if not sampleInifile.is_file():
+    raise OSError(f'no sample Inifile for unimacroactions found: "{sampleInifile}"')
   
-if not os.path.isdir(sampleDirectory):
-    print(f'\nNo sample directory for actions (dtactions/unimacro) found: {sampleDirectory}\nCHECK YOUR CONFIGURATION!!!!!!!!!!!!!!!!\n')
-    sampleDirectory = ''
+userDirectory = Path(dtactionsUserDir)/'unimacro'
+if not userDirectory.is_dir():
+    userDirectory.mkdir()
+    
+userInifile = userDirectory/'unimacroactions.ini'
+if not userInifile.is_file():
+    shutil.copy(sampleInifile, userInifile)
 
-userDirectory = natqh.getUnimacroUserDirectory()
-
-# check userDirectory, if false, actions.py is imported, probably from Vocola,
-# actions.ini should go in the baseDirectory (Unimacro).
-if userDirectory:
-    if not os.path.isdir(userDirectory):
-        raise OSError("The UnimacroUserDirectory does not exist: %s"% userDirectory)
-    inifile = os.path.join(userDirectory, 'actions.ini')
-    oldversioninifile = os.path.join(baseDirectory, 'actions.ini')
-    if not os.path.isfile(oldversioninifile):
-        oldversioninifile = ''
-    debugFile = os.path.join(userDirectory, 'actions debug.txt')
-else:
-    # print 'Unimacro not enabled, use "actions.ini" in UnimacroDirectory: %s'% baseDirectory
-    inifile = os.path.join(baseDirectory, 'actions.ini')
-    oldversioninifile = ''
-    debugFile = os.path.join(baseDirectory, 'actions debug.txt')
-####
+# # check userDirectory, if false, actions.py is imported, probably from Vocola,
+# # actions.ini should go in the baseDirectory (Unimacro).
+# if userDirectory:
+#     if not os.path.isdir(userDirectory):
+#         raise OSError("The UnimacroUserDirectory does not exist: %s"% userDirectory)
+#     inifile = os.path.join(userDirectory, 'actions.ini')
+#     oldversioninifile = os.path.join(baseDirectory, 'actions.ini')
+#     if not os.path.isfile(oldversioninifile):
+#         oldversioninifile = ''
+#     debugFile = os.path.join(userDirectory, 'actions debug.txt')
+# else:
+#     # print 'Unimacro not enabled, use "actions.ini" in UnimacroDirectory: %s'% baseDirectory
+#     inifile = os.path.join(baseDirectory, 'actions.ini')
+#     oldversioninifile = ''
+#     debugFile = os.path.join(baseDirectory, 'actions debug.txt')
+# ####
 
 whatFile = os.path.join(os.environ['TEMP'],  __name__ + '.txt')
 debugSock = None
 samples = []
 
-if not os.path.isfile(inifile):
-    if userDirectory:  ## Unimacro enabled
-        print('---try to find actions.ini file in old version (UnimacroDirectory) or sample_ini directory')
-    else:
-        print('---try to find actions.ini file in sample_ini directory')
-        
-    if os.path.isdir(sampleDirectory):
-        sampleini = os.path.join(sampleDirectory, 'actions.ini')
-        if os.path.isfile(sampleini):
-            samples.append(sampleini)
-        else:
-            print("no valid 'actions.ini' file in %s"% sampleDirectory)
-    else:
-        print("no valid samples directory found for the (Unimacro) 'actions.ini' file: %s"% sampleDirectory)
+# if not os.path.isfile(inifile):
+#     if userDirectory:  ## Unimacro enabled
+#         print('---try to find actions.ini file in old version (UnimacroDirectory) or sample_ini directory')
+#     else:
+#         print('---try to find actions.ini file in sample_ini directory')
+#         
+#     if os.path.isdir(sampleDirectory):
+#         sampleini = os.path.join(sampleDirectory, 'actions.ini')
+#         if os.path.isfile(sampleini):
+#             samples.append(sampleini)
+#         else:
+#             print("no valid 'actions.ini' file in %s"% sampleDirectory)
+#     else:
+#         print("no valid samples directory found for the (Unimacro) 'actions.ini' file: %s"% sampleDirectory)
+# 
+# 
+#     if userDirectory:       
+#         if os.path.isfile(oldversioninifile):
+#             samples.append(oldversioninifile)
+#             
+#     if not samples:
+#         raise OSError("cannot find a valid sample file 'actions.ini'")
+#     elif utilsqh.IsIdenticalFiles(samples):
+#         sample = samples[0]            
+#         print('----copy actions.ini -----:\nfrom %s\nto new location %s\n---'% (sample, inifile))
+#         shutil.copyfile(sample, inifile)
+#         if oldversioninifile in samples:
+#             print('----remove old actions.ini: %s\n---'% (oldversioninifile))
+#             os.remove(oldversioninifile)
+#             if os.path.isfile(oldversioninifile):
+#                 print('----could not remove: %s'% oldversioninifile)
+#     else:
+#         newest = utilsqh.GetNewestFile(samples)
+#         print("Files 'actions.ini' are different,\ncopy newest %s to\nnew location %s\n---"% (newest, inifile))
 
 
-    if userDirectory:       
-        if os.path.isfile(oldversioninifile):
-            samples.append(oldversioninifile)
-            
-    if not samples:
-        raise OSError("cannot find a valid sample file 'actions.ini'")
-    elif utilsqh.IsIdenticalFiles(samples):
-        sample = samples[0]            
-        print('----copy actions.ini -----:\nfrom %s\nto new location %s\n---'% (sample, inifile))
-        shutil.copyfile(sample, inifile)
-        if oldversioninifile in samples:
-            print('----remove old actions.ini: %s\n---'% (oldversioninifile))
-            os.remove(oldversioninifile)
-            if os.path.isfile(oldversioninifile):
-                print('----could not remove: %s'% oldversioninifile)
-    else:
-        newest = utilsqh.GetNewestFile(samples)
-        print("Files 'actions.ini' are different,\ncopy newest %s to\nnew location %s\n---"% (newest, inifile))
+if not userInifile.is_file():
+    print(f"""
 
-
-if not os.path.isfile(inifile):
-    if userDirectory:
-        print("""
-
--------Cannot find a valid "actions.ini" configuraton file
+-------Cannot find a valid "unimacroactions.ini" configuraton file
 
 This file is expected and needed in the
-UnimacroUserDirectory (%s) in order
+directory {userDirectory} in order
 to let the Unimacro actions module work properly.
 
-Copies of this file could not be found in one of the sample directories:
-       (%s).
-       
-Also see http://qh.antenna.nl/unimacro/installation/inifilestrategy.html
----------
-    
-        """% (userDirectory, samples))
-        time.sleep(0.2)
-        raise ActionError('no inifile found for actions in unimacro or sample_ini')
-    else:
-        print("""
+A sample of this file could not be found in {sampleDirectory}.
+      
+    """)
+    time.sleep(0.2)
+    raise ActionError(f'no inifile found for unimacroactions in directory "{dtactionsUserDir}')
 
--------Cannot find a valid "actions.ini" configuraton file
-
-This file is expected and needed in the
-UnimacroDirectory (%s) in order
-to let the Unimacro actions module work properly, while Unimacro itself is disabled.
-
-Copies of this file could not be found in one of the sample directories:
-       (%s).
-       
-Also see http://qh.antenna.nl/unimacro/installation/inifilestrategy.html
----------
-    
-        """% (baseDirectory, samples))
-        time.sleep(0.2)
-        raise ActionError('no inifile found for actions in unimacro or sample_ini')
-
-if userDirectory and os.path.isfile(oldversioninifile):
-    print('remove actions.ini from UnimacroDirectory (obsolete): %s\nis now in the UnimacroUserDirectory %s'% (oldversioninifile, userDirectory))
-    os.remove(oldversioninifile)
-
-if os.path.isfile(inifile):
-    try:
-        ini = inivars.IniVars(inifile)
-    except inivars.IniError:
-        
-        print('Error in actions inifile: %s'% inifile)
-        m = str(sys.exc_info()[1])
-        print('message: %s'% m)
-        pendingMessage = 'Please repair action.ini file\n\n' + m
-        ini = None
-        #win32api.ShellExecute(0, "open", inifile, None , "", 1)
-else:
-    raise OSError('no inifile found for Unimacro actions!')
+# if userDirectory and os.path.isfile(oldversioninifile):
+#     print('remove actions.ini from UnimacroDirectory (obsolete): %s\nis now in the UnimacroUserDirectory %s'% (oldversioninifile, userDirectory))
+#     os.remove(oldversioninifile)
+# 
+# if os.path.isfile(inifile):
+inifile = userInifile
+try:
+    ini = inivars.IniVars(inifile)
+except inivars.IniError:
+    print('Error in actions inifile: {inifile}')
+    _m = str(sys.exc_info()[1])
+    print('message: %s'% _m)
+    pendingMessage = 'Please repair action.ini file\n\n' + _m
+    ini = None
 
 metaActions = re.compile(r'(<<[^>]+>>)')
 metaAction = re.compile(r'<<([^>]+)>>$')
@@ -228,6 +185,7 @@ iniFileDate = 0
 
 def doAction(action, completeAction=None, pauseBA=None, pauseBK=None,
              progInfo=None, modInfo=None, sectionList=None, comment='', comingFrom=None):
+    #pylint:disable=W0603
     global pendingMessage, checkForChanges
     topLevel = 0
     if comingFrom and comingFrom.interrupted:
