@@ -430,7 +430,7 @@ class Action:
         # now proceed with more complex keystroke possibilities:
         if self.hardKeys[0]  == 'all':
             ## TODOQH, hard keys
-            # natut.playString(keystrokes, natut.hook_f_systemkeys)
+            # natlinkutils.playString(keystrokes, natlinkutils.hook_f_systemkeys)
             sendkeys.sendkeys(keystrokes)
             return
         elif self.hardKeys[0]  == 'none':
@@ -909,7 +909,7 @@ class Action:
         prog = unimacroutils.getProgName(modInfo)
         if prog == 'natspeak':
             if modInfo[1].find('DragonPad') >= 0:
-                natut.playString('{alt+n}')
+                natlinkutils.playString('{alt+n}')
                 return 1
         natlink.recognitionMimic(["NaturallySpeaking"])
         return unimacroutils.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
@@ -917,7 +917,7 @@ class Action:
     
     # shorthand for sendsystemkeys:
     def do_SSK(self, s, **kw):
-        natut.playString(s, natut.hook_f_systemkeys)
+        natlinkutils.playString(s, natlinkutils.hook_f_systemkeys)
         return 1
     
     def do_S(self, s, **kw):
@@ -935,11 +935,11 @@ class Action:
         """
         if type(s) == int:
             s = str(s)
-        keydown = natut.wm_syskeydown
-        keyup = natut.wm_syskeyup
+        keydown = natlinkutils.wm_syskeydown
+        keyup = natlinkutils.wm_syskeyup
         
-        altdown = (keydown, natut.vk_menu, 1)
-        altup = (keyup, natut.vk_menu, 1)
+        altdown = (keydown, natlinkutils.vk_menu, 1)
+        altup = (keyup, natlinkutils.vk_menu, 1)
         numkeyzero = win32con.VK_NUMPAD0
     
         sequence = [altdown]
@@ -1237,14 +1237,14 @@ class Action:
         # print 'U in: %s, Code: %s(type: %s)'% (n, Code, type(Code))
         if Code <256:
             # print 'do direct, ascii: %s, %s'% (Code, chr(Code))
-            natut.playString(chr(Code))
+            natlinkutils.playString(chr(Code))
             return
         u = chr(Code)
         # output through the clipboard with special code:
         unimacroutils.saveClipboard()
         #win32con.CF_UNICODETEXT = 13
         unimacroutils.setClipboard(u, format=13)
-        natut.playString('{ctrl+v}')
+        natlinkutils.playString('{ctrl+v}')
         unimacroutils.restoreClipboard()    
         return 1
                     

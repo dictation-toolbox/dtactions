@@ -8,8 +8,8 @@ import ctypes
 import win32api
 import unimacro.messagefunctions as mf
 from .actionbases import AllActions
-from unimacro.actions import doAction as action
-from unimacro.actions import doKeystroke as keystroke
+from dtactions.unimacro.unimacroactions import doAction as action
+from dtactions.unimacro.unimacroactions import doAction as action
 import natlinkclipboard
 import time
 
@@ -69,12 +69,12 @@ class KomodoActions(AllActions):
         """for doctest testing, put u in front of every string
         """
         print('metaaction_makeunicodestrings, for Komodo')
-        natut.playString("{ctrl+c}")
-        t = natqh.getClipboard()
+        natlinkutils.playString("{ctrl+c}")
+        t = unimacroutils.getClipboard()
         print('in: %s'% t)
         t = replaceStringToUnicode(t)
-        natqh.setClipboard(t)
-        natut.playString("{ctrl+v}{down}")
+        unimacroutils.setClipboard(t)
+        natlinkutils.playString("{ctrl+v}{down}")
 
 def _test():
     """do doctests, for changing function

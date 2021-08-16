@@ -95,12 +95,12 @@ class UnittestMessagefunctions(TestCaseWithHelpers.TestCaseWithHelpers):
     #    """tests the contents of the clipboard"""
     #    text = text or "clipboard contents not as expected"
     #    meHndle = win32gui.GetForegroundWindow()
-    #    natqh.SetForegroundWindow(self.app)
+    #    unimacroutils.SetForegroundWindow(self.app)
     #    time.sleep(0.05)
     #    activateMenuItem(self.app, W["commandcut"])
     #    time.sleep(0.05)
     #    t = getClipboard()
-    #    natqh.SetForegroundWindow(meHndle)
+    #    unimacroutils.SetForegroundWindow(meHndle)
     #    
     #    text = text + '\nExpected: %s\nGot: %s\n'% (expected, t)
     #    self.assert_(t == expected, text)
@@ -137,7 +137,7 @@ class UnittestMessagefunctions(TestCaseWithHelpers.TestCaseWithHelpers):
     #
     #        if meHndle:
     #            try:
-    #                natqh.SetForegroundWindow(meHndle)
+    #                unimacroutils.SetForegroundWindow(meHndle)
     #            except:
     #                pass
     #        self.__class__.app = appWindows[0]
@@ -168,7 +168,7 @@ class UnittestMessagefunctions(TestCaseWithHelpers.TestCaseWithHelpers):
 
         if meHndle:
             try:
-                natqh.SetForegroundWindow(meHndle)
+                unimacroutils.SetForegroundWindow(meHndle)
             except:
                 pass
         self.__class__.app = appWindow

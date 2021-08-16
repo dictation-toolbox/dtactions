@@ -28,7 +28,7 @@ from dtactions import autohotkeyactions
 
 from natlinkcore import natlinkmain
 from natlinkcore import natlink
-from natlinkcore import natlinkutils as natut
+from natlinkcore import natlinkutils
 from natlinkcore import utilsqh
 from natlinkcore import natlinkstatus
 status = natlinkstatus.NatlinkStatus()
@@ -716,8 +716,8 @@ buttons = dict(noclick=0, left=1, right=2, middle=4)
 joelsButtons = ['noclick', 'left', 'right', 'middle']
 ##print 'buttons: ', buttons
 
-mouseDown = ['', natut.wm_lbuttondown, natut.wm_rbuttondown, natut.wm_mbuttondown]
-mouseUp = ['', natut.wm_lbuttonup, natut.wm_rbuttonup, natut.wm_mbuttonup]
+mouseDown = ['', natlinkutils.wm_lbuttondown, natlinkutils.wm_rbuttondown, natlinkutils.wm_mbuttondown]
+mouseUp = ['', natlinkutils.wm_lbuttonup, natlinkutils.wm_rbuttonup, natlinkutils.wm_mbuttonup]
 
 def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifier = 0):
     """complicated, but complete mouse routine
@@ -844,10 +844,10 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
     #print 'btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState)
     if onlyMove:
         print('onlyMove to %s, %x'% (xp, yp))
-        natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+        natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
     elif not mouseState:  # ongecompliceerd
         if nClick > 0:
-            natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
             if btn:
                 if debugMode == -1:
                     print('ButtonClick %s, %s' % (btn, nClick))
@@ -861,7 +861,7 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
 ##                    Wait(0.01)
                     
         elif nClick == 0:
-            natlink.playEvents([(natut.wm_mousemove, xp, yp)])
+            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
         elif nClick == -1:
             if btn:
                 if (xold,yold) != (xp, yp):
@@ -894,7 +894,7 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
             mouseState = 0
     else:
         # no btn, but mouseState, simply move:
-        natlink.playEvents([(natut.wm_mousemove, xp, yp)])  
+        natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])  
 
 def catchClick(mouse):
     """return reduced mouse command and nClick
@@ -928,7 +928,7 @@ def buttonClick(button='left', nclick=1, modifiers=None):
     if mouseState:
         releaseMouse()
         
-    natut.buttonClick(button, nclick, modifiers)
+    natlinkutils.buttonClick(button, nclick, modifiers)
     #natlink.execScript("ButtonClick %s,%s"%(button, nclick))
     
 
@@ -1234,7 +1234,7 @@ def setTrayIcon(state=None, toolTip=None, comingFrom=None):
     #     func = comingFrom
     # elif comingFrom:
     #     func = None
-    #     #print 'natqh.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
+    #     #print 'unimacroutils.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
     # else:
     #     func = None
     func = None    
@@ -1610,7 +1610,7 @@ def _setForegroundWindow(hndle, doKeystroke=None, waitingTime=0.1, nWait=3, debu
     if doKeystroke:
         if debug: print('try to get %s in foreground with keystroke: %s'% (hndle, doKeystroke))
         ## TODOQH make keystrokes here
-        # natut.playString(doKeystroke)
+        # natlinkutils.playString(doKeystroke)
     if win32gui.IsIconic(hndle):
         if debug: print('window %s is iconic, try to restore...')
         monitorfunctions.restore_window(hndle)
@@ -1706,7 +1706,7 @@ def returnFromMessagesWindow():
     #pylint:disable=C0116    
     modInfo = natlink.getCurrentModule()
     if matchModule('natspeak', 'Messages from Python Macros', modInfo=modInfo):
-        natlink.playString("{Alt+Tab}", natut.hook_f_systemkeys)
+        natlink.playString("{Alt+Tab}", natlinkutils.hook_f_systemkeys)
 
             
 # Returns the date on a file or 0 if the file does not exist        

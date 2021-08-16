@@ -6,7 +6,7 @@ now works with copy and so getting the wanted contents of text around the cursor
 from .actionbases import AllActions
 import pprint
 import natlinkcore.natlinkutils as natut as natut
-import unimacro.natlinkutilsqh as natqh as natqh
+from dtactions.unimacro import unimacroutils as natqh
 import time
 
 class FrescobaldiActions(AllActions):
@@ -16,23 +16,23 @@ class FrescobaldiActions(AllActions):
     def hasSelection(self):
         """returns the text if text is selected, otherwise None
         """
-        natqh.saveClipboard()
+        unimacroutils.saveClipboard()
         self.playString("{ctrl+c}")
-        t = natqh.getClipboard() or None
-        natqh.restoreClipboard()
+        t = unimacroutils.getClipboard() or None
+        unimacroutils.restoreClipboard()
         return t
 
     def playString(self, t):
         """send through to natlinkutils.self.playString
         """
-        natut.playString(t)
+        natlinkutils.playString(t)
 
     def getClipboard(self, sleep=0.05):
         """wait little longer if no result
         """
         for i in range(5):
             time.sleep(sleep)
-            clip = natqh.getClipboard()
+            clip = unimacroutils.getClipboard()
             if clip:
                 return clip
         print('got nothing on clipboard')
@@ -43,7 +43,7 @@ class FrescobaldiActions(AllActions):
         assume no selection active.
         normally return cursor in same position
         """
-        natqh.saveClipboard()
+        unimacroutils.saveClipboard()
         self.playString("{left %s}"% n)
         self.playString("{shift+right %s}"% (n*2,))
         time.sleep(sleep)
@@ -51,7 +51,7 @@ class FrescobaldiActions(AllActions):
         result = self.getClipboard(sleep=sleep)
         self.playString("{left}{right %s}"% n)
         time.sleep(sleep)
-        natqh.restoreClipboard()
+        unimacroutils.restoreClipboard()
         if not result:
             print('nothing on clipboard')
             return
@@ -74,8 +74,8 @@ class FrescobaldiActions(AllActions):
         n > 1, take more lines down for a larger range
         """
         self.playString("{shift+down %s}{ctrl+c}"% n)
-        natqh.Wait()        
-        result = natqh.getClipboard()
+        unimacroutils.Wait()        
+        result = unimacroutils.getClipboard()
         nup = result.count('\n')
         if nup:
             self.playString("{shift+up %s}"% nup)
@@ -87,8 +87,8 @@ class FrescobaldiActions(AllActions):
         more lines possible, if n > 1
         """
         self.playString("{shift+up %s}{ctrl+c}"% n)
-        natqh.Wait()        
-        result = natqh.getClipboard()
+        unimacroutils.Wait()        
+        result = unimacroutils.getClipboard()
         ndown = result.count('\n')
         if ndown:
             self.playString("{shift+down %s}"% ndown)

@@ -97,7 +97,6 @@ def call_ahk_script_path(scriptPath):
         raise ValueError(f'autohotkeyactions, call_ahk_script_path: path should end with ".ahk", or ".exe"\n    path: {scriptPath}')
     if result:
         print('non-zero result of call_ahk_script_path "%s": %s'% (scriptPath, result))
-        return 
 
 ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 

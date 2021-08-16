@@ -6,8 +6,8 @@ getting the current line number!
 """
 import time
 from .actionbases import AllActions
-from unimacro.actions import doAction as action
-from unimacro.actions import doKeystroke as keystroke
+from dtactions.unimacro.unimacroactions import doAction as action
+from dtactions.unimacro.unimacroactions import doAction as action
 import natlinkclipboard
 
 class  CodeActions(AllActions):
