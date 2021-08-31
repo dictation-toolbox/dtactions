@@ -37,7 +37,7 @@ import datetime
 
 from natlinkcore import utilsqh
 from natlinkcore import inivars
-# import natlinkcore.natlinkutils as natut
+# from natlinkcore import natlinkutils
 # import unimacro.natlinkutilsqh as unimacroutils
 # from natlinkcore import natlink
 # from natlinkcore import natlinkcorefunctions # extended environment variables....

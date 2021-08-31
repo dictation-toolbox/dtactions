@@ -36,7 +36,7 @@ from dtactions.unimacro import unimacroutils as natqh
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
 
-import natlinkcore.natlinkutils as natut
+from natlinkcore import natlinkutils
 # from dtactions.unimacro import unimacroutils
 from natlinkcore import natlink
 from natlinkcore import natlinkcorefunctions # extended environment variables....
