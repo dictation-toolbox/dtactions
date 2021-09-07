@@ -10,9 +10,8 @@
 """
 This file implements an interface to the Windows system clipboard.
 """
-
+#pylint:disable=C0116, C0321, R1710, W0702, R0913, R0912, W0622
 import copy
-import types
 import time
 import win32clipboard
 import win32con
@@ -20,9 +19,10 @@ import win32con
 #===========================================================================
 
 class Clipboard:
+    """Clipboard class, manages getting and setting the windows clipboard
+    """
 
     #-----------------------------------------------------------------------
-
     format_text      = win32con.CF_TEXT
     format_oemtext   = win32con.CF_OEMTEXT
     format_unicode   = win32con.CF_UNICODETEXT
@@ -50,9 +50,9 @@ class Clipboard:
             print('Clipboard, get_system_text: could not open clipboard')
             return
         try:
-            for format in cls.format_unicode, cls.format_text, cls.format_oemtext:
+            for _format in cls.format_unicode, cls.format_text, cls.format_oemtext:
                 try:
-                    content = win32clipboard.GetClipboardData(format)
+                    content = win32clipboard.GetClipboardData(_format)
                     if content: break
                 except:
                     continue
@@ -88,18 +88,18 @@ class Clipboard:
         # print 'clipboard number: %s'% clipNum
         try:
             win32clipboard.EmptyClipboard()
-            if type(content) == bytes:
-                format = cls.format_text
-            elif type(content) == str:
-                format = cls.format_unicode
+            if isinstance(content, bytes):
+                _format = cls.format_text
+            elif isinstance(content, str):
+                _format = cls.format_unicode
             
-            win32clipboard.SetClipboardData(format, content)
+            win32clipboard.SetClipboardData(_format, content)
         except:
-            print('Clipboard, cannot set text to clipboard: %s'% content)
+            print(f'Clipboard, cannot set text to clipboard: {content}')
         finally:
             clipNum2 = win32clipboard.GetClipboardSequenceNumber()
             if clipNum2 == clipNum:
-                print('Clipboard, did not increment clipboard number: %s'% clipNum)
+                print(f'Clipboard, did not increment clipboard number: {clipNum}')
             win32clipboard.CloseClipboard()
     Set_text = set_system_text
 
@@ -187,8 +187,8 @@ class Clipboard:
         if contents:
             try:
                 self._contents = dict(contents)
-            except Exception as e:
-                raise TypeError("Clipboard: Invalid contents: %s (%r)" % (e, contents))
+            except Exception as exc:
+                raise TypeError(f'Clipboard: Invalid contents: "{contents}"') from exc
 
         # Handle special case of text content.
         if not text is None:
@@ -224,15 +224,15 @@ class Clipboard:
                 skip.append(self.format_oemtext)
             else:
                 arguments.append("(no_text)")
-            for format in sorted(self._contents.keys()):
-                if format in skip:
+            for _format in sorted(self._contents.keys()):
+                if _format in skip:
                     continue
-                if format in self.format_names:
-                    arguments.append(self.format_names[format])
+                if _format in self.format_names:
+                    arguments.append(self.format_names[_format])
                 else:
-                    arguments.append(repr(format))
+                    arguments.append(repr(_format))
         arguments = ", ".join(str(a) for a in arguments)
-        return "%s(%s)" % (self.__class__.__name__, arguments)
+        return f'{self.__class__.__name__}({arguments})'
 
     def copy_from_system(self, formats=None, save_clear=False, waiting_interval=None, waiting_iterations=None):
         """Copy the Windows system clipboard contents into this instance.
@@ -284,7 +284,6 @@ class Clipboard:
             # Clear the system clipboard, if requested, and close it.
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             win32clipboard.CloseClipboard()
-            pass
 
     def _get_clipboard_data_from_system(self, formats=None):
         """once the clipboard is opened, just get the clipboard data
@@ -306,22 +305,12 @@ class Clipboard:
             return contents
 
         if formats:
-            for format in formats:
-                # if not format in self.format_names.keys():
-                #     # print 'not getting clipboard for format: %s'% format
-                #     continue
+            for _format in formats:
                 try:
-                    content = win32clipboard.GetClipboardData(format)
-                    contents[format] = content
+                    content = win32clipboard.GetClipboardData(_format)
+                    contents[_format] = content
                 except:
                     pass  # unknown formats, which cannot be handled
-                    # # print("_get_clipboard_data_from_system, format %s (%s) not available"% (format, self.format_names[format]))
-                    # actual_formats = _get_clipboard_formats_open_clipboard()
-                    # if actual_formats:
-                    #     print('_get_clipboard_data_from_system, formats asked for not available: %s, available are: %s'% (formats, actual_formats))
-                    # else:
-                    #     print('_get_clipboard_data_from_system, clipboard empty')
-                    # return {}
             self._contents = contents
             return contents
 
@@ -350,11 +339,11 @@ class Clipboard:
             data = data or self._contents
             if data is None:
                 return
-            elif isinstance(data, str):
+            if isinstance(data, str):
                 self.get_text(data)
-            elif type(data) == dict:
-                for format, content in list(data.items()):
-                    win32clipboard.SetClipboardData(format, content)
+            elif isinstance(data, dict):
+                for _format, content in list(data.items()):
+                    win32clipboard.SetClipboardData(_format, content)
             else:
                 
                 if self.debug: print("Clipboard, copy_to_system, invalid type of data: %s"% type(data))
@@ -364,12 +353,11 @@ class Clipboard:
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             win32clipboard.CloseClipboard()
 
-    def Set_text_and_paste(t):
+    def Set_text_and_paste(self, t):
         """a one shot function to past text back into the application
         """
-        if type(t) == str and t:
+        if isinstance(t, str) and t:
             self.copy_to_system(data=t)
-            pass
         #### to be finished
 
 
@@ -411,7 +399,7 @@ class Clipboard:
             Arguments:
              - *format* (int) -- the clipboard format to look for.
         """
-        return (format in self._contents)
+        return format in self._contents
 
     def get_format(self, format):
         """Retrieved this instance's content for the given *format*.
@@ -424,9 +412,8 @@ class Clipboard:
         """
         try:
             return self._contents[format]
-        except KeyError:
-            raise ValueError("Clipboard format not available: %r"
-                             % format)
+        except KeyError as exc:
+            raise ValueError(f'Clipboard format not available: {format}') from exc
 
     def set_format(self, format, content):
         self._contents[format] = content
@@ -434,11 +421,10 @@ class Clipboard:
     def has_text(self, waiting_interval=None, waiting_iterations=None):
         """ Determine whether this instance has text content. """
         
-        if self.contents:
+        if self._contents:
             return (self.format_unicode in self._contents
                     or self.format_text in self._contents)
-        else:
-            return False
+        return False
 
     def get_text(self, waiting_interval=None, waiting_iterations=None, replaceNullChar=True):
         """get the text (mostly unicode) contents of the clipboard
@@ -486,7 +472,7 @@ class Clipboard:
         self.copy_from_system(waiting_interval=waiting_interval, waiting_iterations=waiting_iterations)
         if self.format_hdrop in self._contents:
             result = self._contents[self.format_hdrop]
-            if type(result) == tuple:
+            if isinstance(result, tuple):
                 return result
 
     def save_sequence_number(self):
@@ -562,9 +548,9 @@ def OpenClipboardCautious(nToTry=4, waiting_time=0.1):
             time.sleep(waiting_time)
             continue
         else:
-            # wait = (i+2)*waiting_time
+            wait = (i+2)*waiting_time
             if i:
-                print('had to wait, and extra wait %s OpenClipboardCautious: %s seconds'% (i, wait))
+                print(f'had to wait, and extra wait {i} OpenClipboardCautious: {wait:.4f} seconds')
             time.sleep(waiting_time)
             return True
     

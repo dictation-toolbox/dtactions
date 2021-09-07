@@ -3,7 +3,7 @@ import time
 import os
 import os.path
 from pythoncom import com_error
-from .actionbases import AllActions
+from dtactions.unimacro.actionclasses.actionbases import AllActions
 from dtactions.unimacro import unimacroutils as natqh
 
 

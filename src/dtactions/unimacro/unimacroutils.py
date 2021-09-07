@@ -55,6 +55,9 @@ shortWaitFactor = 0.3                 # times 10 for long wait
 #debugMode 0 = not, -1 == dvcMode, 1 is light, 2 = normal, 3 = heavy
 debugMode = 1
 
+ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
+
+
 # class CaseInsensitiveSet(set):
 #     """makes the comparison for adding new elements case insensitive
 #     Adding takes the capitalisation of the first item added
@@ -307,18 +310,18 @@ def getProgName(modInfo=None):
         modInfo = natlink.getCurrentModule()
     return utilsqh.convertToUnicode(getBaseNameLower(modInfo[0]))
 
-ProgInfo = collections.namedtuple('ProgInfo', 'prog title topchild classname hndle'.split(' '))
+ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 
 def getProgInfo(modInfo=None):
-    """returns program info as tuple (prog, title, topchild, classname, hndle)
+    """returns program info as namedtuple (progpath, prog, title, toporchild, classname, hndle)
 
-    now length 5, including the classname, but also a named tuple!!
+    now length 6, including the classname, but also a named tuple!!
 
     prog always lowercase
     
     title now with capital letters.
 
-    topchild 'top' or 'child', or '' if no valid window
+    toporchild 'top' or 'child', or '' if no valid window
     """
     #pylint:disable=W0702    
     try:
@@ -331,19 +334,20 @@ def getProgInfo(modInfo=None):
     _hndle = modInfo[2]
     if not _hndle:
         ## assume desktop, no foreground window, treat as top...
-        return ProgInfo("", "", "top", "", 0)
+        return ProgInfo("", "", "", "top", "", 0)
+    progpath = modInfo[0]
     prog = getBaseNameLower(modInfo[0])
     title = modInfo[1]
     if isTopWindow(modInfo[2]):
-        topchild = 'top'
+        toporchild = 'top'
     else:
-        topchild = 'child'
+        toporchild = 'child'
          
-    _hndle = modInfo[2]
+    HNDLE = modInfo[2]
          
-    classname = win32gui.GetClassName(_hndle)
+    classname = win32gui.GetClassName(HNDLE)
 
-    return ProgInfo(prog, title, topchild, classname, _hndle)
+    return ProgInfo(progpath, prog, title, toporchild, classname, HNDLE)
             
 def getClassName(modInfo=None):
     """returns the class name of the foreground window
@@ -393,7 +397,7 @@ def matchWindow(criteria, modInfo=None, progInfo=None):
     if 'none' in criteria:
         return None
 
-    prog, title, topchild, _classname, _hndle = progInfo or getProgInfo(modInfo)
+    _progpath, prog, title, topchild, _classname, _hndle = progInfo or getProgInfo(modInfo)
     prog = utilsqh.convertToUnicode(prog)
     title = utilsqh.convertToUnicode(title)
     if 'empty' in criteria and prog == '':
@@ -478,7 +482,7 @@ def AppBringUp(App, Exec=None, Args=None, windowStyle=None, directory=None, call
     """
     #pylint:disable=W0603, R0913, R0912
     global pendingBringUps
-    app = App.lower()
+    app = str(App).lower()
     if Args:
         if isinstance(Args, list):
             args=' '.join(Args)

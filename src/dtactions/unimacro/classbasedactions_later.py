@@ -467,7 +467,7 @@ class Action:
         # try via actions_prog module:
         ext_instance = self.get_instance_from_progInfo(progInfo)
         if ext_instance:
-            prog = progInfo[0]
+            prog = progInfo.prog
             funcName = 'metaaction_%s'% actionName
             func = getattr(ext_instance,funcName, None)
             if func:
@@ -580,7 +580,7 @@ class Action:
         """return the correct instances for progInfo
         """
         progInfo = progInfo or self.progInfo
-        prog, title, topchild, classname, hndle = progInfo
+        _progpath, prog, title, toporchild, classname, hndle = progInfo
         prog = str(prog)
         if hndle in external_action_instances:
             instance = external_action_instances[hndle]
@@ -589,8 +589,8 @@ class Action:
         
         mod = self.get_external_module(prog)
         if not mod:
-            # print 'no external module instance: %s'% progInfo[0]
-            return # no module, no instance
+            # print 'no external module instance: %s'% progInfo.prog
+            return None   # no module, no instance
         classRef = getattr(mod, '%sActions'% prog.capitalize())
         if classRef:
             instance = classRef(progInfo)

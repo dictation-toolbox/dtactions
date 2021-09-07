@@ -3,15 +3,14 @@
 see www.activestate.com. Does not work yet for s&s or line numbers modulo 100
 now special (QH) metaactions for very special tasks on selections of a file only
 """
-import win32gui
-import ctypes
-import win32api
-import unimacro.messagefunctions as mf
-from .actionbases import AllActions
-from dtactions.unimacro.unimacroactions import doAction as action
-from dtactions.unimacro.unimacroactions import doAction as action
-import natlinkclipboard
+#pylint:disable=C0115, C0116. R0201
 import time
+# from dtactions import messagefunctions as mf
+from dtactions.unimacro.actionclasses.actionbases import AllActions
+# from dtactions.unimacro.unimacroactions import doAction as action
+from dtactions.unimacro.unimacroactions import doKeystroke as keystroke
+from dtactions.sendkeys import sendkeys
+import natlinkclipboard
 
 
 # class KomodoActions(MessageActions):
@@ -22,32 +21,34 @@ class KomodoActions(AllActions):
         
     def getInnerHandle(self, handle):
         # cannot get the correct "inner handle"
-        return
-        nextHndle = handle 
-        user32 = ctypes.windll.user32
-        #
-        controls = mf.findControls(handle, wantedClass="Scintilla")
-        print('Scintilla controls: %s'% controls)
-        for c in controls:
-            ln = self.getCurrentLineNumber(c)
-            numberLines = self.getNumberOfLines(c)
-            visible1 = self.isVisible(c)
-            info = win32gui.GetWindowPlacement(c) 
-            print('c: %s, linenumber: %s, nl: %s, info: %s'% (c, ln, numberLines, repr(info)))
-            parent = c
-            while 1:
-                parent = win32gui.GetParent(parent)
-                clName = win32gui.GetClassName(parent)
-                visible = self.isVisible(parent)
-                info = win32gui.GetWindowPlacement(parent) 
-                print('parent: %s, class: %s, visible: %s, info: %s'% (parent, clName, visible, repr(info)))
-                if parent == handle:
-                    print('at top')
-                    break
-    def getCurrentLineNumber(self, handle=None):
+        handle = None
+        return handle
+        # nextHndle = handle 
+        # user32 = ctypes.windll.user32
+        # #
+        # controls = mf.findControls(handle, wantedClass="Scintilla")
+        # print('Scintilla controls: %s'% controls)
+        # for c in controls:
+        #     ln = self.getCurrentLineNumber(c)
+        #     numberLines = self.getNumberOfLines(c)
+        #     visible1 = self.isVisible(c)
+        #     info = win32gui.GetWindowPlacement(c) 
+        #     print('c: %s, linenumber: %s, nl: %s, info: %s'% (c, ln, numberLines, repr(info)))
+        #     parent = c
+        #     while 1:
+        #         parent = win32gui.GetParent(parent)
+        #         clName = win32gui.GetClassName(parent)
+        #         visible = self.isVisible(parent)
+        #         info = win32gui.GetWindowPlacement(parent) 
+        #         print('parent: %s, class: %s, visible: %s, info: %s'% (parent, clName, visible, repr(info)))
+        #         if parent == handle:
+        #             print('at top')
+        #             break
+    
+    def getCurrentLineNumber(self):
         debug = 0
         t1 = time.time()
-        if self.topchild == "child":
+        if self.toporchild == "child":
             return 0
         cb = natlinkclipboard.Clipboard(save_clear=True, debug=debug)  # clear "debug" to get rid of timing line
         shortcutkey = "{alt+shift+c}"
@@ -69,7 +70,7 @@ class KomodoActions(AllActions):
         """for doctest testing, put u in front of every string
         """
         print('metaaction_makeunicodestrings, for Komodo')
-        natlinkutils.playString("{ctrl+c}")
+        sendkeys("{ctrl+c}")
         t = unimacroutils.getClipboard()
         print('in: %s'% t)
         t = replaceStringToUnicode(t)

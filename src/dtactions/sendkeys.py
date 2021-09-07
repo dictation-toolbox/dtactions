@@ -57,7 +57,7 @@ Tested at bottom of this file interactively...
             if not part:
                 continue
             if part.startswith('{'):
-                part = part[1:-1]  # strip { and }
+                part = part[1:-1].lower()  # strip { and } and make lowercase
                 use_hardware = False
                
                 if part.endswith("!"):
@@ -96,14 +96,13 @@ Tested at bottom of this file interactively...
         # action_text.Text(keys).execute()
     
 if __name__ == "__main__":
-    pass
     # sendkeys("{a 3}") #aaa
     
     # try holding down a key:
     # (first selects slow 4 lines, then fast, then goes back to start)
     # sendkeys("{shift:down}{down/25:4}{shift:up/100}")
     # sendkeys("{shift:down}{down:4/100}{shift:up}")
-    # sendkeys("{up:8}")  #
+    sendkeys("{Up:8}{down 8}")  #
     
     # leaves empty:
     # t3 = 'abc{shift+left/50}{del/100}def{shift+left 2/50}ghi{left 4/100}{shift+end/100}{del/100}{backspace 2}'  
@@ -115,4 +114,7 @@ if __name__ == "__main__":
     sendkeys("x y z {home}")  
     # sendkeys("{ctrl+a/100}") #
     # sendkeys("{ctrl+end!}{up/50}{end}")
-    # 
+    # sendkeys("x y z ")
+    ##
+    
+    

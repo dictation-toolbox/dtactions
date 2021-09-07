@@ -24,20 +24,20 @@ import time
 import datetime
 from pathlib import Path
 import html.entities
+import ctypes
 import win32api
 import win32gui
 import win32con
 # import win32com.client
 
-from natlinkcore import inivars
 import dtactions
 from dtactions import monitorfunctions
-from dtactions.unimacro import unimacroutils as natqh
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
+from dtactions.unimacro import unimacroutils
 
+from natlinkcore import inivars
 from natlinkcore import natlinkutils
-# from dtactions.unimacro import unimacroutils
 from natlinkcore import natlink
 from natlinkcore import natlinkcorefunctions # extended environment variables....
 from natlinkcore import natlinkstatus
@@ -76,7 +76,7 @@ if not userDirectory.is_dir():
 userInifile = userDirectory/'unimacroactions.ini'
 if not userInifile.is_file():
     shutil.copy(sampleInifile, userInifile)
-
+print(f'unimacroactions, inifile: {userInifile}')
 ## set ready the debug file
 debugFile = os.path.join(userDirectory, 'actions debug.txt')
 
@@ -527,7 +527,7 @@ def getMetaAction(a, sectionList=None, progInfo=None):
     # try via actions_prog module:
     ext_instance = get_instance_from_progInfo(progInfo)
     if ext_instance:
-        prog = progInfo[0]
+        prog = progInfo.prog
         funcName = 'metaaction_%s'% actionName
         func = getattr(ext_instance,funcName, None)
         if func:
@@ -564,18 +564,18 @@ natspeakCommands = ['ActiveControlPick', 'ActiveMenuPick', 'AppBringUp', 'AppSwa
 def getSectionList(progInfo=None):
     if not progInfo:
         progInfo = unimacroutils.getProgInfo()
-    prog, title, topchild, _classname, _hndle = progInfo
+    _progpath, prog, title, _topchild, _classname, _hndle = progInfo
     if debug > 5:
         D('search for prog: %s and title: %s' % (prog, title))
         D('type prog: %s, type title: %s'% (type(prog), type(title)))
     prog = utilsqh.convertToUnicode(prog)
     title = utilsqh.convertToUnicode(title)
     L = ini.getSectionsWithPrefix(prog, title)
-    L2 = ini.getSectionsWithPrefix(prog, topchild)  # catch program top or program child
+    L2 = ini.getSectionsWithPrefix(prog, _topchild)  # catch program top or program child
     for item in L2:
         if not item in L:
             L.append(item)
-    L.extend(ini.getSectionsWithPrefix('default', topchild)) # catcg default top or default child
+    L.extend(ini.getSectionsWithPrefix('default', _topchild)) # catcg default top or default child
     if debug > 5: D('section list with progInfo: %s:\n===== %s' %
                     (progInfo, L))
                     
@@ -676,7 +676,7 @@ def getFromIni(keyword, default='',
         return ''
     if sectionList is None:
         if progInfo is None: progInfo = unimacroutils.getProgInfo()
-        prog, title, _topchild, _classname, _hndle = progInfo
+        _progpath, prog, title, _toporchild, _classname, _hndle = progInfo
         sectionList = ini.getSectionsWithPrefix(prog, title) + \
                       ini.getSectionsWithPrefix('default', title)
         if debug > 5: D('getFromIni, sectionList: |%s|' % sectionList)
@@ -691,7 +691,7 @@ def get_external_module(prog):
     
     if module not there, put None in this external_actions_modules dict
     """
-    #print 'ask for program: %s'% prog
+    print(f'ask for program: "{prog}"')
     if prog in external_actions_modules:
         return external_actions_modules[prog]
     try:
@@ -716,9 +716,9 @@ def get_instance_from_progInfo(progInfo):
         instance.update(progInfo)
         return instance
     
-    mod = get_external_module(str(progInfo[0]))
+    mod = get_external_module(progInfo.prog)
     if not mod:
-        # print 'no external module instance: %s'% progInfo[0]
+        # print(f'no external module instance: {progInfo.prog}')
         return # no module, no instance
     classRef = getattr(mod, '%sActions'% prog.capitalize())
     if classRef:
@@ -733,12 +733,12 @@ def get_instance_from_progInfo(progInfo):
 
 def doCheckForChanges(previousIni=None):
     #pylint:disable=W0603
-    global  ini, iniFileDate, topchildDict, childtopDict
+    global  ini, iniFileDate, _topchildDict, childtopDict
     newDate = unimacroutils.getFileDate(inifile)
     if newDate > iniFileDate:
         D('----------reloading ini file')
         try:
-            topchildDict = None
+            _topchildDict = None
             childtopDict = None
             ini = inivars.IniVars(inifile)
         except inivars.IniError:
@@ -786,8 +786,9 @@ def showActions(progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
     
     sectionList = getSectionList(progInfo)
 
-    l = ['actions for program: %s\n\twindow title: %s (topchild: %s, windowHandle: %s)'% progInfo,
-         '\tsection list: %s'% sectionList,
+    l = [f'actions for program: {progInfo.prog}, title: {progInfo.title} (_topchild: {progInfo.toporchild}, windowHandle: {progInfo.hndle}',
+         f'\tclassname: {progInfo.classname}, full program name: {progInfo.progpath}',
+         f'\tsection list: {sectionList}',
          '']
     l.append(ini.formatKeysOrderedFromSections(sectionList,
                                 lineLen=lineLen, sort=sort))
@@ -823,10 +824,10 @@ def getTranslation(language, Dict):
 
 def editActions(comingFrom=None, name=None):
     #pylint:disable=W0603
-    global checkForChanges, iniFileDate, topchildDict, childtopDict
+    global checkForChanges, iniFileDate, _topchildDict, childtopDict
     iniFileDate = unimacroutils.getFileDate(inifile)
     checkForChanges = 1
-    topchildDict = None
+    _topchildDict = None
     childtopDict = None
     if comingFrom:
         name=name or ""
@@ -867,7 +868,6 @@ def getPosition(name, prog=None):
 def do_TEST(*args, **kw):
     # x, y = unimacroutils.testmonitorinfo(args[0], args[1])
     # print 'in do_test: ', x, y
-    import ctypes
     tup = natlink.getCurrentModule()
     hndle = tup[2]
     print('foreground hndle: %s, type: %s'% (hndle, type(hndle)))
@@ -1428,7 +1428,7 @@ def do_MSG(*args, **kw):
 def do_DOCUMENT(number=None, **kw):
     """switch to document (program specific) with number"""
 ##    print 'action: goto task: %s'% number
-    prog, title, _topchild, _classname, _hndle = unimacroutils.getProgInfo()
+    _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
     if not prog:
         print(f'action DOCUMENT, no program in foreground: "{prog}", title: "{title}"')
         return
@@ -1467,7 +1467,7 @@ def do_DOCUMENT(number=None, **kw):
 def do_TASK(number=None, **kw):
     """switch to task with number"""
 ##    print 'action: goto task: %s'% number
-    prog, title, _topchild, _classname, _hndle = kw['progInfo']
+    _progpath, prog, title, _toporchild, _classname, _hndle = kw['progInfo']
     if prog == 'explorer' and not title:
         doKeystroke('{esc}')
         unimacroutils.shortWait()
@@ -1582,7 +1582,7 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
     if not progInfo:
         progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
     
-    prog, _title, _topchild, _classname, hndle = progInfo
+    _progpath, prog, _title, _toporchild, _classname, hndle = progInfo
         
     progNew = prog
     prevHandle = hndle
@@ -1618,23 +1618,23 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
         return 0 
     return 1
 
-topchildDict = None
+_topchildDict = None
 childtopDict = None
 
 def topWindowBehavesLikeChild(modInfo):
     """return the result of the ini file dict
     
-    cache the contents in topchildDict
+    cache the contents in _topchildDict
     """
     #pylint:disable=W0603
-    global topchildDict
-    if topchildDict is None:
-        topchildDict = ini.getDict('general', 'top behaves like child')
-        #print 'topchildDict: %s'% topchildDict
-    if topchildDict == {}:
+    global _topchildDict
+    if _topchildDict is None:
+        _topchildDict = ini.getDict('general', 'top behaves like child')
+        #print '_topchildDict: %s'% _topchildDict
+    if _topchildDict == {}:
         return
-    prog, title, _topchild, _classname, hndle = unimacroutils.getProgInfo(modInfo)
-    result = matchProgTitleWithDict(prog, title, topchildDict, matchPart=1)
+    _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo(modInfo)
+    result = matchProgTitleWithDict(prog, title, _topchildDict, matchPart=1)
     if result: return result
     className = win32gui.GetClassName(hndle)
     # print('className: %s'% className)
@@ -1654,7 +1654,7 @@ def childWindowBehavesLikeTop(modInfo):
         #print 'childtopDict: %s'% childtopDict
     if childtopDict == {}:
         return
-    prog, title, _topchild, _classname, _hndle = unimacroutils.getProgInfo(modInfo)
+    _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo(modInfo)
     return matchProgTitleWithDict(prog, title, childtopDict, matchPart=1)
 
 def matchProgTitleWithDict(prog, title, Dict, matchPart=None):
@@ -1949,7 +1949,7 @@ def putCursor():
 def findCursor():
     """find the previous entered cursor text"""
     doAction('<<startsearch>>; "%s"; VW; <<searchgo>>'% cursorText)
-    prog, _title, _topchild, _classname, _hndle = unimacroutils.getProgInfo()
+    _progpath, prog, _title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
     if prog == 'emacs':
         doAction("{shift+left %s}"% len(cursorText))
     doAction("CLIPSAVE; <<cut>>")
@@ -2041,7 +2041,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                     appPath = os.path.normpath(appPath2)
                 elif appPath.lower().startswith("%programfiles%"):
                     ##TODOQH
-                    appPathVariant = appPath.lower().replace("%programfiles", "%PROGRAMW6432%")
+                    _appPathVariant = appPath.lower().replace("%programfiles", "%PROGRAMW6432%")
                     appPath2 = natlinkcorefunctions.expandEnvVariableAtStart(appPath)
                     if os.path.isfile(appPath2):
                         appPath = os.path.normpath(appPath2)
@@ -2064,17 +2064,22 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
         appName = None
     if appName:
         if filepath:
-            appName = appName + " " + filepath
+            appName = f'{appName} {filepath}'
     else:
         appName = filepath
 
     if filepath:
-        filepath = '""'+filepath+'""'
+        filepath = f'""{filepath}""'
+        print(f'filepath unimacroactions: |{filepath}|')
         if appArgs:
             #if filepath.find(" ") > 0:
                 # insert DOUBLE DOUBLE QUOTES for vba line recognition
             filepath = '""'+filepath+'""'
-            appArgs = appArgs + " " + filepath
+            print(f'filepath appArgs unimacroactions: |{filepath}|')
+
+            appArgs = f'{appArgs} {filepath}'
+            print(f'appArgs unimacroactions: |{appArgs}|')
+            
         else:
             appArgs = filepath
     # for future:
@@ -2083,10 +2088,10 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     
     if not filepath:
         # for attaching to a running instance:
-        appTitle = ini.get("bringup %s"% app, "title") or None
-        appClass = ini.get("bringup %s"% app, "class") or None
+        _appTitle = ini.get("bringup %s"% app, "title") or None
+        _appClass = ini.get("bringup %s"% app, "class") or None
         ## TODOQH
-        prog, title, _topchild, _classname, hndle = unimacroutils.getProgInfo()
+        _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo()
         ## TODOQH
         # progFull, titleFull, hndle = natlink.getCurrentModule()
     
@@ -2106,7 +2111,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                     print('could not bring to foreground: %s, exit action'% hndle)
                     
                 if do_WTC():
-                    prog, title, _topchild, _classname, hndle = unimacroutils.getProgInfo()
+                    _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo()
                     if prog == appName:
                         return 1
             except:
@@ -2126,7 +2131,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     #                print 'get window %s to foreground failed'% hndle
     #                
     #            unimacroutils.Wait(0.1)
-    #            prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
+    #            prog, title, _topchild, classname, hndle = unimacroutils.getProgInfo()
     #            progFull, titleFull, hndle2 = natlink.getCurrentModule()
     #            if hndle == hndle2:
     #                #print 'OK, setting |%s|, currentModule: %s'% (app, repr(natlink.getCurrentModule()))
@@ -2144,7 +2149,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
         
     return result
 #    if do_WTC():
-#        prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
+#        prog, title, _topchild, classname, hndle = unimacroutils.getProgInfo()
 #        progFull, titleFull, hndle = natlink.getCurrentModule()
 ###        print 'app: %s, appName: %s, got prog: %s'% (app, appName, prog)
 #        if prog == appName:
@@ -2200,7 +2205,7 @@ def dragonpadBringUp():
     waitSteps = 10
     while i < waitSteps:
         i += 1
-        prog, title, _topchild, _classname, _hndle = unimacroutils.getProgInfo()
+        _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
         if windowCorrespondsToApp('dragonpad', 'natspeak', prog, title):
             break
         do_W(sleepTime)
@@ -2249,7 +2254,7 @@ def getPathOfOpenFile():
     """
     fileName = None
     progInfo = unimacroutils.getProgInfo()
-    prog, title, _topchild, _classname, _hndle = progInfo
+    _progpath, prog, title, _toporchild, _classname, _hndle = progInfo
     
     if prog == 'pythonwin':
         doKeystroke("{ctrl+r}")

@@ -17,7 +17,7 @@ from pathlib import Path
 import win32gui
 from dtactions import natlinkclipboard
 from dtactions import autohotkeyactions as ahk
-# from dtactions.unimacro import unimacroutils
+from dtactions.unimacro import unimacroutils
 from dtactions.sendkeys import sendkeys
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
@@ -72,20 +72,19 @@ class UnittestClipboard(unittest.TestCase):
             if not win32gui.IsWindow(hndle):
                 print("???window does not exist: %s"% hndle)
                 continue
-            if hndle == self.thisHndle:
-                # print('window hndle %s may not match "thisHndle": %s'% (hndle, self.thisHndle))
-                continue
+            # if hndle == self.thisHndle:
+            #     # print('window hndle %s may not match "thisHndle": %s'% (hndle, self.thisHndle))
+            #     continue
             # print('close window with hndle: %s'% hndle)
-            curHndle = ahk.SetForegroundWindow(hndle)
 
-            if hndle == curHndle:
-                if hndle in self.killActions:
-                    # unimacroutils.SetForegroundWindow(self.thisHndle)
-                    # place to break in debug mode
-                    # unimacroutils.SetForegroundWindow(curHndle)
-                    ahk.killWindow(self.killActions[hndle])
-                else:
-                    sendkeys("{alt+f4}")
+            # should not be necessary:
+            # curHndle = ahk.SetForegroundWindow(hndle)
+
+            if hndle in self.killActions:
+                # unimacroutils.SetForegroundWindow(self.thisHndle)
+                # place to break in debug mode
+                # unimacroutils.SetForegroundWindow(curHndle)
+                ahk.killWindow(self.killActions[hndle])
         _result = ahk.SetForegroundWindow(self.thisHndle)
         # self.disconnect()  # disabled, natConnect
         notClosedHndles = []
@@ -99,7 +98,7 @@ class UnittestClipboard(unittest.TestCase):
             else:
                 raise TestError('Fresobaldi should not be closed after the test')
         if notClosedHndles:
-            raise TestError('Hndles not close, but should: %s'% notClosedHndles)
+            raise TestError('Hndles not closed, but should: %s'% notClosedHndles)
 
     # def connect(self):
     #     # start with 1 for thread safety when run from pythonwin:
@@ -122,6 +121,7 @@ class UnittestClipboard(unittest.TestCase):
         return: text, selStart, selEnd, cursorPos
 
         """
+        #pylint:disable=R0201
         cb = natlinkclipboard.Clipboard(save_clear=True, debug=1)
         waitTime = 0.001
 
@@ -253,7 +253,7 @@ class UnittestClipboard(unittest.TestCase):
         if not result:
             print('no result for %s'% dirWindows)
             return
-        _pPath, _wTitle, hndle = result
+        hndle = result.hndle
         self.tempFileHndles.append(hndle)
         self.expl0Hndle = hndle
         unimacroutils.SetForegroundWindow(self.thisHndle)
@@ -267,7 +267,7 @@ class UnittestClipboard(unittest.TestCase):
             raise OSError('file does not exist: %s'% docxPath2)
         result = ahk.autohotkeyBringup(app=None, filepath=docxPath2)
         if result:
-            _pPath, _wTitle, hndle = result
+            hndle = result.hndle
         else:
             raise TestError("autohotkeyBringup of Word gives no result: %s"% result)
         self.tempFileHndles.append(hndle)
@@ -283,7 +283,9 @@ class UnittestClipboard(unittest.TestCase):
         textPath0 = testFilesDir/textFile0
         open(textPath0, 'w')
         result = ahk.autohotkeyBringup(app=None, filepath=textPath0)
-        _pPath, _wTitle, hndle = result
+        self.assertTrue(isinstance(result, tuple), 'result of autohotkeyBringup should be a tuple (namedtuple)')
+
+        hndle = result.hndle
         unimacroutils.SetForegroundWindow(self.thisHndle)
         print('testempty (text0Hndle): %s'% hndle)
         self.tempFileHndles.append(hndle)
@@ -294,7 +296,7 @@ class UnittestClipboard(unittest.TestCase):
         self.text1Txt = "small abacadabra\n"*2
         open(textPath1, 'w').write(self.text1Txt)
         result = ahk.autohotkeyBringup(app=None, filepath=textPath1)
-        _pPath, _wTitle, hndle = result
+        hndle = result.hndle
         self.tempFileHndles.append(hndle)
         unimacroutils.SetForegroundWindow(self.thisHndle)
         print('testsmall (text1Hndle): %s'% hndle)
@@ -306,11 +308,16 @@ class UnittestClipboard(unittest.TestCase):
         self.text2Txt = "large abacadabra\n"*1000
         open(textPath2, 'w').write(self.text2Txt)
         result = ahk.autohotkeyBringup(app=None, filepath=textPath2)
-        _pPath, _wTitle, hndle = result
+        hndle = result.hndle
         self.tempFileHndles.append(hndle)
         unimacroutils.SetForegroundWindow(self.thisHndle)
         print('testlarge (text2Hndle): %s'% hndle)
         self.text2Hndle = hndle
+        self.killActions[self.text0Hndle] = f'KW({self.text0Hndle})'
+        self.killActions[self.text1Hndle] = f'KW({self.text1Hndle})'
+        self.killActions[self.text2Hndle] = f'KW({self.text2Hndle})'
+
+
         self.tempFileHndles.append(hndle)
 
     def setupThunderbirdNewWindow(self):
@@ -325,7 +332,7 @@ class UnittestClipboard(unittest.TestCase):
                 'Sleep, 100',
                 'Send, {tab 2}'])     # note SetTitleMatchMode and Sleep, apparently necessary
 
-        result = ahk.ahkBringup(app="thunderbird.exe", title="Mozilla Thunderbird". extra=extra)
+        result = ahk.ahkBringup(app="thunderbird.exe", title="Mozilla Thunderbird", extra=extra)
         print(f'setupThunderbirdNewWindow, after ahkBringup: {result}')
         ahk.do_ahk_script(extra)
         hndle = ahk.GetForegroundWindow()
@@ -346,7 +353,7 @@ class UnittestClipboard(unittest.TestCase):
 
         result = ahk.ahkBringup(app=r"C:\Program Files (x86)\Frescobaldi\frescobaldi.exe", title="Frescobaldi",
                                 extra=extra)
-        _pPath, _wTitle, hndle = result
+        hndle = result.hndle
         sendkeys("Frescobaldi abacadabra")
         self.tempFileHndles.append(hndle)
         self.frescHndle = hndle
@@ -505,81 +512,80 @@ class UnittestClipboard(unittest.TestCase):
         self.setupFrescobaldiNewPane()
         self.setupTextFiles()
 
-        cb = natlinkclipboard.Clipboard(save_clear=True, debug=2)   # debug flag can be set or omitted (or set to 0)
-        return
+        # cb = natlinkclipboard.Clipboard(save_clear=True, debug=2)   # debug flag can be set or omitted (or set to 0)
 
         ## longer test:
-        for i in range(1, 10, 5):
-            waitTime = 0.001/i
-            print('---- round: %s, waitTime %.4f '% (i, waitTime))
-
-            ## first clear the clipboard:
-            cb.clear_clipboard()
-            got = cb.get_text(waitTime)
-            print('after clear_clipboard, text: %s (cb: %s)'% (got, cb))
-            self.assertEqual("", got, "should have no text now, waitTime: %s (times 4)"% waitTime)
-
-            print("now testempty.txt -----------------")
-            # empty file:
-            unimacroutils.SetForegroundWindow(self.text0Hndle)
-            natlinkutils.playString("{ctrl+a}{ctrl+c}")
-            got = cb.get_text(waitTime)
-            print('after select all copy of empty file, no change should have happened:')
-            # print('got: %s, (cb: %s)'% (got, cb))
-            self.assertEqual("", got, "should have no text now, waitTime: %s"% waitTime)
-
-            unimacroutils.SetForegroundWindow(self.thisHndle)
-
-            print("now testsmall.txt -----------------")
-            unimacroutils.SetForegroundWindow(self.text1Hndle)
-            natlinkutils.playString("{ctrl+a}{ctrl+c}")
-            got = cb.get_text(waitTime)
-            print('after select all copy of testsmall.txt')
-            # print('got: %s, (cb: %s)'% (got, cb))
-            exp = self.text1Txt
-            self.assertEqual(exp, got, "testsmall should have two lines of text, waitTime: %s"% waitTime)
-
-
-            # test large.txt
-            print("now testlarge.txt -----------------")
-            unimacroutils.SetForegroundWindow(self.text2Hndle)
-            natlinkutils.playString("{ctrl+a}{ctrl+c}")
-            cb.get_text(waiting_interval=waitTime)
-            got = cb.get_text()
-            if got:
-                lengot = len(got)
-            else:
-                print('testlarge, no result from get_text: %s'% cb)
-            exp = len(self.text2Txt)
-            self.assertEqual(exp, lengot, "should have long text now, waitTime: %s"% waitTime)
-            # empty for the next round:
-            # cb.set_text("")
-            time.sleep(waitTime)
-
-            unimacroutils.SetForegroundWindow(self.thisHndle)
-
-            # test natlink.docx
-            print("now natlink.docx (%s)-----------------"% self.docx2Hndle)
-            if not self.docx2Hndle:
-                print("word document not available: %s"% (self.docx2Hndle))
-                continue
-            unimacroutils.SetForegroundWindow(self.docx2Hndle)
-            natlinkutils.playString("{ctrl+a}{ctrl+c}")
-            cb.get_text(waiting_interval=waitTime)
-            got = cb.get_text()
-            if got:
-                lengot = len(got)
-            else:
-                print('testlarge, no result from get_text: %s'% cb)
-            exp = len(self.text2Txt)
-            self.assertEqual(exp, lengot, "should have long text now, waitTime: %s"% waitTime)
-            # empty for the next round:
-            # cb.set_text("")
-            time.sleep(waitTime)
-
-        del cb
-        got_org_text = natlinkclipboard.Clipboard.get_system_text()
-        self.assertEqual(self.org_text, got_org_text, "restored text from clipboard not as expected")
+        # for i in range(1, 10, 5):
+        #     waitTime = 0.001/i
+        #     print('---- round: %s, waitTime %.4f '% (i, waitTime))
+        # 
+        #     ## first clear the clipboard:
+        #     cb.clear_clipboard()
+        #     got = cb.get_text(waitTime)
+        #     print('after clear_clipboard, text: %s (cb: %s)'% (got, cb))
+        #     self.assertEqual("", got, "should have no text now, waitTime: %s (times 4)"% waitTime)
+        # 
+        #     print("now testempty.txt -----------------")
+        #     # empty file:
+        #     unimacroutils.SetForegroundWindow(self.text0Hndle)
+        #     sendkeys("{ctrl+a}{ctrl+c}")
+        #     got = cb.get_text(waitTime)
+        #     print('after select all copy of empty file, no change should have happened:')
+        #     # print('got: %s, (cb: %s)'% (got, cb))
+        #     self.assertEqual("", got, "should have no text now, waitTime: %s"% waitTime)
+        # 
+        #     unimacroutils.SetForegroundWindow(self.thisHndle)
+        # 
+        #     print("now testsmall.txt -----------------")
+        #     unimacroutils.SetForegroundWindow(self.text1Hndle)
+        #     sendkeys("{ctrl+a}{ctrl+c}")
+        #     got = cb.get_text(waitTime)
+        #     print('after select all copy of testsmall.txt')
+        #     # print('got: %s, (cb: %s)'% (got, cb))
+        #     exp = self.text1Txt
+        #     self.assertEqual(exp, got, "testsmall should have two lines of text, waitTime: %s"% waitTime)
+        # 
+        # 
+        #     # test large.txt
+        #     print("now testlarge.txt -----------------")
+        #     unimacroutils.SetForegroundWindow(self.text2Hndle)
+        #     sendkeys("{ctrl+a}{ctrl+c}")
+        #     cb.get_text(waiting_interval=waitTime)
+        #     got = cb.get_text()
+        #     if got:
+        #         lengot = len(got)
+        #     else:
+        #         print('testlarge, no result from get_text: %s'% cb)
+        #     exp = len(self.text2Txt)
+        #     self.assertEqual(exp, lengot, "should have long text now, waitTime: %s"% waitTime)
+        #     # empty for the next round:
+        #     # cb.set_text("")
+        #     time.sleep(waitTime)
+        # 
+        #     unimacroutils.SetForegroundWindow(self.thisHndle)
+        # 
+        #     # test natlink.docx
+        #     print("now natlink.docx (%s)-----------------"% self.docx2Hndle)
+        #     if not self.docx2Hndle:
+        #         print("word document not available: %s"% (self.docx2Hndle))
+        #         continue
+        #     unimacroutils.SetForegroundWindow(self.docx2Hndle)
+        #     sendkeys("{ctrl+a}{ctrl+c}")
+        #     cb.get_text(waiting_interval=waitTime)
+        #     got = cb.get_text()
+        #     if got:
+        #         lengot = len(got)
+        #     else:
+        #         print('testlarge, no result from get_text: %s'% cb)
+        #     exp = len(self.text2Txt)
+        #     self.assertEqual(exp, lengot, "should have long text now, waitTime: %s"% waitTime)
+        #     # empty for the next round:
+        #     # cb.set_text("")
+        #     time.sleep(waitTime)
+        # 
+        # del cb
+        # got_org_text = natlinkclipboard.Clipboard.get_system_text()
+        # self.assertEqual(self.org_text, got_org_text, "restored text from clipboard not as expected")
 
 
     def tttestSetForegroundWindow(self):
@@ -607,10 +613,11 @@ class UnittestClipboard(unittest.TestCase):
         for i in range(1, rounds+1):
             print('start round %s'% i)
             for h in hndles:
-                if not h: continue
+                if not h:
+                    continue
                 result = unimacroutils.SetForegroundWindow(h)
                 if result:
-                    self.assert_not_equal(unknownHndle, h, "hndle should not be unknown (fake) hndle")
+                    self.assertNotEqual(unknownHndle, h, "hndle should not be unknown (fake) hndle")
                 else:
                     self.assertEqual(unknownHndle, h, "hndle should be one of the valid hndles")
 
@@ -626,10 +633,12 @@ class UnittestClipboard(unittest.TestCase):
 
 
     def log(self, t):
-        if self.isConnected:
-            natlink.displayText(t, 0)
-        else:
-            print(t)
+        #pylint:disable=R0201
+        # if self.isConnected:
+        #     natlink.displayText(t, 0)
+        # else:
+        
+        print(t)
         print(t, file=open(logFileName, "a"))
 
 def run():
@@ -643,7 +652,7 @@ def run():
     # sys.stderr = open(logFileName, 'a')
 
     suite = unittest.makeSuite(UnittestClipboard, 'test')
-    result = unittest.TextTestRunner().run(suite)
+    unittest.TextTestRunner().run(suite)
 
 if __name__ == "__main__":
     print("run, result will be in %s"% logFileName)

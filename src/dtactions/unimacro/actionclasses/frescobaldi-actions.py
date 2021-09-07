@@ -3,7 +3,7 @@
 now works with copy and so getting the wanted contents of text around the cursor.
 
 """
-from .actionbases import AllActions
+from dtactions.unimacro.actionclasses.actionbases import AllActions
 import pprint
 from natlinkcore import natlinkutils
 from dtactions.unimacro import unimacroutils as natqh
@@ -103,7 +103,7 @@ class FrescobaldiActions(AllActions):
 if __name__ == '__main__':
     # search all frescobaldi instances and dump the controls:
     # does not give a useful result
-    import unimacro.messagefunctions as mf
+    from dtactions import messagefunctions as mf
     # trying to hack into frescobaldi, no luck (yet)
     tw = mf.findTopWindows(wantedText="frescobaldi")
     for t in tw:

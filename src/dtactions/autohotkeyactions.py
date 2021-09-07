@@ -429,7 +429,7 @@ def _get_run_filepath_script(filepath):
             return
             }
         '''
-    errorlines = errorlines.replace('##filepath##', filepath)
+    errorlines = errorlines.replace('##filepath##', str(filepath))
     errorlines = dedent(errorlines)
     script.append(errorlines)
     return script
