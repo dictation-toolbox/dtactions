@@ -1,19 +1,18 @@
 """contains class IniVars, that does inifiles
 
 """
-import win32api
-import types
+#pylint:disable=C0302
 import os
 import os.path
 import sys
 import re
 import copy
+import locale
 from core import utilsqh
 from core.pathqh import path
 from core.utilsqh import peek_ahead
-import locale
 locale.setlocale(locale.LC_ALL, '')
-from core import readwritefile
+from natlink import readwritefile
 
 try:
     from collections import UserDict
@@ -2082,7 +2081,8 @@ def formatReverseNumbersDict(D):
         if preview == it.sentinel or len(vnext) > 1 or knext != k + increment:
             # close current item
             if kPrev is None:
-                if L: L.append(', ')
+                if L:
+                    L.append(', ')
                 L.append(', '.join(v))
             elif k - kPrev != increment:
                 L.append(' ... %s'% ', '.join(v))
