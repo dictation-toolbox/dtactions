@@ -12,6 +12,7 @@ Previous this was natlinkutilsqh.py in unimacro
 
 """
 #pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613
+#pylint:disable=E1101
 import time
 import re
 import os
@@ -26,11 +27,9 @@ import win32clipboard
 from dtactions import monitorfunctions  # elaborated version QH
 from dtactions import autohotkeyactions
 
-from natlinkcore import natlinkmain
-from natlinkcore import natlink
-from natlinkcore import natlinkutils
-from natlinkcore import utilsqh
-from natlinkcore import natlinkstatus
+import natlink
+from natlink import natlinkutils
+from natlink import natlinkstatus
 status = natlinkstatus.NatlinkStatus()
 
 DEBUG = 0
@@ -71,116 +70,13 @@ def getLanguage():
     """get current language, 3 characters
 
     """
-    lang = status.getLanguage()
-    if not lang:
-        print("natlinkutilsqh, getLanguage, no language from status found, return 'zyx'")
-        lang = 'zyx'
-    return lang
+    raise NotImplementedError('getLanguage in unimacroutils not available any more, use natlinkstatus functions')
 
 def getUserLanguage():
     """get current language, long name
 
     """
-    userlang = status.getUserLanguage()
-    if not userlang:
-        print("natlinkutilsqh, getUserLanguage, no userLanguage from status found")
-        userlang = 'unknown'
-    return userlang
-
-
-def getBaseModel():
-    """get BaseModel of user
-
-    """
-    return status.getBaseModel()
-
-def getBaseTopic():
-    """get BaseTopic of user
-
-    """
-    return status.getBaseTopic()
-
-def getUserTopic():
-    """get userTopic of user (starting DPI15)
-
-    """
-    return status.getUserTopic()
-
-
-def getDNSVersion():
-    """get DNSVersion, put in unimacro version of natlinkmain
-
-    7 or higher if found in nssystem.ini
-    assume to be 5 if not found there, see unimacro version of natlinkmain
-
-    """
-    return status.getDNSVersion()
-
-def getDNSuserDirectory():
-    """get DNSUserFolder from natlinkmain
-
-    """
-    return status.getDNSuserDirectory()
-
-def getUser():
-    """get current user
-
-
-    """
-    return status.getUserName()
-
-def getWindowsVersion():
-    """get windows version
-
-    known are eg. 'Vista', 'XP', '2000', 'NT4', 'NT351', '98'
-
-    """
-    return status.getWindowsVersion()
-
-def setCheckForGrammarChanges(value):
-    """pass on to natlinkmain, constant checking of grammar changes"""
-    natlinkmain.setCheckForGrammarChanges(value)
-
-def getModuleFilename(module):
-    """get filename from natlinkmain, module you get from self.__module__
-    
-    since 2020-02 loadedFiles hold the (filename, timestamp) tuple of the module
-    """
-    return natlinkmain.loadedFiles[module][0]
-
-def getUserDirectory():
-    """return the natlink/natpython user directory,
-
-    normally the user (unimacro) grammars are located here.
-    
-    Special trick: get this directory if userDirectory not valid
-
-    """
-    ud = status.getUserDirectory()
-    if ud:
-        return ud
-    return getOriginalUnimacroDirectory(fromGetUserDirectory=1)
-
-def getOriginalUnimacroDirectory(fromGetUserDirectory=None):
-    """for use of finding sample_ini directories for example,
-    
-    if userDirectory different from unimacro directory, find the one in relation to core
-    prevent recursive calling with fromGetUserDirectory variable...
-    """
-     #pylint:disable=W0603
-    return status.getUnimacroDirectory()
-
-def getUnimacroDirectory():
-    """just return from status
-    """
-    return status.getUnimacroDirectory()
-
-def getUnimacroUserDirectory():
-    """return the unimacro user (ini)files directory,
-    the ini files and possibly other things are located here, by language
-
-    """
-    return status.getUnimacroUserDirectory()
+    raise NotImplementedError('getLanguage in unimacroutils not available any more, use natlinkstatus functions')
 
 # utility functions----------------------------------------
 ## matchWindow from natlinkutils:
@@ -239,7 +135,6 @@ def matchModule(modName, wantedTitle = None, modInfo=None, titleExact=0, caseExa
         return modName
    
     winTitle = modInfo[1]
-    winTitle = utilsqh.convertToUnicode(winTitle)
     if isinstance(wantedTitle, str):    
         if not caseExact:
             wantedTitle = wantedTitle.lower()
@@ -271,11 +166,8 @@ def matchTitle(wantedTitle, modInfo=None, titleExact=0, caseExact=0):
         modInfo = natlink.getCurrentModule()
     if not (modInfo[0] and len(modInfo)) == 3:
         return None
-    wantedTitle = utilsqh.convertToUnicode(wantedTitle)
     winTitle = modInfo[1]
-    winTitle = utilsqh.convertToUnicode(winTitle)
     progName = getProgName(modInfo)
-    progName = utilsqh.convertToUnicode(progName)
     
     if isinstance(wantedTitle, str):    
         if not caseExact:
@@ -308,7 +200,7 @@ def getProgName(modInfo=None):
     """
     if not modInfo:
         modInfo = natlink.getCurrentModule()
-    return utilsqh.convertToUnicode(getBaseNameLower(modInfo[0]))
+    return modInfo[0]
 
 ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 
@@ -327,6 +219,7 @@ def getProgInfo(modInfo=None):
     try:
         modInfo = modInfo or natlink.getCurrentModule()
     except:
+        print(f'natlink.getCurrentModule failed: {sys.exc_info()[0]}:\n\t"{sys.exc_info()[1]}"')
         print("===get modInfo via autohotkeyactions.getModInfo")
         print("===todo  in autohotkeyactions.getModInfo")
         # modInfo = autohotkeyactions.getModInfo()
@@ -398,8 +291,6 @@ def matchWindow(criteria, modInfo=None, progInfo=None):
         return None
 
     _progpath, prog, title, topchild, _classname, _hndle = progInfo or getProgInfo(modInfo)
-    prog = utilsqh.convertToUnicode(prog)
-    title = utilsqh.convertToUnicode(title)
     if 'empty' in criteria and prog == '':
         return 1
     if 'top' in criteria and topchild != 'top':
@@ -1869,6 +1760,20 @@ def checkLists(one, two):
             onlytwo.append(t)
         return onlyone, onlytwo
 
+def cleanString(s):
+    """converts a string with leading and trailing and
+    intermittent whitespace into a string that is stripped
+    and has only single spaces between words, newlines are removed.
+
+>>> cleanString('foo  bar')
+'foo bar'
+>>> cleanString('\\n foo \\n\\n  bar ')
+'foo bar'
+    """
+    return ' '.join([x.strip() for x in s.split()])
+
+
+
 def cleanParagraphs(t):
     """make long paragraphs from selection, cleaning newlines and white space
 
@@ -1881,7 +1786,7 @@ def cleanParagraphs(t):
     hadEmptyLine = 0
     for p in T:
         if p.strip():
-            OUT.append(utilsqh.cleanString(p))
+            OUT.append(cleanString(p))  
             hadEmptyLine = 0
         else:
             if not hadEmptyLine:
@@ -1937,9 +1842,16 @@ def add2logfile(word, filename):
     except:
         pass
     
+def _test():
+    #pylint:disable=C0415
+    import doctest
+    return  doctest.testmod()
+
 if __name__ == "__main__":
+    _test()
+    
+    natlink.natConnect()
     _progInfo = getProgInfo()
     print("progInfo: %s"% repr(_progInfo))
-
-    Name = getModuleFilename(os)
-    print('filename of Module: {Name}')
+    natlink.natDisconnect()
+    

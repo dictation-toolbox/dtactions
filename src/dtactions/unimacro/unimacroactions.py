@@ -3,6 +3,7 @@
 #  June 2003/August 2021
 #
 #pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613
+#pylint:disable=E1101
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
@@ -35,13 +36,11 @@ from dtactions import monitorfunctions
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
 from dtactions.unimacro import unimacroutils
+from dtactions.unimacro import inivars
 
-from natlinkcore import inivars
-from natlinkcore import natlinkutils
-from natlinkcore import natlink
-from natlinkcore import natlinkcorefunctions # extended environment variables....
-from natlinkcore import natlinkstatus
-from natlinkcore import utilsqh
+import natlink
+from natlink import natlinkutils
+from natlink.config import expand_path
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
@@ -568,8 +567,6 @@ def getSectionList(progInfo=None):
     if debug > 5:
         D('search for prog: %s and title: %s' % (prog, title))
         D('type prog: %s, type title: %s'% (type(prog), type(title)))
-    prog = utilsqh.convertToUnicode(prog)
-    title = utilsqh.convertToUnicode(title)
     L = ini.getSectionsWithPrefix(prog, title)
     L2 = ini.getSectionsWithPrefix(prog, _topchild)  # catch program top or program child
     for item in L2:
@@ -687,7 +684,7 @@ def getFromIni(keyword, default='',
 setting = getFromIni
 
 def get_external_module(prog):
-    """try to from natlinkcore import actions_prog and put in external_actions_modules
+    """try to from natlink import actions_prog and put in external_actions_modules
     
     if module not there, put None in this external_actions_modules dict
     """
@@ -1172,7 +1169,7 @@ def do_SELECTWORD(count=1, direction=None, **kw):
         # try if at end of word:
         doKeystroke("{extright}{shift+extleft}{ctrl+c}{extright}{extleft}")
         t = unimacroutils.getClipboard()
-        if t in utilsqh.letters:
+        if isinstance(t, str):
             direction = 'right'
             print('make direction right')
         else:
@@ -1187,7 +1184,10 @@ def do_SELECTWORD(count=1, direction=None, **kw):
     doAction("<<copy>>")
     unimacroutils.visibleWait()
     t = unimacroutils.getClipboard()
-    if len(t) == 1 and t in utilsqh.letters:
+    if not isinstance(t, str):
+        ## not a str clipboard, TODO QH
+        return ''
+    if len(t) == 1:
         pass
     elif direction == 'left':
         while t and t.startswith(' '):
@@ -1341,23 +1341,23 @@ def do_PRINT(t, **kw):
     """
     print(t)
 
-def do_PRINTALLENVVARIABLES(**kw):
-    """print all environment variables to the messages window
-    """
-    print('-'*40)
-    print('These can be used for "expansion", as eg %NATLINKDIRECTORY% in the grammar _folders and other places:')
-    natlinkcorefunctions.printAllEnvVariables()
-    print('-'*40)
-
-def do_PRINTNATLINKENVVARIABLES(**kw):
-    """print all environment variables to the messages window
-    """
-    natlinkEnvVariables = natlinkstatus.AddNatlinkEnvironmentVariables()
-    print('-'*40)
-    print('These can be used for "expansion", as eg %NATLINKDIRECTORY% in the grammar _folders and other places:')
-    for k in sorted(natlinkEnvVariables.keys()):
-        print("%s\t%s"% (k, natlinkEnvVariables[k]))
-    print('-'*40)
+# def do_PRINTALLENVVARIABLES(**kw):
+#     """print all environment variables to the messages window
+#     """
+#     print('-'*40)
+#     print('These can be used for "expansion", as eg %NATLINKDIRECTORY% in the grammar _folders and other places:')
+#     natlinkcorefunctions.printAllEnvVariables()
+#     print('-'*40)
+# 
+# def do_PRINTNATLINKENVVARIABLES(**kw):
+#     """print all environment variables to the messages window
+#     """
+#     natlinkEnvVariables = natlinkstatus.AddNatlinkEnvironmentVariables()
+#     print('-'*40)
+#     print('These can be used for "expansion", as eg %NATLINKDIRECTORY% in the grammar _folders and other places:')
+#     for k in sorted(natlinkEnvVariables.keys()):
+#         print("%s\t%s"% (k, natlinkEnvVariables[k]))
+#     print('-'*40)
     
 def do_T(**kw):
     """return true only"""
@@ -2036,13 +2036,13 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
             if os.path.isfile(appPath):
                 appPath = os.path.normpath(appPath)
             else:
-                appPath2 = natlinkcorefunctions.expandEnvVariableAtStart(appPath)
+                appPath2 = expand_path(appPath)
                 if os.path.isfile(appPath2):
                     appPath = os.path.normpath(appPath2)
                 elif appPath.lower().startswith("%programfiles%"):
                     ##TODOQH
                     _appPathVariant = appPath.lower().replace("%programfiles", "%PROGRAMW6432%")
-                    appPath2 = natlinkcorefunctions.expandEnvVariableAtStart(appPath)
+                    appPath2 = expand_path(appPath)
                     if os.path.isfile(appPath2):
                         appPath = os.path.normpath(appPath2)
                     elif os.path.isdir(appPath2):
