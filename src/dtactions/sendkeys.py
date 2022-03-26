@@ -2,6 +2,7 @@
 # (c) Copyright 2007, 2008 by Christo Butcher
 # (c) Copyright 2002, by Quintijn Hoogenboom
 # Licensed under the LGPL.
+#pylint:disable=R0912
 """Sending keystrokes to the foreground window.
 
 Usage:
@@ -79,6 +80,9 @@ Tested at bottom of this file interactively...
                 else:
                     raise ValueError('sendkeys, found no key to press in {part}, total: {keys}')
                 key = synonym_keys.get(key, key)
+                # being nice for ext... keys, (extend, extleft etc...)
+                if key and len(key) > 3 and key.startswith('ext'):
+                    key = key[3:]
 
                 if attr.find(' ') == 0:
                     attr = attr.replace(' ', ':', 1)
@@ -116,6 +120,6 @@ if __name__ == "__main__":
     # sendkeys("{ctrl+end!}{up/50}{end}")
     # sendkeys("x y z ")
     sendkeys("test, test, met komma.")
-    sendkeys("{ctrl+end}test, test,{ctrl+home}{ctrl+end} met komma.")
+    sendkeys("{ctrl+extend}test, test,{ctrl+home}{ctrl+end} met komma.")
     ##
     ##
