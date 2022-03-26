@@ -824,21 +824,21 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
             for k in section:
                 section[k] = listToString(section[k])
 
-    def writeIfChanged(self, file=None):
+    def writeIfChanged(self, File=None):
         if self._changed:
-            self.write(file=file)
+            self.write(File=File)
             self._changed = 0
             
-    def write(self, file=None):
-        if not file:
-            file = self._file
+    def write(self, File=None):
+        if not File:
+            File = self._file
             ext = self._ext
         else:
-            ext = self.getExtension(file)
+            ext = self.getExtension(File)
         if ext == 'Ini':
-            self._writeIni(file)
+            self._writeIni(File)
         else:
-            raise IniError('invalid extension for writing to file: %s'% file)
+            raise IniError('invalid extension for writing to File: %s'% File)
 
     def _writeIni(self, File):
         """writes to file of type ini"""
@@ -1621,6 +1621,8 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
         >>> ini.getKeysOrderedFromSections(L)
         {'pref eggs': ['key', 'k'], 'pref faa': [], 'pref foo': [], 'pref f': ['l'], 'pref': ['m']}
         >>> L = ini.getSectionsWithPrefix('pref', 'this foo and another thing') # with selection
+        >>> L
+        ['pref foo', 'pref f', 'pref']
         >>> ini.get(L)
         ['key', 'l', 'm']
         >>> ini.getKeysOrderedFromSections(L)
@@ -1654,11 +1656,8 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
 
 
         """
-        if '_sectionPostfixesWP' not in self.__dict__:
-            self._sectionPostfixesWP = {}  # create new dictionary for remembering
         if prefix in self._sectionPostfixesWP:
             return self._sectionPostfixesWP[prefix]
-
         # call with new prefix, construct new entry:        
         l = []
         for s in self.get():
@@ -1765,8 +1764,6 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
         # when here, a numbers dict is found
         items = D
         return formatReverseNumbersDict(dict(items))
-        
-            
 
     def formatKeysOrderedFromSections(self, sectionList, lineLen=60, sort=1, giveLength=None):
         """formats in a long string all possible keys from a list of sections 
@@ -1965,51 +1962,49 @@ def formatReverseNumbersDict(D):
     value: a list of numbers, to be ordered rising order
     
     (reverse with reverseDictWithDuplicates)
-    
+>>> D = dict([(1, ['one']), (2, ['two']), (3, ['three']), (4, ['four']), (5, ['five']), (6, ['six']), (7, ['seven']), (8, ['eight']), (9, ['nine'])])
+>>> formatReverseNumbersDict(D)
+'one ... nine'
+
     one ... twenty or one, two, twice, three ... ten
     """
-    #reverseD = {}
-    #for k,v in D.items():
-    #    reverseD.setdefault(v, []).append(k)
-        
-    
-    items = D.items()
-    items.sort()
+    keys = list(D.keys())
+    keys.sort()
     # print 'items: %s'% items
-    it = utilsqh.peek_ahead(items)
+    it = utilsqh.peek_ahead(keys)
     kPrev = None
     L = []
     increment = 1
-    for k, v in it:
+    for k in it:
         preview = it.preview
         if preview != it.sentinel:
-            knext, vnext = preview
-        if preview == it.sentinel or len(vnext) > 1 or knext != k + increment:
+            knext = preview
+        if preview == it.sentinel or len(D[knext]) > 1 or knext != k + increment:
             # close current item
             if kPrev is None:
                 if L:
                     L.append(', ')
-                L.append(', '.join(v))
+                L.append(', '.join(D[k]))
             elif k - kPrev != increment:
-                L.append(' ... %s'% ', '.join(v))
+                L.append(' ... %s'% ', '.join(D[k]))
                 increment = k - kPrev
             else:
                 # next item only:
-                L.append(', %s'% ', '.join(v))
+                L.append(', %s'% ', '.join(D[k]))
             kPrev = None
         else:
             # there is a next, consisting of one text item
             if kPrev is not None:
                 continue
-            if len(v) > 1:
+            if len(D[k]) > 1:
                 if L:
                     L.append(', ')
-                L.append(', '.join(v))
+                L.append(', '.join(D[k]))
             else:
                 # one item of longer possibly ... separated sequence
                 if L:
                     L.append(', ')
-                L.append('%s'% v[0])
+                L.append('%s'% D[k][0])
                 kPrev = k
     # for line in L:
     #     print 'line: %s (%s_)'% (line, type(line))
@@ -2034,10 +2029,14 @@ def formatReverseNumbersDict(D):
 
 
 def sortLanguageKeys(keys):
-    """sort single keys first, then language keys, with neutral on top"""
-
+    """sort single keys first, then language keys, with neutral on top
+    
+>>> sortLanguageKeys(['triple', 'en-triple', 'fr-triple', 'single', 's', 'double', 'en-double'])
+['s', 'single', 'double', 'en-double', 'triple', 'en-triple', 'fr-triple']
+    """
+    _i = 1
     langKeys = [k for k in keys if len(k) > 2 and k[2] == '-']
-    trunkKeys = ([k[3:] for k in langKeys])
+    trunkKeys = {k[3:] for k in langKeys}
     trunkKeys = list(trunkKeys)
     nonLangKeys = [k for k in keys if k not in langKeys]
     singleKeys = [k for k in nonLangKeys if k not in trunkKeys]

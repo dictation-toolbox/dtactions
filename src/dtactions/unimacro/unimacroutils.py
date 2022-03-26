@@ -70,13 +70,13 @@ def getLanguage():
     """get current language, 3 characters
 
     """
-    raise NotImplementedError('getLanguage in unimacroutils not available any more, use natlinkstatus functions')
+    return status.get_language()
 
 def getUserLanguage():
     """get current language, long name
 
     """
-    raise NotImplementedError('getLanguage in unimacroutils not available any more, use natlinkstatus functions')
+    raise NotImplementedError('getUserLanguage (the long language name) is no longer available, use natlinkstatus function "get_language"')
 
 # utility functions----------------------------------------
 ## matchWindow from natlinkutils:
