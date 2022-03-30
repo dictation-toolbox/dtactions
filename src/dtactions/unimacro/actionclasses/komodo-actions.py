@@ -10,7 +10,7 @@ from dtactions.unimacro.actionclasses.actionbases import AllActions
 # from dtactions.unimacro.unimacroactions import doAction as action
 from dtactions.unimacro.unimacroactions import doKeystroke as keystroke
 from dtactions.sendkeys import sendkeys
-import natlinkclipboard
+from dtactions import natlinkclipboard
 
 
 # class KomodoActions(MessageActions):

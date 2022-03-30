@@ -8,7 +8,7 @@ import time
 from dtactions.unimacro.actionclasses.actionbases import AllActions
 from dtactions.unimacro.unimacroactions import doAction as action
 from dtactions.unimacro.unimacroactions import doAction as action
-import natlinkclipboard
+from dtactions import natlinkclipboard
 
 class  CodeActions(AllActions):
     def __init__(self, progInfo):

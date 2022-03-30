@@ -9,8 +9,7 @@ import re
 import traceback
 import collections
 import time
-import win32com
-import win32gui
+from pathlib import Path
 
 # skip the string.maketrans business, ook de fixwordquotes
 # _allchars = string.maketrans('', '')
@@ -1252,6 +1251,71 @@ def makeReadable(t):
     if len(t) > 100:
         return t[:50] + ' ... ' + t[-50:]
     return t
+
+## functions for generating alternative paths in virtual drives
+## uses reAltenativePaths, defined in the top of this module
+## put in utilsqh.py! used in sitegen AND in _folders.py grammar of Unimacro:
+# for alternatives in virtual drive definitions:
+reAltenativePaths = re.compile(r"(\([^|()]+?(\|[^|()]+?)+\))")
+
+def generate_alternatives(s):
+    """generates altenatives if (xxx|yyy) is found, otherwise just yields s
+    Helper for cross_loop_alternatives
+    """
+    m = reAltenativePaths.match(s)
+    if m:
+        alternatives = s[1:-1].split("|")
+        for item in alternatives:
+            yield item
+    else:
+        yield s
+        
+def cross_loop_alternatives(*sequences):
+    """helper function for loop_through_alternative_paths
+    """
+    if sequences:
+        for x in generate_alternatives(sequences[0]):
+            for y in cross_loop_alternatives(*sequences[1:]):
+                yield (x,) + y
+    else:
+        yield ()
+
+def loop_through_alternative_paths(pathdefinition):
+    """can hold alternatives (a|b)
+    
+>>> list(loop_through_alternative_paths("(C|D):/xxxx/yyyy"))
+['C:/xxxx/yyyy', 'D:/xxxx/yyyy']
+>>> list(loop_through_alternative_paths("(C:|D:|E:)/Do(kum|cum)ent(s|en)"))
+['C:/Dokuments', 'C:/Dokumenten', 'C:/Documents', 'C:/Documenten', 'D:/Dokuments', 'D:/Dokumenten', 'D:/Documents', 'D:/Documenten', 'E:/Dokuments', 'E:/Dokumenten', 'E:/Documents', 'E:/Documenten']
+
+    So "(C|D):/natlink" first yields "C:/natlink" and then "D:/natlink".
+    More alternatives in one item are possible, see second example.
+    """
+    m = reAltenativePaths.search(pathdefinition)
+    if m:
+        result = reAltenativePaths.split(pathdefinition)
+        result = [x for x in result if x and not x.startswith("|")]
+        for pathdef in cross_loop_alternatives(*result):
+            yield ''.join(pathdef)
+    else:
+        # no alternatives, simply yield the pathdefinition:
+        yield pathdefinition
+
+def getValidPath(variablePathDefinition):
+    r"""check the different alternatives of the definition
+    
+# >>> homefolder = getValidPath(r'(A|B|D|C|D):\Users\(Dell|Gebruiker)\.Natlink')
+# >>> homefolder
+# WindowsPath('C:/Users/Gebruiker/.Natlink')
+# >>> str(homefolder)
+# 'C:\\Users\\Gebruiker\\.Natlink'
+
+    return the first valid path, None if not found
+    """
+    for p in loop_through_alternative_paths(variablePathDefinition):
+        if os.path.exists(p):
+            return Path(p)
+    return None
 
 def _test():
     #pylint:disable=C0415
