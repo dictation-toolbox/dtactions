@@ -15,7 +15,7 @@ import copy
 import time
 import win32clipboard
 import win32con
-
+from dtactions.sendkeys import sendkeys
 #===========================================================================
 
 class Clipboard:
@@ -24,6 +24,7 @@ class Clipboard:
 
     #-----------------------------------------------------------------------
     format_text      = win32con.CF_TEXT
+    
     format_oemtext   = win32con.CF_OEMTEXT
     format_unicode   = win32con.CF_UNICODETEXT
     format_locale    = win32con.CF_LOCALE
@@ -156,7 +157,7 @@ class Clipboard:
     Get_hdrop = get_system_folderinfo
 
     #-----------------------------------------------------------------------
-    def __init__(self, contents=None, text=None, from_system=False, save_clear=False, debug=None):
+    def __init__(self, contents=None, text=None, from_system=False, save_clear=False, debug=None, waiting_interval=None, waiting_iterations=None):
         """initialisation of clipboard instance.
         
         save_clear can be set to True, current clipboard contents is saved and cleared
@@ -171,6 +172,10 @@ class Clipboard:
         self._contents = {}
         self._backup = None
         self.debug = debug or 0
+        if waiting_interval is not None:
+            self.waiting_interval = waiting_interval or 0.025
+        if waiting_iterations is not None:
+            self.waiting_iterations = waiting_iterations or 10
         if not OpenClipboardCautious():
             if self.debug: print('Warning Clipboard: at initialisation could not open the clipboard')
             return
@@ -234,7 +239,7 @@ class Clipboard:
         arguments = ", ".join(str(a) for a in arguments)
         return f'{self.__class__.__name__}({arguments})'
 
-    def copy_from_system(self, formats=None, save_clear=False, waiting_interval=None, waiting_iterations=None):
+    def copy_from_system(self, formats=None, save_clear=False):
         """Copy the Windows system clipboard contents into this instance.
 
             Arguments:
@@ -247,16 +252,10 @@ class Clipboard:
                Will be restored from self._backup when the instance is destroyed.
                If false contents are retrieved in self._contents
         """
-        if waiting_interval or waiting_iterations:
-            waiting_interval = waiting_interval or 0.025
-            waiting_iterations = waiting_iterations or 10
-            result = self._wait_for_clipboard_change(waiting_interval, waiting_iterations)
-            if result is None:
-                print("no clipboard change")
-                return
-            if result:
-                if result > waiting_iterations*0.7 or self.debug:
-                    print(f'did have to wait {result} steps of {waiting_iterations} with interval of {waiting_interval:.3f} seconds.')
+        result = self._wait_for_clipboard_change()
+        if result is None:
+            print("no clipboard change")
+            return
         if not OpenClipboardCautious():
             if self.debug: print('Clipboard copy_from_system, could not open clipboard')
             return
@@ -353,6 +352,16 @@ class Clipboard:
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             win32clipboard.CloseClipboard()
 
+    def Copy_and_get_clipboard(self, keyscopy=None):
+        """send the keystrokes for copy, and collect the clipboard
+        """
+        self.save_sequence_number()
+        keyscopy = keyscopy or '{ctrl+c}'
+        sendkeys(keyscopy)
+        content = self.get_text()
+        return content
+        
+    
     def Set_text_and_paste(self, t):
         """a one shot function to past text back into the application
         """
@@ -418,22 +427,21 @@ class Clipboard:
     def set_format(self, format, content):
         self._contents[format] = content
 
-    def has_text(self, waiting_interval=None, waiting_iterations=None):
+    def has_text(self):
         """ Determine whether this instance has text content. """
-        
         if self._contents:
             return (self.format_unicode in self._contents
                     or self.format_text in self._contents)
         return False
 
-    def get_text(self, waiting_interval=None, waiting_iterations=None, replaceNullChar=True):
+    def get_text(self, replaceNullChar=True):
         """get the text (mostly unicode) contents of the clipboard
         
         This method first does a copy from system.
         
         If no text content available, return ""
         """
-        contents = self.copy_from_system(formats = [self.format_unicode, self.format_text], waiting_interval=waiting_interval, waiting_iterations=waiting_iterations)
+        contents = self.copy_from_system(formats = [self.format_unicode, self.format_text])
         text = ""
         if contents:
             if self.format_unicode in contents:
@@ -460,7 +468,7 @@ class Clipboard:
                        lambda self, d: self.set_text(d)
                       )
 
-    def get_folderinfo(self, waiting_interval=None, waiting_iterations=None):
+    def get_folderinfo(self):
         """Retrieve this instance's folderinfo (also hdrop)
         
         do a copy_from_system automatically
@@ -469,7 +477,7 @@ class Clipboard:
 
         If no valid info, return None
         """
-        self.copy_from_system(waiting_interval=waiting_interval, waiting_iterations=waiting_iterations)
+        self.copy_from_system()
         if self.format_hdrop in self._contents:
             result = self._contents[self.format_hdrop]
             if isinstance(result, tuple):
@@ -482,7 +490,7 @@ class Clipboard:
         """
         self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
         
-    def _wait_for_clipboard_change(self, waiting_time, waiting_iterations):
+    def _wait_for_clipboard_change(self):
         """wait a few steps until the clipboard is not changed.
         
         The previous Clipboard Sequence Number should be in
@@ -495,35 +503,34 @@ class Clipboard:
         return True if changed
         """
         try:
-            w_time = float(waiting_time)
+            if self.waiting_iterations <= 0:
+                print('Clipboard, _wait_for_clipboard_change, no valid value waiting_iterations {self.waiting_iterations}')
+                return
         except ValueError:
-            w_time = 0.001
-        if w_time > 0.55:
-            print('Clipboard, _wait_for_clipboard_change, waiting time too long, set to 0.1'% w_time)
-            w_time = 0.001
+            print('Clipboard, _wait_for_clipboard_change, no valid value for waiting_iterations {self.waiting_iterations}')
+            return
         try:
-            n_wait = int(waiting_iterations)
+            if self.waiting_interval <= 0:
+                print('Clipboard, _wait_for_clipboard_change, no valid value waiting_interval {self.waiting_interval}')
+                return
         except ValueError:
-            n_wait = 4
-        if n_wait <= 0:
-            n_wait = 4
-            
-        for i in range(n_wait):
+            print('Clipboard, _wait_for_clipboard_change, no valid value for waiting_interval {self.waiting_interval}')
+            return
+
+        for i in range(self.waiting_iterations):
             new_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             if new_sequence_number > self.current_sequence_number:
                 self.current_sequence_number = new_sequence_number
                 if i:
-                    if self.debug: print('---Clipboard changed after %s steps of %.4fs (%.4f)'% (i, w_time, i*w_time))
+                    if self.debug: print(f'---Clipboard changed after {i} steps of {self.waiting_interval:4f}')
                 else:
                     if self.debug > 1: print('_wait_for_clipboard_change, clipboard changed immediately')
                 # time.sleep(w_time)
                 return i
-            time.sleep(w_time)
+            time.sleep(self.waiting_interval)
         # no result:
-        time_waited = n_wait*w_time
+        time_waited = self.waiting_interval*self.waiting_iterations
         if self.debug: print('Clipboard, no change in clipboard in %.4f seconds'% time_waited)
-
-
     
     get_hdrop = get_folderinfo
 

@@ -8,7 +8,7 @@ Quintijn Hoogenboom, 2021
 import unittest
 import time
 from pathlib import Path
-from profilehooks import profile
+# from profilehooks import profile
 from dtactions import autohotkeyactions as ahk
 from dtactions.sendkeys import sendkeys
 

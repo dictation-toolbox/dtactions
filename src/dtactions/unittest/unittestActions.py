@@ -14,7 +14,7 @@ import sys
 import unittest
 from pathlib import Path
 
-from dtactions import natlinkclipboard
+from dtactions from dtactions import natlinkclipboard
 from dtactions.unimacro import actions
 # from dtactions.unimacro.actions import 
 

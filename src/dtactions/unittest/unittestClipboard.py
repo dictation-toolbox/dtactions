@@ -15,7 +15,7 @@ import unittest
 import time
 from pathlib import Path
 import win32gui
-from dtactions import natlinkclipboard
+from dtactions from dtactions import natlinkclipboard
 from dtactions import autohotkeyactions as ahk
 from dtactions.unimacro import unimacroutils
 from dtactions.sendkeys import sendkeys
@@ -111,7 +111,7 @@ class UnittestClipboard(unittest.TestCase):
     #     # natlink.natDisconnect()
     #     self.isConnected = False
 
-    def getTextViaClipboard(self, waitTime):
+    def getTextViaClipboard(self):
         """get text of window and selection or cursor via copy paste actions
 
         pass waitTime for testing response time.
@@ -123,14 +123,14 @@ class UnittestClipboard(unittest.TestCase):
         """
         #pylint:disable=R0201
         cb = natlinkclipboard.Clipboard(save_clear=True, debug=1)
-        waitTime = 0.001
+        # waitTime = 0.001 defaults now...
 
         # unimacroutils.SetForegroundWindow(self.thisHndle)
         # unimacroutils.SetForegroundWindow(self.testHndle)
 
         ## first try if there is a selection:
         sendkeys("{ctrl+c}")
-        text = cb.get_text(waitTime, waiting_iterations=3)
+        text = cb.get_text()
         return text
 
     def getThisDirTextViaClipboard(self, waitTime):
@@ -152,7 +152,7 @@ class UnittestClipboard(unittest.TestCase):
 
         ## first try if there is a selection:
         sendkeys("{ctrl+c}")
-        selection = cb.get_text(waitTime, waiting_iterations=3)
+        selection = cb.get_text()
         if selection:
             print('selection: %s'% selection)
             sendkeys("{left}")
@@ -208,7 +208,7 @@ class UnittestClipboard(unittest.TestCase):
         else:
             # presumably at start of buffer
             sendkeys("{shift+ctrl+end}{ctrl+c}")
-            after = cb.get_text(waitTime, waiting_iterations=3)
+            after = cb.get_text()
             if after:
                 # undo selection
                 sendkeys("{left}")
@@ -403,7 +403,7 @@ class UnittestClipboard(unittest.TestCase):
             ## start with empty window
             sendkeys("{ctrl+a}{del}")
 
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime=waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expText = ""
             expPosTuple = (0,0,0)  # startSel, endSel, cursorPos
             self.assertTrue(expText == text, "text not as expected")
@@ -417,7 +417,7 @@ class UnittestClipboard(unittest.TestCase):
             # unimacroutils.SetForegroundWindow(self.testHndle)
 
 
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expText = "Hello world"
             expPosTuple = (11, 11, 12)  # startSel, endSel, cursorPos
             self.assertTupleEqual(text, expText, "text not as expected")
@@ -430,14 +430,14 @@ class UnittestClipboard(unittest.TestCase):
             # unimacroutils.SetForegroundWindow(self.testHndle)
 
 
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expText = "Hello world"
             expPosTuple = (6, 11, 11)  # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
             ## and again:
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
@@ -447,13 +447,13 @@ class UnittestClipboard(unittest.TestCase):
             # now replace the word world, and make a second line
             sendkeys('SCLIP(WORLD{enter}How are you going?{enter}In this Corona world?)')
             expText = "Hello WORLD\nHow are you going?\nIn this Corona world?"
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expPosTuple = (52, 52, 52)  # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
             ## and again:
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
@@ -462,13 +462,13 @@ class UnittestClipboard(unittest.TestCase):
             expText = "Hello WORLD\nHow are you going?\nIn this Corona world?"
             # if self.testHndle == self.thundHndle:
             #     expText += "\n"
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expPosTuple = (0, len(expText), len(expText))  # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
             # and again:
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expPosTuple = (0, len(expText), len(expText))  # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
@@ -479,13 +479,13 @@ class UnittestClipboard(unittest.TestCase):
             # not here!!
             # if self.testHndle == self.thundHndle:
             #     expText += "\n"
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expPosTuple = (16, 23, 23) # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
 
             ## and again:
-            text, startSel, endSel, cursorPos = self.getTextViaClipboard(waitTime)
+            text, startSel, endSel, cursorPos = self.getTextViaClipboard()
             expPosTuple = (16, 23, 23) # startSel, endSel, cursorPos
             self.assertEqual(expText, text, "text not as expected")
             self.assertEqual(expPosTuple, (startSel, endSel, cursorPos), "positions not as expected")
