@@ -15,7 +15,7 @@ import unittest
 import time
 from pathlib import Path
 import win32gui
-from dtactions from dtactions import natlinkclipboard
+from dtactions import natlinkclipboard
 from dtactions import autohotkeyactions as ahk
 from dtactions.unimacro import unimacroutils
 from dtactions.sendkeys import sendkeys
@@ -80,11 +80,13 @@ class UnittestClipboard(unittest.TestCase):
             # should not be necessary:
             # curHndle = ahk.SetForegroundWindow(hndle)
 
-            if hndle in self.killActions:
+            # if hndle in self.killActions:
                 # unimacroutils.SetForegroundWindow(self.thisHndle)
                 # place to break in debug mode
                 # unimacroutils.SetForegroundWindow(curHndle)
-                ahk.killWindow(self.killActions[hndle])
+                # ahk.killWindow(self.killActions[hndle])  # restore later!
+            ahk.killWindow(hndle)
+
         _result = ahk.SetForegroundWindow(self.thisHndle)
         # self.disconnect()  # disabled, natConnect
         notClosedHndles = []
@@ -171,7 +173,7 @@ class UnittestClipboard(unittest.TestCase):
             sendkeys("{right}")
             cb.clear_clipboard()
         else:
-            print("at start of document")
+           print("at start of document")
 
         # unimacroutils.SetForegroundWindow(self.thisHndle)
         # unimacroutils.SetForegroundWindow(self.testHndle)
@@ -291,34 +293,31 @@ class UnittestClipboard(unittest.TestCase):
         self.tempFileHndles.append(hndle)
         self.text0Hndle = hndle
 
-        textFile1 = "testsmall.txt"
-        textPath1 = testFilesDir/textFile1
-        self.text1Txt = "small abacadabra\n"*2
-        open(textPath1, 'w').write(self.text1Txt)
-        result = ahk.autohotkeyBringup(app=None, filepath=textPath1)
-        hndle = result.hndle
-        self.tempFileHndles.append(hndle)
-        unimacroutils.SetForegroundWindow(self.thisHndle)
-        print('testsmall (text1Hndle): %s'% hndle)
-        self.text1Hndle = hndle
-        self.tempFileHndles.append(hndle)
-
-        textFile2 = "testlarge.txt"
-        textPath2 = testFilesDir/textFile2
-        self.text2Txt = "large abacadabra\n"*1000
-        open(textPath2, 'w').write(self.text2Txt)
-        result = ahk.autohotkeyBringup(app=None, filepath=textPath2)
-        hndle = result.hndle
-        self.tempFileHndles.append(hndle)
-        unimacroutils.SetForegroundWindow(self.thisHndle)
-        print('testlarge (text2Hndle): %s'% hndle)
-        self.text2Hndle = hndle
+        # textFile1 = "testsmall.txt"
+        # textPath1 = testFilesDir/textFile1
+        # self.text1Txt = "small abacadabra\n"*2
+        # open(textPath1, 'w').write(self.text1Txt)
+        # result = ahk.autohotkeyBringup(app=None, filepath=textPath1)
+        # hndle = result.hndle
+        # self.tempFileHndles.append(hndle)
+        # unimacroutils.SetForegroundWindow(self.thisHndle)
+        # print('testsmall (text1Hndle): %s'% hndle)
+        # self.text1Hndle = hndle
+        # self.tempFileHndles.append(hndle)
+        # 
+        # textFile2 = "testlarge.txt"
+        # textPath2 = testFilesDir/textFile2
+        # self.text2Txt = "large abacadabra\n"*1000
+        # open(textPath2, 'w').write(self.text2Txt)
+        # result = ahk.autohotkeyBringup(app=None, filepath=textPath2)
+        # hndle = result.hndle
+        # self.tempFileHndles.append(hndle)
+        # unimacroutils.SetForegroundWindow(self.thisHndle)
+        # print('testlarge (text2Hndle): %s'% hndle)
+        # self.text2Hndle = hndle
         self.killActions[self.text0Hndle] = f'KW({self.text0Hndle})'
-        self.killActions[self.text1Hndle] = f'KW({self.text1Hndle})'
-        self.killActions[self.text2Hndle] = f'KW({self.text2Hndle})'
-
-
-        self.tempFileHndles.append(hndle)
+        # self.killActions[self.text1Hndle] = f'KW({self.text1Hndle})'
+        # self.killActions[self.text2Hndle] = f'KW({self.text2Hndle})'
 
     def setupThunderbirdNewWindow(self):
         """start an empty mail message in Thunderbird

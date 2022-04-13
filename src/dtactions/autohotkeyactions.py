@@ -110,7 +110,7 @@ def getProgInfo():
     toporchild 'top' or 'child', or '' if no valid window
           
     """
-    ErrorFile = clearErrorMessagesFile()
+    _ErrorFile = clearErrorMessagesFile()
     ProgInfoFile = clearProgInfoFile()
     
     script = getProgInfoScript(info_file=ProgInfoFile)
@@ -497,7 +497,7 @@ def SetForegroundWindow(hndle):
 
     script = '''\
         WinActivate, ahk_id ##hndle##
-        WinWait, ahk_pid ##hndle##,,1
+        WinWaitActive, ahk_pid ##hndle##,,1
         if ErrorLevel {
             FileAppend, Could not get window with hndle ##hndle## in the foreground, ##ErrorFile##
             return
@@ -648,8 +648,8 @@ def killWindow(hndle=None, key_close=None, key_close_dialog=None, silent=True):
     tested with unittestAutohotkeyactions.py...
     """
     # pylint: disable=R0911, R0912
-    ErrorFile = clearErrorMessagesFile()
-    ProgInfoFile = clearProgInfoFile()
+    _ErrorFile = clearErrorMessagesFile()
+    _ProgInfoFile = clearProgInfoFile()
    
     if hndle:
         result = SetForegroundWindow(hndle)

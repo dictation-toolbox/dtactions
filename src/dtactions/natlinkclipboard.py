@@ -157,13 +157,12 @@ class Clipboard:
     Get_hdrop = get_system_folderinfo
 
     #-----------------------------------------------------------------------
-    def __init__(self, contents=None, text=None, from_system=False, save_clear=False, debug=None, waiting_interval=None, waiting_iterations=None):
+    def __init__(self, contents=None, text=None, save_clear=False, debug=None, waiting_interval=None, waiting_iterations=None):
         """initialisation of clipboard instance.
         
         save_clear can be set to True, current clipboard contents is saved and cleared
                saved contents are kept in self._backup and will be retrieved
                when instance is destroyed.
-        from_system: obsolete option
         contents: can be set as initial contents of the clipboard (not tested, 2019)
         text: can be set as initial text contents of the clipboard (not tested, 2019)
         debug: default off, 1: important messages are printed, > 1 more messages are printed
@@ -172,10 +171,8 @@ class Clipboard:
         self._contents = {}
         self._backup = None
         self.debug = debug or 0
-        if waiting_interval is not None:
-            self.waiting_interval = waiting_interval or 0.025
-        if waiting_iterations is not None:
-            self.waiting_iterations = waiting_iterations or 10
+        self.waiting_interval = waiting_interval or 0.025
+        self.waiting_iterations = waiting_iterations or 10
         if not OpenClipboardCautious():
             if self.debug: print('Warning Clipboard: at initialisation could not open the clipboard')
             return
@@ -183,9 +180,7 @@ class Clipboard:
         if self.debug > 1: print('current_sequence_number: %s'% self.current_sequence_number)
 
         # If requested, retrieve current system clipboard contents.
-        if from_system:
-            self.copy_from_system(save_clear=save_clear)
-        elif save_clear:
+        if save_clear:
             self.copy_from_system(save_clear=save_clear)
 
         # Process given contents for this Clipboard instance.
@@ -252,7 +247,7 @@ class Clipboard:
                Will be restored from self._backup when the instance is destroyed.
                If false contents are retrieved in self._contents
         """
-        result = self._wait_for_clipboard_change()
+        result = self.wait_for_clipboard_change()
         if result is None:
             print("no clipboard change")
             return
@@ -490,7 +485,7 @@ class Clipboard:
         """
         self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
         
-    def _wait_for_clipboard_change(self):
+    def wait_for_clipboard_change(self):
         """wait a few steps until the clipboard is not changed.
         
         The previous Clipboard Sequence Number should be in
@@ -524,7 +519,7 @@ class Clipboard:
                 if i:
                     if self.debug: print(f'---Clipboard changed after {i} steps of {self.waiting_interval:4f}')
                 else:
-                    if self.debug > 1: print('_wait_for_clipboard_change, clipboard changed immediately')
+                    if self.debug > 1: print('wait_for_clipboard_change, clipboard changed immediately')
                 # time.sleep(w_time)
                 return i
             time.sleep(self.waiting_interval)
@@ -560,4 +555,4 @@ def OpenClipboardCautious(nToTry=4, waiting_time=0.1):
                 print(f'had to wait, and extra wait {i} OpenClipboardCautious: {wait:.4f} seconds')
             time.sleep(waiting_time)
             return True
-    
+   
