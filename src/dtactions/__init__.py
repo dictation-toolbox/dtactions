@@ -45,7 +45,7 @@ status.getDtactionsUserDirectory()
 """
 
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.4.1'     # continue on master branch
+__version__ = '1.4.2'     # work in progress, sendkeys reasonably ok, unimacro actions and clipboard not yet...
 # __version__ = '1.3.5'     # working on path details, with HOME or DICTATIONTOOLBOXUSER
 # __version__ = '1.3.3'   # setting the user directory
                         # adding getDtactionsDirectory and getDtactionsUserDirectory
