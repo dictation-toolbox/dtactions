@@ -12,9 +12,9 @@ home-page = "https://qh.antenna.nl/unimacro/"
 description-file = "README.md"
 
 requires=[ 
-		  "pywin32 >= 300",
-		  "debugpy",
-		  "wxpython == 4.0.7; python_version>='3.8'",
+	"pywin32 >= 300",
+	"debugpy",
+	"wxpython == 4.0.7; python_version>='3.8'",
 		  "wxpython == 4.0.3; python_version<'3.7'"]
 	  
 		
