@@ -14,8 +14,9 @@ description-file = "README.md"
 requires=[ 
 	"pywin32 >= 300",
 	"debugpy",
-	"wxpython == 4.0.7; python_version='3.8'"]
-# 		"wxpython; python_version>'3.8'"]   # default wxpython is installed by natlink installer.
+	"dragonfly2",
+	"wxpython == 4.0.7; python_version=='3.8'"]
+# 		"wxpython; python_version>='3.8'"]   # default wxpython is installed by natlink installer.
 	  
 		
 classifiers=[	"Development Status :: 4 - Beta",
@@ -25,7 +26,7 @@ classifiers=[	"Development Status :: 4 - Beta",
 				
 requires-python = ">=3.8"
 dist-name="dtactions"
-keywords="dragon,speech,dictation,dictation-toolobx,unimacro,natlink,dtactions"
+keywords="dragon,speech,dictation,dictation-toolbox,unimacro,natlink,dtactions"
 
 [tool.flit.scripts]
 
