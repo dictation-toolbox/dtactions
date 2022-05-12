@@ -173,7 +173,7 @@ class UnittestClipboard(unittest.TestCase):
             sendkeys("{right}")
             cb.clear_clipboard()
         else:
-           print("at start of document")
+            print("at start of document")
 
         # unimacroutils.SetForegroundWindow(self.thisHndle)
         # unimacroutils.SetForegroundWindow(self.testHndle)

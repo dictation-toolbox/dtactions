@@ -15,7 +15,7 @@ requires=[
 	"pywin32 >= 300",
 	"debugpy",
 	"wxpython == 4.0.7; python_version>='3.8'",
-		  "wxpython == 4.0.3; python_version<'3.7'"]
+		"wxpython; python_version>'3.8'"]
 	  
 		
 classifiers=[	"Development Status :: 4 - Beta",
