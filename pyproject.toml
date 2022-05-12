@@ -14,8 +14,8 @@ description-file = "README.md"
 requires=[ 
 	"pywin32 >= 300",
 	"debugpy",
-	"wxpython == 4.0.7; python_version>='3.8'",
-		"wxpython; python_version>'3.8'"]
+	"wxpython == 4.0.7; python_version='3.8'"]
+# 		"wxpython; python_version>'3.8'"]   # default wxpython is installed by natlink installer.
 	  
 		
 classifiers=[	"Development Status :: 4 - Beta",
