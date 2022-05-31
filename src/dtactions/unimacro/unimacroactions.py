@@ -75,7 +75,7 @@ if not userDirectory.is_dir():
 userInifile = userDirectory/'unimacroactions.ini'
 if not userInifile.is_file():
     shutil.copy(sampleInifile, userInifile)
-print(f'unimacroactions, inifile: {userInifile}')
+# print(f'unimacroactions, inifile: {userInifile}')
 ## set ready the debug file
 debugFile = os.path.join(userDirectory, 'actions debug.txt')
 
