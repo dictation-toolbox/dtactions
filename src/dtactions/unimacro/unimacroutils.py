@@ -207,6 +207,7 @@ ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild cl
 def getProgInfo(modInfo=None):
     """returns program info as namedtuple (progpath, prog, title, toporchild, classname, hndle)
 
+
     now length 6, including the classname, but also a named tuple!!
 
     prog always lowercase
@@ -215,15 +216,15 @@ def getProgInfo(modInfo=None):
 
     toporchild 'top' or 'child', or '' if no valid window
     """
-    #pylint:disable=W0702    
-    try:
-        modInfo = modInfo or natlink.getCurrentModule()
-    except:
-        print(f'natlink.getCurrentModule failed: {sys.exc_info()[0]}:\n\t"{sys.exc_info()[1]}"')
-        print("===get modInfo via autohotkeyactions.getModInfo")
-        print("===todo  in autohotkeyactions.getModInfo")
-        # modInfo = autohotkeyactions.getModInfo()
-        print("===modInfo via autohotkeyactions: ", repr(modInfo))
+    #pylint:disable=W0702
+    if modInfo is None:
+        try:
+            modInfo = natlink.getCurrentModule()
+        # print("modInfo through natlink: %s"% repr(modInfo))
+        except natlink.NatError:
+            progInfo = autohotkeyactions.getProgInfo()
+        return progInfo
+    
     _hndle = modInfo[2]
     if not _hndle:
         ## assume desktop, no foreground window, treat as top...

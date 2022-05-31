@@ -214,18 +214,7 @@ def doAction(action, completeAction=None, pauseBA=None, pauseBK=None,
         if not ini:
             D('no valid inifile for actions')
             return
-        if modInfo is None:
-            try:
-                modInfo = natlink.getCurrentModule()
-                progInfo = unimacroutils.getProgInfo(modInfo)    
-                # print("modInfo through natlink: %s"% repr(modInfo))
-            except:
-                if progInfo is None:
-                    progInfo = autohotkeyactions.getProgInfo()
-           
-
-        if progInfo is None:
-            progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
+        progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
         #D('new progInfo: %s'% repr(progInfo))
         prog = progInfo.prog
         if sectionList is None:
@@ -2311,8 +2300,8 @@ else:
         pass
 
 if __name__ == '__main__':
-    _s = 551345646373737373
-    do_SCLIP(_s)
-    # UnimacroBringUp("edit", r"C:\NatlinkGIT3\Unimacro\_lines.py")
+    # _s = 551345646373737373
+    # do_SCLIP(_s)
+    UnimacroBringUp("edit", r"C:\Users\Gebruiker\Documents\.natlink\UnimacroGrammars\_brackets.txt")
     
     
