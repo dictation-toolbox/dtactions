@@ -16,7 +16,8 @@ requires=[
 	"debugpy",
 	"dragonfly2",
 	"wxpython; python_version=='3.9'"]
-# 		"wxpython; python_version>='3.8'"]   # default wxpython is installed by natlink installer. Only python39-32...
+	
+# 		"wxpython; python_version>='3.8'"]   # dropped python38-32 support; default wxpython is installed by natlink installer. Only python39-32...
 	  
 		
 classifiers=[	"Development Status :: 4 - Beta",

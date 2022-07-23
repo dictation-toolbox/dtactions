@@ -39,8 +39,8 @@ from dtactions.unimacro import unimacroutils
 from dtactions.unimacro import inivars
 
 import natlink
-from natlink import natlinkutils
-from natlink.config import expand_path
+from natlinkcore import natlinkutils
+from natlinkcore.config import expand_path
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
@@ -673,7 +673,7 @@ def getFromIni(keyword, default='',
 setting = getFromIni
 
 def get_external_module(prog):
-    """try to from natlink import actions_prog and put in external_actions_modules
+    """try to import actions_prog and put in external_actions_modules
     
     if module not there, put None in this external_actions_modules dict
     """
@@ -2084,10 +2084,9 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
         ## TODOQH
         # progFull, titleFull, hndle = natlink.getCurrentModule()
     
-        if windowCorrespondsToApp(app, appName, prog, title):
-            if debug > 1: D('already in this app: %s'% app)
-            if app not in bringups:
-                bringups[app] = (prog, title, hndle)
+        if debug > 1: D('already in this app: %s'% app)
+        if app not in bringups:
+            bringups[app] = (prog, title, hndle)
             return 1
     
         if app in bringups:

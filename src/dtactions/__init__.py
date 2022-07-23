@@ -122,7 +122,7 @@ def findInSitePackages(directory, warnings):
             warning(f'directory {dirstr} not connected to a github clone directory, changes will not persist across updates...')
         return directory
 
-    commonpart = dirstr.split('\\src\\')[-1]
+    commonpart = dirstr.rsplit('\\src\\', maxsplit=1)[-1]
     spDir = Path(sys.prefix, 'Lib', 'site-packages', commonpart)
     if spDir.is_dir():
         spResolve = spDir.resolve()

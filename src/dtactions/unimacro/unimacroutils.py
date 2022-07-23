@@ -28,15 +28,12 @@ from dtactions import monitorfunctions  # elaborated version QH
 from dtactions import autohotkeyactions
 
 import natlink
-from natlink import natlinkutils
-from natlink import natlinkstatus
+from natlinkcore import natlinkutils
+from natlinkcore import natlinkstatus
 status = natlinkstatus.NatlinkStatus()
 
 DEBUG = 0
-
-# status = natlinkstatus.NatlinkStatus()
-
-# errors for (mainly) the commando grammar:
+# errors for (mainly) the command grammar:
 
 class NatlinkCommandError(Exception):
     """NatlinkCommandError"""
@@ -223,7 +220,7 @@ def getProgInfo(modInfo=None):
         # print("modInfo through natlink: %s"% repr(modInfo))
         except natlink.NatError:
             progInfo = autohotkeyactions.getProgInfo()
-        return progInfo
+            return progInfo
     
     _hndle = modInfo[2]
     if not _hndle:

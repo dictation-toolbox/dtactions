@@ -6,10 +6,11 @@
 #
 # unimacroactions.py (former actions.py)
 #  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
-#  June 2003/restructure March 2021
+#  June 2003/restructure March 2021/June 2022
 #
-#pylint:disable=C0302
-
+#pylint:disable=C0302, C0209, C0321
+#pylint:disable=E1101  
+#pylint:disable=W0603
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
@@ -34,18 +35,13 @@ from pathlib import Path
 import html.entities
 import time
 import datetime
-
-from natlinkcore import utilsqh
-from natlinkcore import inivars
-# from natlinkcore import natlinkutils
-# import unimacro.natlinkutilsqh as unimacroutils
-# from natlinkcore import natlink
-# from natlinkcore import natlinkcorefunctions # extended environment variables....
-# from natlinkcore import natlinkstatus
+import natlink
 from dtactions import monitorfunctions
 from dtactions import autohotkeyactions
 from dtactions import sendkeys
 from dtactions.unimacro import unimacroutils
+from dtactions.unimacro import inivars
+
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
      
@@ -122,36 +118,27 @@ class Action:
                  progInfo=None, modInfo=None, sectionList=None, comment='', comingFrom=None):
         #pylint:disable=R0913
         self.action = action
-        self.pauseBA = pauseBA
-        self.pauseBK = pauseBK
+        self.ini = inivars.IniVars(inifile)
+        self.iniFileDate = unimacroutils.getFileDate(inifile)
+
+        self.pauseBA = pauseBA or self.ini.get('default', 'pause between actions')
+        self.pauseBK = pauseBK or self.ini.get('default', 'pause between keystrokes')
         self.progInfo = progInfo
         self.modInfo = modInfo
+        if progInfo:
+            self.progInfo = progInfo
+        else:
+            self.progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
+            
         self.sectionList = sectionList
         self.comment = comment
         self.comingFrom = comingFrom
         self.completeAction = None
-        
-        try:
-            self.__class__.ini
-        except AttributeError:
-            try:  #
-                self.__class__.topchildDict = {}
-                self.__class__.childtopDict = {}
-                self.__class__.pendingMessage = None
-                self.__class__.checkForChanges = False
-                self.__class__.ini = inivars.IniVars(inifile)
-                self.__class__.iniFileDate = unimacroutils.getFileDate(inifile)
-                
-            except inivars.IniError:
-                print(f'Error in unimacroactions inifile: {inifile}')
-                m = str(sys.exc_info()[1])
-                print(f'message: {m}')
-                print('dtactions cannot work')
-                self.pendingMessage = 'Please repair action.ini file\n\n' + m
-                self.__class__.ini = None
-                self.__class__.iniFileDate = 0
-
-
+        self.completeKeystrokes = ""
+        self.topchildDict = {}
+        self.childtopDict = {}
+        self.pendingMessage = ''
+    
     def __call__(self, action):
         return self.doAction(action)
 
@@ -159,53 +146,51 @@ class Action:
         """open or refresh inifile
         """
         # global  ini, iniFileDate, topchildDict, childtopDict
-        prevIni = copy.deepcopy(self.__class__.ini)
-        prevDate = self.__class__.iniFileDate
+        prevIni = copy.deepcopy(self.ini)
+        prevDate = self.iniFileDate
         newDate = unimacroutils.getFileDate(inifile)  ## inifile is global var
-        if newDate > self.__class__.iniFileDate:
+        if newDate > self.iniFileDate:
             D(1, '----------reloading ini file')
             try:
-                self.__class__.topchildDict.clear()
-                self.__class__.childtopDict.clear()
-                self.__class__.ini = inivars.IniVars(inifile)
-                self.__class__.iniFileDate = unimacroutils.getFileDate(inifile)
+                self.topchildDict.clear()
+                self.childtopDict.clear()
+                self.ini = inivars.IniVars(inifile)
+                self.iniFileDate = unimacroutils.getFileDate(inifile)
             except inivars.IniError:
                 msg = 'repair actions ini file: \n\n' + str(sys.exc_info()[1])
                 #win32api.ShellExecute(0, "open", inifile, None , "", 1)
                 time.sleep(0.5)
                 Message(msg)
-                self.__class__.iniFileDate = 0
-                self.__class__.ini = copy.deepcopy(prevIni)
-                self.__class__.iniFileDate = prevDate
+                self.iniFileDate = 0
+                self.ini = copy.deepcopy(prevIni)
+                self.iniFileDate = prevDate
 
     def doAction(self, action):
         """central method, do an action
         """
+        #pylint:disable=W0603
+        global checkForChanges
         #pylint:disable=R0911
         # global pendingMessage, checkForChanges
-        # topLevel = 0
-        if self.comingFrom and self.comingFrom.interrupted:
-            print('command was interrupted')
-            return None
         self.completeAction = action
         D(4, f'doAction: {self.completeAction}')
     
-        if not self.__class__.ini:
-            self.__class__.checkForChanges = 1
-            if self.__class__.pendingMessage:
-                mess = pendingMessage
-                self.__class__.pendingMessage = None
+        if not self.ini:
+            checkForChanges = 1
+            if self.pendingMessage:
+                mess = self.pendingMessage
+                self.pendingMessage = None
                 Message(mess, alert=1)
                 D(1, 'no valid inifile for actions')
                 return None
-        if self.__class__.checkForChanges:
+        if checkForChanges:
             D(5, 'checking for changes')
             self.doCheckForChanges() # resetting the ini file if changes were made
-        if not self.__class__.ini:
+        if not self.ini:
             D(1, 'no valid inifile for actions')
             return None
 
-        actionsList = list(self.__class__.ini.getIniList(action))
+        actionsList = list(self.ini.getIniList(action))
         # if action.find('USC') >= 0:
         #     bList = []
         #     for a in actionsList:
@@ -219,7 +204,7 @@ class Action:
         if not actionsList:
             return None
         for a in actionsList:
-            result = self.doPartialAction(a)
+            result = self.do_part_of_action(a)
             if result:
                 return result  # error message??
             if self.comingFrom and self.comingFrom.interrupted:
@@ -229,8 +214,11 @@ class Action:
         # no errors, return None
         return None
     
-    def doPartialAction(self, action):
+    def do_part_of_action(self, action):
         """do a "partial action", keystroke, USC, etc.
+        
+        This looks like an atomic actions, but these can also be splitted again,
+        and recursively call itself.
         
         these are separated by ";", and in between modInfo and  pauseBA are checked
         
@@ -240,7 +228,7 @@ class Action:
         #pylint:disable=R0914, R0911, R0912, R0915
         if metaAction.match(action):  # exactly a meta action, <<....>>
             a = metaAction.match(action).group(1)
-            aNew = self.getMetaAction(a, sectionList, progInfo)
+            aNew = self.getMetaAction(a, self.sectionList, self.progInfo)
             if isinstance(aNew, tuple):
                 # found function
                 func, number = aNew
@@ -253,7 +241,7 @@ class Action:
                 for aa in aNewList:
                     if aa:
                         D(3, '\tdoing part of meta action: <<%s>>: %s'% (a, aa))
-                        res = self.doPartialActionAction(aa)
+                        res = self.do_part_of_action(aa)
                         if not res:
                             return None
                 return res
@@ -263,16 +251,16 @@ class Action:
             D(3, 'error in meta action: "%s"'% a)
             partCom = '<<%s>>'%a
             t = '_actions, no valid meta action: "%s"'% partCom
-            if partCom != completeAction:
-                t += '\ncomplete command: "%s"'% completeAction
+            if partCom != self.completeAction:
+                t += '\ncomplete command: "%s"'% self.completeAction
             raise ActionError(t)
     
         # try qh command:
         if action.find('(') > 0 and action.strip().endswith(')'):
-            com, rest = tuple([t.strip() for t in action.split('(', 1)])
+            com, rest = [t.strip() for t in action.split('(', 1)]
             rest = rest.strip()[:-1]
         elif action.find(' ') > 0:
-            com, rest = tuple([t.strip() for t in action.split(' ',1)])
+            com, rest = [t.strip() for t in action.split(' ',1)]
         else:
             com, rest = action.strip(), ''
     
@@ -280,23 +268,22 @@ class Action:
             funcName = 'do_'+com
             args = convertToPythonArgs(rest)
             kw = {}
-            kw['progInfo'] = progInfo
-            kw['comingFrom'] = comingFrom
+            kw['progInfo'] = self.progInfo
+            kw['comingFrom'] = self.comingFrom
             func = globals()[funcName]
-            if not type(func) == types.FunctionType:
+            if not isinstance(func, types.FunctionType):
                 raise UnimacroError('appears to be not a function: %s (%s)'% (funcName, func))
             D(5, 'doing USC command: |%s|, with args: %s and kw: %s'% (com, repr(args), kw))
-            if debug > 1:
-                do_W(debug*0.2)
+            if debug > 1: self.do_W(debug*0.2)
             if args:
                 result = func(*args, **kw)
             else:
                 result = func(**kw)
                     
-            if debug > 5: print('did it, result: %s'% result)
-            if debug > 1: do_W(debug*0.2)
+            D(5, 'did it, result: %s'% result)
+            if debug > 1: self.do_W(debug*0.2)
             # skip pause between actions
-            #do_W(pauseBA)
+            #self.do_W(pauseBA)
             return result
     
         # try meta actions inside:
@@ -305,107 +292,101 @@ class Action:
             D(5, 'meta actions: %s'% As)
             for a in As:
                 if not a: continue
-                res = self.doPartialAction(a)
+                res = self.do_part_of_action(a)
                 if not res:
                     return None
-                do_W(pauseBA)
+                self.do_W(self.pauseBA)
                 # skip pause between actions
-                #do_W(pauseBA)
+                #self.do_W(pauseBA)
             return 1
     
         # try natspeak command:
     
         if com in natspeakCommands:
-            rest = convertToDvcArgs(rest)
+            rest = self.convertToDvcArgs(rest)
             C = com + ' ' + rest
             D(1, 'do dvc command: |%s|'% C)
-            if debug > 1:
-                do_W(debug*0.2)
+            if debug > 1: self.do_W(debug*0.2)
             natlink.execScript(com + ' ' + rest)
-            if debug > 1:
-                do_W(debug*0.2)
+            if debug > 1: self.do_W(debug*0.2)
             # skip pause between actions
-            #do_W(pauseBA)
+            #self.do_W(pauseBA)
             return 1
     
         # all the rest:
         D(5, 'do string: |%s|'% action)
-        if debug > 1:
-            do_W(debug*0.2)
+        if debug > 1: self.do_W(debug*0.2)
         if action:
             self.doKeystroke(action)
-            if debug > 1:
-                do_W(debug*0.2)
+            if debug > 1: self.do_W(debug*0.2)
             # skip pause between actions
-            #do_W(pauseBA)
+            #self.do_W(pauseBA)
             # if topLevel: # first (nonrecursive) call,
             #     print('end of complete action')
             return 1
-        else:
-            if debug:
-                print('empty keystrokes')
+        if debug: print('empty keystrokes')
         ## all else failed...
         return None     
         
-    def doKeystroke(self, keystrokes):
-        global pendingMessage, checkForChanges
+    def doKeystroke(self, keystrokes, hardKeys=None, pauseBK=None):
+        """do keystrokes to the foreground window.
+        
+        According to hardkey or pause between keystrokes, most of the time not needed,
+        the keystrokes are splitted, and sent one by one.
+        """
         #print 'doing keystroke: {%s'% keystrokes[1:]
+        #pylint:disable=W0603
+        global checkForChanges
         if not keystrokes:
-            return
+            return None
+
+        if hardKeys is None and pauseBK is None:
+            # for debugging, remains when instance stays open until a fresh doKeystroke call occurs
+            self.completeKeystrokes = keystrokes
+            # setting default, come here only if non recursive call:
+            hardKeys = ['none']
+            pauseBK = 0
     
-        if not ini:
-            checkForChanges = 1
-            if pendingMessage:
-                m = pendingMessage
-                pendingMessage = ''
-                Message(m, alert=1)
-                D(1, 'no valid inifile for actions')
-                return
-        if checkForChanges:
-            D(5, 'checking for changes')
-            self.doCheckForChanges() # resetting the ini file if changes were made# 
-        if not ini:
-            D(1, 'no valid inifile for keystrokes')
-            self.hardKeys = ['none']
-            self.pauseBK = 0
-        # if type(hardKeys) != str:
-        #     hardKeys = [hardKeys]
-        # elif hardKeys == 1:
-        #     hardKeys = ['all']
-        # elif hardKeys == 0:
-        #     hardKeys = ['none']
-        else:    
-            if self.sectionList == None:
-                self.sectionList = self.getSectionList(self.progInfo)
-            self.pauseBK = int(self.setting('pause between keystrokes', '0',
-                                          sectionList=self.sectionList))
-            self.hardKeys = self.getHardkeySettings()
-            self.hardKeys = ['none']
-            
-        if self.pauseBK:
-           l = hasBraces.split(keystrokes)
-           for k in l:
-               if not k:
-                   continue
-               elif braceExact.match(keystrokes):
-                   doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
-               else:
-                   for K in k:
-                       doKeystroke(K, hardKeys=hardKeys, pauseBK = 0)
-               D(5, 'pausing: %s msec after keystroke: |%s|'%
-                               (pauseBK, k))
-               # skip pausing between keystrokes
-               #do_W(pauseBK)
+            if not self.ini:
+                checkForChanges = 1
+            if checkForChanges:
+                D(5, 'checking for changes')
+                self.doCheckForChanges() # resetting the ini file if changes were made# 
+            if not self.ini:
+                D(1, 'no valid inifile for keystrokes')
+                hardKeys = ['none']
+                pauseBK = 0
+            else:    
+                if self.sectionList is None:
+                    self.sectionList = self.getSectionList(self.progInfo)
+                pauseBK = int(self.setting('pause between keystrokes', '0',
+                                              sectionList=self.sectionList))
+                hardKeys = self.getHardkeySettings()
+                hardKeys = ['none']
+        
+        if pauseBK:
+            l = hasBraces.split(keystrokes)
+            for k in l:
+                if not k:
+                    continue
+                if braceExact.match(keystrokes):
+                    self.doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
+                else:
+                    for K in k:
+                        self.doKeystroke(K, hardKeys=hardKeys, pauseBK = 0)
+                D(5, 'pausing: %s msec after keystroke: |%s|'% (pauseBK, k))
+                # skip pausing between keystrokes
+                #self.do_W(pauseBK)
         elif braceExact.match(keystrokes):
             # exactly 1 {key}:
             D(5, 'exact keystrokes, hardKeys[0]: %s'% hardKeys[0])
             if hardKeys[0] == 'none':
                 sendkeys.sendkeys(keystrokes)  # the fastest way
-                return
-            elif hardKeys[0] == 'all':
+                return None
+            if hardKeys[0] == 'all':
                 ### must be implemented later
                 sendkeys.sendkeys(keystrokes)
-                return
+                return None
             m = BracesExtractKey.match(keystrokes)
             if m:
                 # the key part is known and valid word
@@ -417,25 +398,23 @@ class Action:
                     D(3, 'doing "hard": |%s|'% keystrokes)
                     ### TODOQH, later hard keys
                     sendkeys.sendkeys(keystrokes)
-                    return
-                else:
-                    D(3, 'doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
-                    sendkeys.sendkeys(keystrokes)
-                    return
-            else:
+                    return None
                 D(3, 'doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
                 sendkeys.sendkeys(keystrokes)
-                return
+                return None
+            D(3, 'doing "soft" (%s): |%s|'% (keystrokes, hardKeys))
+            sendkeys.sendkeys(keystrokes)
+            return None
             
         # now proceed with more complex keystroke possibilities:
         if self.hardKeys[0]  == 'all':
             ## TODOQH, hard keys
             # natlinkutils.playString(keystrokes, natlinkutils.hook_f_systemkeys)
             sendkeys.sendkeys(keystrokes)
-            return
-        elif self.hardKeys[0]  == 'none':
+            return None
+        if self.hardKeys[0]  == 'none':
             sendkeys.sendkeys(keystrokes)
-            return
+            return None
         if hasBraces.search(keystrokes):
             keystrokeList = hasBraces.split(keystrokes)
             for k in keystrokeList:
@@ -448,22 +427,22 @@ class Action:
         else:
             D(5, 'no braces keystrokes: |%s|' % keystrokes)
             sendkeys.sendkeys(keystrokes)
-            ##T
+        return None
+    
     def getMetaAction(self, ma, sectionList=None, progInfo=None):
         """return the action that is found in the ini file.
         
-        if 
         """
         m = metaNumber.search(ma)
         if m:
             number = m.group(1)
             A = ma.replace(number, 'n')
-            actionName = a.replace(number, '')
+            actionName = A.replace(number, '')
             actionName = actionName.replace(' ', '')
         else:
             A = ma
             number = 0
-            actionName = a.replace(' ', '')
+            actionName = A.replace(' ', '')
         # try via actions_prog module:
         ext_instance = self.get_instance_from_progInfo(progInfo)
         if ext_instance:
@@ -480,15 +459,15 @@ class Action:
         D(5, 'search for action: |%s|, sectionList: %s' %
                         (A, sectionList))
         
-        aNew = setting(A, default=None, sectionList=sectionList)
-        if aNew == None:
+        aNew = self.setting(A, default=None, sectionList=sectionList)  #self.getFromIni
+        if aNew is None:
             print('action: not found, meta action for %s: |%s|, searched in sectionList: %s' % \
-                  (a, aNew, sectionList))
-            return 
+                  (A, aNew, sectionList))
+            return False
         if m:
             aNew = metaNumberBack.sub(number, aNew)
         if debug:
-            section = ini.getMatchingSection(sectionList, A)
+            section = self.ini.getMatchingSection(sectionList, A)
             D(1, '<<%s>> from [%s]: %s'% (A, section, aNew)) 
         return aNew        
         
@@ -522,15 +501,16 @@ class Action:
     
     def getFromIni(self, keyword, default='',
                     sectionList=None, progInfo=None):
-        if not ini:
+        if not self.ini:
             return ''
-        if sectionList == None:
-            if progInfo == None: progInfo = unimacroutils.getProgInfo()
-            prog, title, topchild, classname, hndle = progInfo
-            sectionList = ini.getSectionsWithPrefix(prog, title) + \
-                          ini.getSectionsWithPrefix('default', title)
+        if sectionList is None:
+            if self.progInfo is None:
+                self.progInfo = unimacroutils.getProgInfo()
+            _progpath, prog, title, _topchild, _classname, _hndle = self.progInfo
+            sectionList = self.ini.getSectionsWithPrefix(prog, title) + \
+                          self.ini.getSectionsWithPrefix('default', title)
             D(5, 'getFromIni, sectionList: |%s|' % sectionList)
-        value = ini.get(sectionList, keyword, default)
+        value = self.ini.get(sectionList, keyword, default)
         D(5, 'got from setting/getFromIni: %s (keyword: %s'% (value, keyword))
         return value
     
@@ -542,7 +522,7 @@ class Action:
         hardKeys are (with Natlink) implemented as SendSystemKeys
         """
         if not self.sectionList:
-            raise ValueError(f'action, getHardkeySettings, sectionList should be filled')
+            raise ValueError('action, getHardkeySettings, sectionList should be filled')
         hardKeys = self.setting('keystrokes with systemkeys', 'none', sectionList=self.sectionList)
         D(5, f'hardKeys setting: {self.hardKeys}')
     
@@ -550,10 +530,9 @@ class Action:
         if hardKeys:
             hardKeys = [k.strip() for k in hardKeys]
             D(5, 'hardKeys as list: |%s|'% hardKeys)
-            D(5, 'new keystokes: |%s|, hardKeys: %s, pauseBK: %s'%
-                            (keystrokes, hardKeys, pauseBK))
-    D(5, 'doKeystroke, pauseBK: %s, hardKeys: %s'% (pauseBK, hardKeys))
-
+            D(5, 'new keystokes: |%s|, hardKeys: %s'%
+                            (self.completeKeystrokes, hardKeys))
+        return hardKeys
 
     
     def get_external_module(self, prog):
@@ -572,16 +551,15 @@ class Action:
             print('get_external_module, found actions module: %s'% modname)
             return mod
         except AttributeError:
-            import traceback
             external_actions_modules[prog] = None
             # print 'get_external_module, no module found for: %s'% prog
+        return None
      
     def get_instance_from_progInfo(self, progInfo=None):
         """return the correct instances for progInfo
         """
         progInfo = progInfo or self.progInfo
-        _progpath, prog, title, toporchild, classname, hndle = progInfo
-        prog = str(prog)
+        prog, hndle = progInfo.prog, progInfo.hndle
         if hndle in external_action_instances:
             instance = external_action_instances[hndle]
             instance.update(progInfo)
@@ -607,6 +585,12 @@ class Action:
         
     
     def showActions(self, progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
+        
+        def T(language, Dict):
+            if language in Dict:
+                return Dict[language]
+            return Dict['enx']
+        
         progInfo = progInfo or self.progInfo
         if not self.progInfo:
             progInfo = unimacroutils.getProgInfo()
@@ -619,10 +603,9 @@ class Action:
         l = [f'actions for program: {prog}\n\twindow title: {title} (topchild: {topchild}, classname: {classname}, hndle: {hndle}',
              '\tsection list: {sectionList}',
              '']
-        l.append(ini.formatKeysOrderedFromSections(sectionList,
+        l.append(self.ini.formatKeysOrderedFromSections(sectionList,
                                     lineLen=lineLen, sort=sort))
         
-        T = getTranslation  # local function here, because no knowledge of the grammars is here
         l.append(T(language, dict(enx= '\n"edit actions" to edit the actions',
                                   nld='\n"bewerk acties" om de acties te bewerken')))
         l.append(T(language, dict(enx='"show actions" gives this list',
@@ -632,7 +615,8 @@ class Action:
         l.append(T(language, dict(enx='consult grammar "control" for the exact commands',
                                   nld='raadpleeg grammatica "controle" voor de precieze commando\'s')))
         
-        open(whatFile, 'w').write('\n'.join(l))
+        with open(whatFile, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(l))
         
         if comingFrom:
             name=name or ""
@@ -641,15 +625,6 @@ class Action:
             print(f'show file: {whatFile}')
             print('showing actions by ShellExecute crashed NatSpeak, please open by hand above file')
         #win32api.ShellExecute(0, "open", whatFile, None , "", 1)
-    
-    def getTranslation(self, language, Dict):
-        """get with self.language as key the text from dict, if invalid, return 'enx' text
-        """
-        if language in Dict:
-            return Dict[language]
-        else:
-            return Dict['enx']
-    
     
     def editActions(self, comingFrom=None, name=None):
         global checkForChanges, iniFileDate, topchildDict, childtopDict
@@ -665,7 +640,7 @@ class Action:
             print('editing actions by ShellExecute crashed NatSpeak, please edit by hand above file')
         #win32api.ShellExecute(0, "open", inifile, None , "", 1)
     
-    def setPosition(name, pos, prog=None):
+    def setPosition(self, name, pos, prog=None):
         """set in inifile, section 'positions'
         use prog for program specific positions
         """
@@ -676,9 +651,9 @@ class Action:
             section = 'positions %s'% prog
         else:
             section = 'positions'
-        ini.set(section, name, pos)
+        self.ini.set(section, name, pos)
         unimacroutils.Wait(0.1)
-        ini.write()
+        self.ini.write()
     
     def getPosition(name, prog=None):
         """get from inifile, section 'positions'
@@ -695,6 +670,7 @@ class Action:
     def do_TEST(self, *args, **kw):
         # x, y = unimacroutils.testmonitorinfo(args[0], args[1])
         # print 'in do_test: ', x, y
+        #pylint:disable=C0415
         import ctypes
         tup = natlink.getCurrentModule()
         hndle = tup[2]
@@ -714,9 +690,8 @@ class Action:
         """try autohotkey integration
         """
         result = autohotkeyactions.do_ahk_script(script)
-        if type(result) == str:
+        if isinstance(result, str):
             do_MSG(result)
-            return
         return result
     
     # HeardWord (recognition mimic), convert arguments to list:
@@ -1386,7 +1361,7 @@ class Action:
         insert a standard wait in order to let the previous action be performed...
         """
         print('do_IFWT, %s, %s'% (title, action))
-        do_W()
+        self.do_W()
         return IfWindowTitleDoAction(title, action)
     
     def IfWindowTitleDoAction(self, title, action, **kw):
@@ -1474,7 +1449,6 @@ class Action:
         input: modInfo (module info: (progpath, windowTitle, hndle) )
         cache the contents in childtopDict
         """
-        #pylint:disable=W0603
         global childtopDict
         if childtopDict is None:
             childtopDict = ini.getDict('general', 'child behaves like top')
@@ -1612,12 +1586,12 @@ class Action:
     def do_EMACS(self, *args, **kw):
         """do emacs command in minibuffer"""
         doAction("{alt+x}")
-        do_W()
+        self.do_W()
         for a in args:
           doAction(a)
-        do_W()
+        self.do_W()
         doAction("{enter}")
-        do_W()
+        self.do_W()
         return 1
     
     
@@ -1985,7 +1959,7 @@ class Action:
             prog, title, topchild, classname, hndle = unimacroutils.getProgInfo()
             if self.windowCorrespondsToApp('dragonpad', 'natspeak', prog, title):
                 break
-            do_W(sleepTime)
+            self.do_W(sleepTime)
             if i > waitSteps/2:
                 print('try to check for DP: %s (%s)'% (prog, i))
         else:
@@ -2131,36 +2105,10 @@ def writeDebug(s):
     else:
         print(f'_actions debug: {s}')
        
-def D(debugNum, mess):
-    """write if debug > global debug option
-    """
-    if debugNum >= debug:
-        writeDebug(mess)
 
-def debugActions(n, openMode='w'):
-    global debug, debugSock
-    debug = n
-    print(f'dtactions/unimacro/actions, setting debug actions: {debug}')
-    if debugSock:
-        debugSock.close()
-        debugSock = None
-    if n:
-        debugSock = open(debugFile, openMode)
-
-def debugActionsShow(self):
-    print(f'opening debugFile: {debugFile} automatically is disabled.')
-    #win32api.ShellExecute(0, "open", debugFile, None , "", 1)
-
-if debug:
-    try:
-        debugSock = open(debugFile, 'w')
-    except OSError:
-        print('_actions, OSError, cannot write debug statements to: %s'% debugFile)
-else:
-    try:
-        debugFile.unlink()
-    except OSError:
-        pass
+def D(level, message):
+    if debug >= level:
+        print(message)
 
 if __name__ == '__main__':
     Act = Action()

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dtactions.unimacro import utilsqh
 
-from natlink import readwritefile
+from natlinkcore import readwritefile
 
 locale.setlocale(locale.LC_ALL, '')
 
