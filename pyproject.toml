@@ -13,6 +13,7 @@ description-file = "README.md"
 
 requires=[ 
 	"pywin32 >= 300",
+	"natlinkcore",
 	"debugpy",
 	"dragonfly2",
 	"wxpython; python_version=='3.9'"]
