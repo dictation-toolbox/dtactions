@@ -145,3 +145,4 @@ cython_debug/
 /src/dtactions/samples
 /src/dtactions/unittest/test_clipboardfiles
 /src/dtactions/unimacro/*.ini
+/.pypirc

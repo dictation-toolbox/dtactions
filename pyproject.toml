@@ -4,8 +4,8 @@ build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
 module="dtactions"
-author = "Aaron Walker"
-author-email = "aaronwalker@protonmail.com"
+author = "LexiconCode"
+author-email = "CasterVoice@protonmail.com"
 maintainer = "Quintijn Hoogenboom"
 maintainer-email = "q.hoogenboom@antenna.nl"
 home-page = "https://qh.antenna.nl/unimacro/"
@@ -15,11 +15,7 @@ requires=[
 	"pywin32 >= 300",
 	"natlinkcore",
 	"debugpy",
-	"dragonfly2",
-	"wxpython; python_version=='3.9'"]
-	
-# 		"wxpython; python_version>='3.8'"]   # dropped python38-32 support; default wxpython is installed by natlink installer. Only python39-32...
-	  
+	"dragonfly2"]  
 		
 classifiers=[	"Development Status :: 4 - Beta",
 				"Topic :: Multimedia :: Sound/Audio :: Speech",
