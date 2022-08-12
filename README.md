@@ -50,6 +50,10 @@ Your local git repository can be anywhere conveninent. It no longer needs to be 
 Oddly, when you follow this workflow and register dtactions by running startnatlinkcofig or natlinkconfigfunctions, even though the
 python paths those commands pickup, you will find that the natlinkcorepath will be in our git repository.
 
+### Unit testing
+Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
+and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a lot more convenient and powerful.
+
 ## Notes About Packaging for Developers
 
 The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). The build_package command

@@ -8,7 +8,7 @@ authors = [{name = "LexiconCode", email = "CasterVoice@protonmail.com"}]
 maintainers  = [{name = "Quintijn Hoogenboom", email="q.hoogenboom@antenna.nl"}, {name = "LexiconCode", email = "CasterVoice@protonmail.com"}]
 dynamic = ["version", "description"]
 requires-python = ">=3.9"
-readme = "readme.md"
+readme = "README.md"
 
 dependencies= [
 	"pywin32 >= 300",
@@ -17,10 +17,24 @@ dependencies= [
 	"dragonfly2"
 ]
 
+classifiers=[	"Development Status :: 4 - Beta",
+				"Topic :: Multimedia :: Sound/Audio :: Speech",
+				"Topic :: Scientific/Engineering :: Human Machine Interfaces",
+				]
+
+home-page = "https://github.com/dictation-toolbox/dtactions"
+
+
+repository = "https://github.com/dictation-toolbox/dtactions"
+
+keywords=["dragon","speech","dictation","dictation-toolbox","natlink"]
+
 [project.optional-dependencies]
 test = [
     "pytest >=7.1.2",
 ]
+
+[project.scripts]
 
 [tool.pytest.ini_options]
 minversion = "7.1.2"
@@ -37,19 +51,8 @@ pythonpath = [
 testpaths= [
     "src/dtactions/unittest",
 ]
-classifiers=[	"Development Status :: 4 - Beta",
-				"Topic :: Multimedia :: Sound/Audio :: Speech",
-				"Topic :: Scientific/Engineering :: Human Machine Interfaces",
-				]
-
-home-page = "https://qh.antenna.nl/unimacro/"
-
-
-readme = "README.md"
-
-repository = "https://github.com/dictation-toolbox/dtactions"
-
-keywords="dragon,speech,dictation,dictation-toolbox,unimacro,natlink"
-
-[project.scripts]
+python_files = [
+			"unittest*.py",
+			"test_*.py",
+	]
 
