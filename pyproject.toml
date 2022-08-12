@@ -2,29 +2,54 @@
 requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
-[tool.flit.metadata]
-module="dtactions"
-author = "LexiconCode"
-author-email = "CasterVoice@protonmail.com"
-maintainer = "Quintijn Hoogenboom"
-maintainer-email = "q.hoogenboom@antenna.nl"
-home-page = "https://qh.antenna.nl/unimacro/"
-description-file = "README.md"
+[project]
+name = "dtactions"
+authors = [{name = "LexiconCode", email = "CasterVoice@protonmail.com"}]
+maintainers  = [{name = "Quintijn Hoogenboom", email="q.hoogenboom@antenna.nl"}, {name = "LexiconCode", email = "CasterVoice@protonmail.com"}]
+dynamic = ["version", "description"]
+requires-python = ">=3.9"
+readme = "readme.md"
 
-requires=[ 
+dependencies= [
 	"pywin32 >= 300",
-	"natlinkcore",
+	"natlinkcore >= 5.2.1",
 	"debugpy",
-	"dragonfly2"]  
-		
+	"dragonfly2"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >=7.1.2",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.1.2"
+addopts = "--capture=tee-sys "
+# very important
+#the pythonpath lets pytest load code in your source area
+#in addition to that in site-packages etc.
+#you may want to run your tests without install natlinkcore with flit or pip
+pythonpath = [
+    "src",
+    "src/dtactions",
+    "src/dtactions/unittest",
+]
+testpaths= [
+    "src/dtactions/unittest",
+]
 classifiers=[	"Development Status :: 4 - Beta",
 				"Topic :: Multimedia :: Sound/Audio :: Speech",
 				"Topic :: Scientific/Engineering :: Human Machine Interfaces",
 				]
-				
-requires-python = ">=3.8"
-dist-name="dtactions"
-keywords="dragon,speech,dictation,dictation-toolbox,unimacro,natlink,dtactions,dragonfly2"
 
-[tool.flit.scripts]
+home-page = "https://qh.antenna.nl/unimacro/"
+
+
+readme = "README.md"
+
+repository = "https://github.com/dictation-toolbox/dtactions"
+
+keywords="dragon,speech,dictation,dictation-toolbox,unimacro,natlink"
+
+[project.scripts]
 
