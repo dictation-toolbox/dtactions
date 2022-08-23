@@ -80,7 +80,7 @@ class Clipboard:
         
         As alias, you can also call: Clipboard.Set_text("abacadabra")
         """
-        print('set to clipboard: %s'% content)
+        print(f'set to clipboard: {content}')
         # content = str(content)
         if not OpenClipboardCautious():
             print('Clipboard, set_system_text: could not open clipboard')
@@ -141,7 +141,7 @@ class Clipboard:
                     time.sleep(0.1)                    
                     continue
                 else:
-                    print('%s folderinfo: %s'% (i, repr(folderinfo)))
+                    print(f'{i} folderinfo: {folderinfo}')
                     if folderinfo:
                         print('got it!')
                         return folderinfo
@@ -177,7 +177,7 @@ class Clipboard:
             if self.debug: print('Warning Clipboard: at initialisation could not open the clipboard')
             return
         self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
-        if self.debug > 1: print('current_sequence_number: %s'% self.current_sequence_number)
+        if self.debug > 1: print(f'current_sequence_number: {self.current_sequence_number}')
 
         # If requested, retrieve current system clipboard contents.
         if save_clear:
@@ -263,7 +263,7 @@ class Clipboard:
             if save_clear:
                 if contents:
                     self._backup = copy.copy(contents)
-                    if self.debug > 1: print('Clipboard, set backup to: %s'% repr(self._backup))
+                    if self.debug > 1: print(f'Clipboard, set backup to: {repr(self._backup)}')
                 else:
                     self._backup = None
                 self._contents = None
@@ -340,8 +340,8 @@ class Clipboard:
                     win32clipboard.SetClipboardData(_format, content)
             else:
                 
-                if self.debug: print("Clipboard, copy_to_system, invalid type of data: %s"% type(data))
-                if self.debug > 1: print("data: %s\n========"% repr(data))
+                if self.debug: print(f'Clipboard, copy_to_system, invalid type of data: {type(data)}')
+                if self.debug > 1: print(f'data: {repr(data)}\n========')
                 return 
         finally:
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
@@ -381,7 +381,7 @@ class Clipboard:
         this will be done at init phase with save_clear == True
         """
         if self.debug > 1:
-            print("clear_clipboard, before start, sequence number: %s"% self.current_sequence_number)
+            print(f'clear_clipboard, before start, sequence number: {self.current_sequence_number}')
 
         if not OpenClipboardCautious():
             print('copy_to_system, could not open clipboard')
@@ -394,7 +394,7 @@ class Clipboard:
         finally:
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             if self.debug > 1:
-                print("clear_clipboard, new sequence number: %s"% self.current_sequence_number)
+                print(f'clear_clipboard, new sequence number: {self.current_sequence_number}')
             win32clipboard.CloseClipboard()
     
     def has_format(self, format):
@@ -449,7 +449,7 @@ class Clipboard:
             elif self.format_text in contents:
                 text = contents[self.format_text]
             else:
-                print("get contents, but no expected format: %s"% contents.keys())
+                print(f'get contents, but no expected format: {contents.keys()}')
                 text = ""
         if text.find('\r\n') >= 0:
             text = text.replace('\r\n', '\n')
@@ -525,7 +525,7 @@ class Clipboard:
             time.sleep(self.waiting_interval)
         # no result:
         time_waited = self.waiting_interval*self.waiting_iterations
-        if self.debug: print('Clipboard, no change in clipboard in %.4f seconds'% time_waited)
+        if self.debug: print(f'Clipboard, no change in clipboard in {time_waited:.4f} seconds')
     
     get_hdrop = get_folderinfo
 

@@ -2299,8 +2299,8 @@ else:
         pass
 
 if __name__ == '__main__':
-    # _s = 551345646373737373
-    # do_SCLIP(_s)
-    UnimacroBringUp("edit", r"C:\Users\Gebruiker\Documents\.natlink\UnimacroGrammars\_brackets.txt")
+    _s = 551345646373737373
+    do_SCLIP(_s)
+    # UnimacroBringUp("edit", r"C:\Users\Gebruiker\Documents\.natlink\UnimacroGrammars\_brackets.txt")
     
     

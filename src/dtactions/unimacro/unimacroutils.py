@@ -19,7 +19,7 @@ import os
 import os.path
 import sys
 import collections
-
+from pathlib import Path
 import win32gui
 import win32clipboard
 # import pywintypes
@@ -51,7 +51,10 @@ shortWaitFactor = 0.3                 # times 10 for long wait
 #debugMode 0 = not, -1 == dvcMode, 1 is light, 2 = normal, 3 = heavy
 debugMode = 1
 
+pendingExecScripts = []
+
 ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
+
 
 
 # class CaseInsensitiveSet(set):
@@ -110,10 +113,10 @@ def getCurrentModuleSafe(nWait=5, waitingTime=0.01):
         modInfo = natlink.getCurrentModule()
         waited = (i+1)*waitingTime
         if modInfo:
-            print('getCurrentModuleSafe, found modInfo after %s seconds'% waited)
+            print(f'getCurrentModuleSafe, found modInfo after {waited} seconds')
             return modInfo
 
-    print('getCurrentModuleSafe, could not find modInfo after %s seconds'% modInfo)
+    print(f'getCurrentModuleSafe, could not find modInfo after {waited} seconds')
     return None
 
 def matchModule(modName, wantedTitle = None, modInfo=None, titleExact=0, caseExact=0):
@@ -227,7 +230,7 @@ def getProgInfo(modInfo=None):
         ## assume desktop, no foreground window, treat as top...
         return ProgInfo("", "", "", "top", "", 0)
     progpath = modInfo[0]
-    prog = getBaseNameLower(modInfo[0])
+    prog = Path(modInfo[0].lower()).stem
     title = modInfo[1]
     if isTopWindow(modInfo[2]):
         toporchild = 'top'
@@ -350,7 +353,7 @@ def ExecScript(script, callingFrom=None):
     global pendingExecScripts
     if callingFrom and (getattr(callingFrom, 'status', '') == 'new' or
                         getattr(callingFrom, 'inGotBegin', 0)):
-        print('pending execScript for %s, %s'% (callingFrom.getName(), script))
+        print(f'pending execScript for {callingFrom.getName()}')
         pendingExecScripts.append(script)
         return None
                             
