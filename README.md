@@ -56,9 +56,10 @@ and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a 
 
 Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
 
-You can run `pip install dtactions[test]` or `pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.
+You can run `pip install dtactions[test]` or `pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
 
-You can run pytest from project root folder to run the tests that don't depend on natlink being installed.
+You can run pytest from project root folder to run the tests that don't depend on natlink being installed.  For the natlink-dependent tests, run 
+`pytest natlink_test`.  
 
 ## Notes About Packaging for Developers
 
