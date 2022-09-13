@@ -12,7 +12,6 @@ readme = "README.md"
 
 dependencies= [
 	"pywin32 >= 300",
-	"natlinkcore >= 5.2.1",
 	"debugpy",
 	"dragonfly2"
 ]
@@ -32,6 +31,7 @@ keywords=["dragon","speech","dictation","dictation-toolbox","natlink"]
 [project.optional-dependencies]
 test = [
     "pytest >=7.1.2",
+	"natlink"
 ]
 
 [project.scripts]
