@@ -31,7 +31,11 @@ keywords=["dragon","speech","dictation","dictation-toolbox","natlink"]
 [project.optional-dependencies]
 test = [
     "pytest >=7.1.2",
-	"natlink"
+]
+#for tests that require natlink.
+
+natlink_test = [ 
+		"natlink",
 ]
 
 [project.scripts]
@@ -48,7 +52,7 @@ pythonpath = [
     "src/dtactions",
 ]
 testpaths= [
-    "test",
+    "test/",
 ]
 python_files = [
 			"unittest*.py",
