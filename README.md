@@ -54,6 +54,12 @@ python paths those commands pickup, you will find that the natlinkcorepath will 
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
 and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a lot more convenient and powerful.
 
+Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+
+You can run `pip install dtactions[test]` or `pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.
+
+You can run pytest from project root folder to run the tests that don't depend on natlink being installed.
+
 ## Notes About Packaging for Developers
 
 The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). The build_package command

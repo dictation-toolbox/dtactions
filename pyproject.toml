@@ -37,7 +37,9 @@ test = [
 natlink_test = [ 
 		"natlink",
 ]
-
+dev = [
+	"pyenvutils"
+]
 [project.scripts]
 
 [tool.pytest.ini_options]
