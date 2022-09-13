@@ -38,7 +38,8 @@ natlink_test = [
 		"natlink",
 ]
 dev = [
-	"pyenvutils"
+	"pyenvutils",
+	"flit"
 ]
 [project.scripts]
 
