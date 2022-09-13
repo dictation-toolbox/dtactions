@@ -59,17 +59,13 @@ and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a 
 The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). The build_package command
 (a batch file in the root folder of dtactions) builds a source distribution.
 
-Several scripts are specfied in pyproject.toml in the scripts section. Scripts are automatically generated
-and placed in the python distribution "Scripts" folder. Those scripts are then available in the system path for
-users to run. Note the `flit install --symlink` will install scripts as batchfiles; `pip install dtactions` will install
-scripts as .exe files.
+`flit build` builds the package.  `flit publish` publishes to [Python Packaging Index](https://pypi.org/).
 
+
+ 
 Version numbers of the packages must be increased before your publish to [Test Python Packaging Index](https://test.pypi.org/)
-or [Python Packaging Index](https://pypi.org/). These are specified in **init**.py in `src/dtactions`. Don't bother changing the
+or . These are specified in **init**.py in `src/dtactions`. Don't bother changing the
 version numbers unless you are publishing.
-
-This command will publish to [Test Python Packaging Index](https://test.pypi.org/): `publish_package_testpypi`.
-This will publish to [Python Packaging Index](https://pypi.org/): `publish_package_pypy`.
 
 If you are going to publish to a package index, you will need a .pypirc in your home directory. If you don't have one,
 it is suggested you start with pypirc_template as the file format is rather finicky.
