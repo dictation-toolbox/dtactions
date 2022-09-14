@@ -22,37 +22,32 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 1. Install dtactions
    It will also pull any prequisites from the [Python Packaging Index](https://pypi.org/).
 
-   - `pip install --no-cache --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple dtactions`
+   - `pip install  dtactions`
 
    This will install the packages in your Python site-packages area. It will also add the following commands, which should be
    in your path now in your commmand prompt:
 
-   - natlinkconfigfunctions
-   - natlinkstatus
-   - startnatlinkconfig
 
 ## Instructions for Developers
 
-Your local git repository can be anywhere conveninent. It no longer needs to be in a specific location relative to other
-[dictation-toolbox](https://github.com/dictation-toolbox) packages.
+Your local git repository can be anywhere conveninent. 
 
-- Install as per the instructions for end users, to get any python prequisites in.
-- Install [flit](https://pypi.org/project/flit/) `pip install flit`. This is a python package build tool that is required for developer workflow.
-- Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
+Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
   `pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
-- Build the Python packages. In the root folder of your dtactions repository, run `build_package` in your shell. This creates the package.  
-  At this step, if you have any untracked files
-  in your git repository, you will have to correct them with a `git add` command or adding those files to .gitignore.
-- The cool part: `flit install --symlink'. This will install dtactions into site-packages by symolically linking
-  site-packages/dtactions to the src/dtactions folder of your git repository. You can edit the files in site-packages/dtactions or
-  in your git repository area as you prefer - they are the same files, not copies.
 
-Oddly, when you follow this workflow and register dtactions by running startnatlinkcofig or natlinkconfigfunctions, even though the
-python paths those commands pickup, you will find that the natlinkcorepath will be in our git repository.
+Run `pip install -e `  from the dtactions project root.  
+
 
 ### Unit testing
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
 and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a lot more convenient and powerful.
+
+Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+
+You can run `pip install dtactions[test]` or `pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
+
+You can run pytest from project root folder to run the tests that don't depend on natlink being installed.  For the natlink-dependent tests, run 
+`pytest natlink_test`.  
 
 ## Notes About Packaging for Developers
 

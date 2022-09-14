@@ -31,9 +31,16 @@ keywords=["dragon","speech","dictation","dictation-toolbox","natlink"]
 [project.optional-dependencies]
 test = [
     "pytest >=7.1.2",
-	"natlink"
 ]
+#for tests that require natlink.
 
+natlink_test = [ 
+		"natlink",
+]
+dev = [
+	"pyenvutils",
+	"flit"
+]
 [project.scripts]
 
 [tool.pytest.ini_options]
@@ -46,10 +53,9 @@ addopts = "--capture=tee-sys "
 pythonpath = [
     "src",
     "src/dtactions",
-    "src/dtactions/unittest",
 ]
 testpaths= [
-    "src/dtactions/unittest",
+    "test/",
 ]
 python_files = [
 			"unittest*.py",
