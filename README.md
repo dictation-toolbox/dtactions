@@ -22,7 +22,7 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 1. Install dtactions
    It will also pull any prequisites from the [Python Packaging Index](https://pypi.org/).
 
-   - `pip install  dtactions`
+   - `py -m pip install  dtactions`
 
    This will install the packages in your Python site-packages area. It will also add the following commands, which should be
    in your path now in your commmand prompt:
@@ -33,9 +33,9 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 Your local git repository can be anywhere conveninent. 
 
 Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
-  `pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
+  `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Run `pip install -e `  from the dtactions project root.  
+Run `py -m pip install -e .`  from the dtactions project root.  
 
 
 ### Unit testing
@@ -44,17 +44,17 @@ and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a 
 
 Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
 
-You can run `pip install dtactions[test]` or `pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
+You can run `py -m pip install dtactions[test]` or `py -m pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
 
 You can run pytest from project root folder to run the tests that don't depend on natlink being installed.  For the natlink-dependent tests, run 
-`pytest natlink_test`.  
+`py -m pytest natlink_test`.  
 
 ## Notes About Packaging for Developers
 
 The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). The build_package command
 (a batch file in the root folder of dtactions) builds a source distribution.
 
-`flit build` builds the package.  `flit publish` publishes to [Python Packaging Index](https://pypi.org/).
+`py -m flit build` builds the package.  `py -m flit publish` publishes to [Python Packaging Index](https://pypi.org/).
 
 
  
