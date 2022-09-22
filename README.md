@@ -22,54 +22,45 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 1. Install dtactions
    It will also pull any prequisites from the [Python Packaging Index](https://pypi.org/).
 
-   - `pip install --no-cache --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple dtactions`
+   - `py -m pip install  dtactions`
 
    This will install the packages in your Python site-packages area. It will also add the following commands, which should be
    in your path now in your commmand prompt:
 
-   - natlinkconfigfunctions
-   - natlinkstatus
-   - startnatlinkconfig
 
 ## Instructions for Developers
 
-Your local git repository can be anywhere conveninent. It no longer needs to be in a specific location relative to other
-[dictation-toolbox](https://github.com/dictation-toolbox) packages.
+Your local git repository can be anywhere conveninent. 
 
-- Install as per the instructions for end users, to get any python prequisites in.
-- Install [flit](https://pypi.org/project/flit/) `pip install flit`. This is a python package build tool that is required for developer workflow.
-- Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
-  `pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
-- Build the Python packages. In the root folder of your dtactions repository, run `build_package` in your shell. This creates the package.  
-  At this step, if you have any untracked files
-  in your git repository, you will have to correct them with a `git add` command or adding those files to .gitignore.
-- The cool part: `flit install --symlink'. This will install dtactions into site-packages by symolically linking
-  site-packages/dtactions to the src/dtactions folder of your git repository. You can edit the files in site-packages/dtactions or
-  in your git repository area as you prefer - they are the same files, not copies.
+Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
+  `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Oddly, when you follow this workflow and register dtactions by running startnatlinkcofig or natlinkconfigfunctions, even though the
-python paths those commands pickup, you will find that the natlinkcorepath will be in our git repository.
+Run `py -m pip install -e .`  from the dtactions project root.  
+
 
 ### Unit testing
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
 and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a lot more convenient and powerful.
+
+Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+
+You can run `py -m pip install dtactions[test]` or `py -m pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
+
+You can run pytest from project root folder to run the tests that don't depend on natlink being installed.  For the natlink-dependent tests, run 
+`py -m pytest natlink_test`.  
 
 ## Notes About Packaging for Developers
 
 The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). The build_package command
 (a batch file in the root folder of dtactions) builds a source distribution.
 
-Several scripts are specfied in pyproject.toml in the scripts section. Scripts are automatically generated
-and placed in the python distribution "Scripts" folder. Those scripts are then available in the system path for
-users to run. Note the `flit install --symlink` will install scripts as batchfiles; `pip install dtactions` will install
-scripts as .exe files.
+`py -m flit build` builds the package.  `py -m flit publish` publishes to [Python Packaging Index](https://pypi.org/).
 
+
+ 
 Version numbers of the packages must be increased before your publish to [Test Python Packaging Index](https://test.pypi.org/)
-or [Python Packaging Index](https://pypi.org/). These are specified in **init**.py in `src/dtactions`. Don't bother changing the
+or . These are specified in **init**.py in `src/dtactions`. Don't bother changing the
 version numbers unless you are publishing.
-
-This command will publish to [Test Python Packaging Index](https://test.pypi.org/): `publish_package_testpypi`.
-This will publish to [Python Packaging Index](https://pypi.org/): `publish_package_pypy`.
 
 If you are going to publish to a package index, you will need a .pypirc in your home directory. If you don't have one,
 it is suggested you start with pypirc_template as the file format is rather finicky.

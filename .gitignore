@@ -144,5 +144,6 @@ dmypy.json
 cython_debug/
 /src/dtactions/samples
 /src/dtactions/unittest/test_clipboardfiles
+/test/test_clipboardfiles
 /src/dtactions/unimacro/*.ini
 /.pypirc
