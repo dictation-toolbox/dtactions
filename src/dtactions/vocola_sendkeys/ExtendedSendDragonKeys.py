@@ -23,11 +23,9 @@ import re
 import win32con
 
 from ctypes           import *
-from vocola_SendInput import *
-
+from dtactions.vocola_sendkeys.SendInput import *
 
 debug = False
-
 
 # ignore_unknown_names True means type out bad chords rather than
 # raising a KeyError; e.g., "{bad}" sends {, b, a, d, }.
