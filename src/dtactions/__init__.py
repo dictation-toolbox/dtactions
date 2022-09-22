@@ -45,8 +45,8 @@ status.getDtactionsUserDirectory()
 """
 
 ## version to be updated when a new release is sent to pypi:
-#__version__ = '1.5.5'     # september 22, 2022, change to vocola send_input (for sendkeys function)
-__version__ = '1.5.4'     # september 2022
+__version__ = '1.5.5'     # september 22, 2022, change to vocola send_input (for sendkeys function)
+# __version__ = '1.5.4'     # september 2022
 #__version__ = '1.5.3'    # august 2022
 #__version__ = '1.5.0'    # work in progress, released wxpython for python > 3.8, dragonfly is dependency
 #             '1.4.2'     # work in progress, sendkeys reasonably ok, unimacro actions and clipboard not yet...
