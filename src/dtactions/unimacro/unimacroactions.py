@@ -1076,7 +1076,7 @@ def do_NSM(**kw):
 
 # shorthand for sendsystemkeys:
 def do_SSK(s, **kw):
-    natlinkutils.playString(s, natlinkutils.hook_f_systemkeys)
+    natlink.execScript(f'SendSystemKeys("{s}")')
     return 1
 
 def do_S(s, **kw):
