@@ -4,6 +4,7 @@
 #
 #pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613
 #pylint:disable=E1101
+#pylint:disable=C0209, R1728
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
@@ -33,6 +34,7 @@ import win32con
 
 import dtactions
 from dtactions import monitorfunctions
+from dtactions.sendkeys import sendkeys, sendsystemkeys
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
 from dtactions.unimacro import unimacroutils
@@ -454,10 +456,10 @@ def doKeystroke(action, hardKeys=None, pauseBK=None,
         # exactly 1 {key}:
         if debug > 5: D('exact action, hardKeys[0]: %s'% hardKeys[0])
         if hardKeys[0] == 'none':
-            natlinkutils.playString(action)  # the fastest way
+            sendkeys(action)
             return
         if hardKeys[0] == 'all':
-            natlinkutils.playString(action, natlinkutils.hook_f_systemkeys)
+            natlink.execScript('SendSystemKeys("{action}")')
             return
         m = BracesExtractKey.match(action)
         if m:
@@ -468,22 +470,22 @@ def doKeystroke(action, hardKeys=None, pauseBK=None,
                 if keyPart.find(mod)>0: keyPart = keyPart.replace(mod, '')
             if keyPart in hardKeys:
                 if debug > 3: D('doing "hard": |%s|'% action)
-                natlinkutils.playString(action, natlinkutils.hook_f_systemkeys)
+                sendsystemkeys(action)
                 return
             if debug > 3: D('doing "soft" (%s): |%s|'% (action, hardKeys))
-            natlinkutils.playString(action)  # fastest way
+            sendkeys(action)  # fastest way
             return
         # else:
         if debug > 3: D('doing "soft" (%s): |%s|'% (action, hardKeys))
-        natlinkutils.playString(action)
+        sendkeys(action)
         return
         
     # now proceed with more complex keystroke possibilities:
     if hardKeys[0]  == 'all':
-        natlinkutils.playString(action, natlinkutils.hook_f_systemkeys)
+        sendsystemkeys(action)
         return
     if hardKeys[0]  == 'none':
-        natlinkutils.playString(action)
+        sendkeys(action)
         return
     if hasBraces.search(action):
         keystrokeList = hasBraces.split(action)
@@ -494,7 +496,7 @@ def doKeystroke(action, hardKeys=None, pauseBK=None,
             doKeystroke(k, hardKeys=hardKeys, pauseBK = 0)
     else:
         if debug > 5: D('no braces keystrokes: |%s|' % action)
-        natlinkutils.playString(action)
+        sendkeys(action)
         
 def getMetaAction(a, sectionList=None, progInfo=None):
     if progInfo is None:
@@ -1068,7 +1070,7 @@ def do_NSM(**kw):
     prog = unimacroutils.getProgName(modInfo)
     if prog == 'natspeak':
         if modInfo[1].find('DragonPad') >= 0:
-            natlinkutils.playString('{alt+n}')
+            sendkeys('{alt+n}')
             return 1
     natlink.recognitionMimic(["NaturallySpeaking"])
     return unimacroutils.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
@@ -1076,7 +1078,7 @@ def do_NSM(**kw):
 
 # shorthand for sendsystemkeys:
 def do_SSK(s, **kw):
-    natlink.execScript(f'SendSystemKeys("{s}")')
+    sendsystemkeys(s)
     return 1
 
 def do_S(s, **kw):
@@ -1396,14 +1398,14 @@ def do_U(n, **kw):
     # print 'U in: %s, Code: %s(type: %s)'% (n, Code, type(Code))
     if Code <256:
         # print 'do direct, ascii: %s, %s'% (Code, chr(Code))
-        natlinkutils.playString(chr(Code))
+        sendkeys(chr(Code))
         return
     u = chr(Code)
     # output through the clipboard with special code:
     unimacroutils.saveClipboard()
     #win32con.CF_UNICODETEXT = 13
     unimacroutils.setClipboard(u, format=13)
-    natlinkutils.playString('{ctrl+v}')
+    sendkeys('{ctrl+v}')
     unimacroutils.restoreClipboard()    
     return 1
                 

@@ -15,30 +15,40 @@ and then in a function:
 This module now adopts the Dragonfly :code:`action_key` module,
 so `"{alt+w}"` is (in the function) converted to `"a-w"` etc.
 
+Optionally, you can also use sendsystemkeys, which is implmented via Dragon SendSystemKeys (via natlink.execScript)
+
 (Quintijn Hoogenboom, 2021-04-04)
 """
 
+import natlink
 from dtactions.vocola_sendkeys import ext_keys
 
 def sendkeys(keys):
-    """sends keystrokes via the vocola Keys extension
+    """sends keystrokes via the vocola Keys extension 
    
-Keystrokes following Unimacro/Vocola convention are translated into Dragonfly notation:
-
 :code:`"{shift+right 4}"`
 
 Tested at bottom of this file interactively...
     """
     ext_keys.send_input(keys)
     
+def sendsystemkeys(keys):
+    """sends keystrokes "the hard way" via Dragon's SendSystemKeys
+   
+Tested at bottom of this file interactively...
+    """
+    if not keys:
+        return
+    natlink.execScript(f'SendSystemKeys("{keys}")')
+    
+    
+    
 if __name__ == "__main__":
-    sendkeys("{a 3}") #aaa
-    sendkeys("x y z ")
-    sendkeys("test, test, met komma.{home}")
-    sendkeys("{ctrl+extend}{up 2}test, test,{ctrl+home}{ctrl+end}{up 2} nogmaals.")
+    # sendkeys("{a 3}") #aaa
+    # sendkeys("x y z ")
+    # sendkeys("test, test, met komma.{home}")
+    sendkeys("{ctrl+end}{up 2}{home}{shift+end}{del}this is wrong{shift+left 5}right")
     # ##
-    ##
 """
-aaax nogmaals.test, test, y z test, test, met komma.
 
-""" 
+"""
