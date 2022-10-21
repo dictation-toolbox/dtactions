@@ -123,7 +123,6 @@ class UnittestClipboard(unittest.TestCase):
         return: text, selStart, selEnd, cursorPos
 
         """
-        #pylint:disable=R0201
         cb = natlinkclipboard.Clipboard(save_clear=True, debug=1)
         # waitTime = 0.001 defaults now...
 
@@ -632,7 +631,6 @@ class UnittestClipboard(unittest.TestCase):
 
 
     def log(self, t):
-        #pylint:disable=R0201
         # if self.isConnected:
         #     natlink.displayText(t, 0)
         # else:

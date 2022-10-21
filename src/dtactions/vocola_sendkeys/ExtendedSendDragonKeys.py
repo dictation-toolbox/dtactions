@@ -15,7 +15,7 @@
 ### Author:  Mark Lillibridge
 ### Version: 1.0
 ### 
-
+#pylint:disable=C0321
 from __future__ import print_function
 
 import sys

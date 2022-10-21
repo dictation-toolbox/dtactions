@@ -3,7 +3,7 @@
 see www.activestate.com. Does not work yet for s&s or line numbers modulo 100
 now special (QH) metaactions for very special tasks on selections of a file only
 """
-#pylint:disable=C0115, C0116. R0201
+#pylint:disable=C0115, C0116
 import time
 # from dtactions import messagefunctions as mf
 from dtactions.unimacro.actionclasses.actionbases import AllActions

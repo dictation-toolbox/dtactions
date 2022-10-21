@@ -1277,7 +1277,6 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
         .py -> Py 
         empty string -> ''
         """
-        #pylint:disable=R0201
         if File:
             extension = os.path.splitext(os.path.split(File)[1])[1]
             extension = extension[1:].capitalize()

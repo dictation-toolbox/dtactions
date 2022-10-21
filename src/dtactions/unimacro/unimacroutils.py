@@ -11,7 +11,7 @@
 Previous this was natlinkutilsqh.py in unimacro
 
 """
-#pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613
+#pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613, C0209, W0602
 #pylint:disable=E1101
 import time
 import re
@@ -22,6 +22,7 @@ import collections
 from pathlib import Path
 import win32gui
 import win32clipboard
+import win32con
 # import pywintypes
 
 from dtactions import monitorfunctions  # elaborated version QH
@@ -68,7 +69,6 @@ ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild cl
 
 def getLanguage():
     """get current language, 3 characters
-
     """
     return status.get_language()
 
@@ -979,8 +979,8 @@ def printMousePosition(absorrel, printAll = 0):
         print('RELATIVE MOUSE POSITIONS:')
     else:
         print('ABSOLUTE MOUSE POSITIONS:')
-    for which in whichDict:
-        print('---related to %s:'% whichDict[which].upper())
+    for _, which in whichDict.items():
+        print('---related to %s:'% which.upper())
         for cornerPos in cornerRange:
             print("%s: %s"% (cornerDict[cornerPos], getMousePositionActionString(absorrel, which, cornerPos)))
         if printAll:
@@ -1430,7 +1430,7 @@ def deleteWordIfNecessary(w):
 
 if DEBUG:
     fOutName = 'c:\\DEBUG '+__name__+'.txt'
-    debugFile = open(fOutName, 'w')
+    debugFile = open(fOutName, 'w', encoding='utf-8')
     print('DEBUG uitvoer naar: %s'% fOutName)
 
 def debugPrint(t):
@@ -1637,7 +1637,6 @@ def saveClipboard():
     #pylint:disable=W0702    
     # global previousClipboardText
     t = getClipboard()
-    print('clipboard contents to "previousClipboardText": %s'% t)
     previousClipboardText.append(t)
     for _i in range(10):
         try:
@@ -1677,6 +1676,8 @@ def clearClipboard():
         win32clipboard.CloseClipboard()
     # print 'clearClipboard: %.4f'% (time.time() - t0,)
 
+format_unicode = win32con.CF_UNICODETEXT
+
 def restoreClipboard():
     """Restores the previously saved clipboard text into the clipboard
 
@@ -1703,8 +1704,7 @@ def restoreClipboard():
             return
     win32clipboard.EmptyClipboard()
     if t:
-        #print 'restoring clipboard to: %s'% t
-        win32clipboard.SetClipboardData(1, t)
+        win32clipboard.SetClipboardData(format_unicode, t)
     win32clipboard.CloseClipboard()
 
 def getClipboard():
@@ -1837,8 +1837,8 @@ def add2logfile(word, filename):
     if not logFile:
         return # silent
     try:
-        f = open(os.path.join(logFolder, filename), 'a')
-        f.write(word + '\n')
+        with open(os.path.join(logFolder, filename), 'a', encoding='utf-8') as fp:
+            fp.write(word + '\n')
         print('written to %s: %s' % (os.path.join(logFolder), filename))
     except:
         pass

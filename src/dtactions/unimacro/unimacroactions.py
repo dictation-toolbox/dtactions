@@ -679,7 +679,7 @@ def get_external_module(prog):
     
     if module not there, put None in this external_actions_modules dict
     """
-    print(f'ask for program: "{prog}"')
+    # print(f'ask for program: "{prog}"')
     if prog in external_actions_modules:
         return external_actions_modules[prog]
     try:
@@ -1876,7 +1876,7 @@ def YesNo(t, title=None, icon=32, alert=None, defaultToSecondButton=0, progInfo=
     if icon not in list(MsgboxConfirmIconDict.values()):
         raise ValueError("Unimacro actions Message, invalid value for icon: %s"% icon)
 
-    if isinstance(t, str):
+    if not isinstance(t, str):
         t = '\n'.join(t)
     tt = checkTextInMessage(t)
     title = title or "UnimacroActions Question"

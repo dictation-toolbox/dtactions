@@ -9,13 +9,16 @@
 
 """
 This file implements an interface to the Windows system clipboard.
+
+Unfortunately, this seems not to be working satisfactory.
+For unimacro, still rely on the functions in "unimacroutils.py"
 """
 #pylint:disable=C0116, C0321, R1710, W0702, R0913, R0912, W0622
 import copy
 import time
 import win32clipboard
 import win32con
-from dtactions.sendkeys import sendkeys
+from dtactions.sendkeys import sendkeys, sendsystemkeys
 #===========================================================================
 
 class Clipboard:
@@ -347,17 +350,17 @@ class Clipboard:
             self.current_sequence_number = win32clipboard.GetClipboardSequenceNumber()
             win32clipboard.CloseClipboard()
 
-    def Copy_and_get_clipboard(self, keyscopy=None):
+    def copy_and_get_clipboard(self, keyscopy=None):
         """send the keystrokes for copy, and collect the clipboard
         """
         self.save_sequence_number()
         keyscopy = keyscopy or '{ctrl+c}'
-        sendkeys(keyscopy)
+        sendsystemkeys(keyscopy)
+        self.wait_for_clipboard_change()
         content = self.get_text()
         return content
-        
     
-    def Set_text_and_paste(self, t):
+    def set_text_and_paste(self, t):
         """a one shot function to past text back into the application
         """
         if isinstance(t, str) and t:
