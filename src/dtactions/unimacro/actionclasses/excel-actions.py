@@ -1,11 +1,11 @@
-import win32com.client
 import time
 import os
 import os.path
 from pythoncom import com_error
+import win32com.client
 from dtactions.unimacro.actionclasses.actionbases import AllActions
-from dtactions.unimacro import unimacroutils as natqh
-
+from dtactions.unimacro import unimacroutils
+#pylint:disable=R0904, C0209, R0912, R0915, W0702, C0321
 
 class ExcelActions(AllActions):
     """attach to excel and perform necessary actions
@@ -28,26 +28,27 @@ class ExcelActions(AllActions):
         self.prevBook = self.prevSheet = self.prevPosition = None
 
     def update(self, progInfo):
-        print('update of ExcelActions, %s'% self.topHandle)
-        if self.topHandle != progInfo[3]:
-            print('reset, topHandle: %s, progInfo: %s'% (self.topHandle, repr(progInfo)))
+        # (progpath, prog, title, toporchild, classname, hndle)
+        print('update of ExcelActions, %s'% self.progInfo.hndle)
+        if self.progInfo.hndle != progInfo.hndle:
+            print(f'reset, old hndle: {self.progInfo.hndle}, new progInfo: {progInfo}')
             self.reset(progInfo)
             if self.app:
-                print('wrong app for excel, window handle invalid, app is connected to %s, forground window has %s\nPlease close conflicting Excel instance!'% (self.topHandle, progInfo[3]))
+                print(f'wrong app for excel, window handle invalid, app is connected to {self.progInfo.hndle}\n\tforeground window has now {progInfo.hndle}\n\tPlease remove conflicting Excel instance!')
                 self.disconnect() # sets self.app to None
             else:
-                print('try to reconnect to %s'% self.topHandle)
+                print('try to reconnect to %s'% self.progInfo.hndle)
                 self.connect()
         if self.app:
             self.checkForChanges(progInfo)
         else:
-            print('no valid excel instance available for hndle: %s'% self.topHandle)
+            print('no valid excel instance available for hndle: %s'% self.progInfo.hndle)
         
     def isInForeground(self, app=None, title=None, progInfo=None):
         """return True if app is in foreground
         """
         thisApp = app or self.app
-        title = title or self.topTitle
+        title = title or self.progInfo.title
         title = title.lower()
         
         if not thisApp:
@@ -75,7 +76,7 @@ class ExcelActions(AllActions):
             self.progInfo = progInfo
             self.connect()
             if not self.app:
-                return
+                return None
         
         try:
             visible = self.app.Visible
@@ -83,9 +84,9 @@ class ExcelActions(AllActions):
             self.app = None
             self.connect()
             if not self.app:
-                return
+                return None
         
-        title = self.topTitle = progInfo[1]
+        title = progInfo.title
 
         if not self.isInForeground(app=self.app, title=title, progInfo=progInfo):
             print('not in foreground, excel')
@@ -96,7 +97,7 @@ class ExcelActions(AllActions):
             self.currentRow = self.currentLine = None
             self.currentColumn = None
             self.progInfo = progInfo
-            return
+            return None
 
 
         self.book = self.app.ActiveWorkbook
@@ -155,11 +156,10 @@ class ExcelActions(AllActions):
         """
         print('Connecting to to excel...')
         self.prevBook = self.prevSheet = self.prevPosition = None
-        if self.prog != 'excel':
-            print("excel-actions, should only be called when excel is the foreground window, not: %s"% self.prog)
+        if self.progInfo.prog != 'excel':
+            print(f'excel-actions, should only be called when excel is the foreground window, not: {self.progInfo.prog}')
             self.app = None
             return
-        title = self.topTitle
         try:
             self.app = win32com.client.GetActiveObject(Class="Excel.Application")
         except com_error:
@@ -168,12 +168,11 @@ class ExcelActions(AllActions):
             return
         if self.isInForeground():
             return  # OK
-        else:
-            print('ExcelActions: cannot attach to Excel, because instance is not in the foreground.')
-            print('Probably there are more excel instances active.')
-            print('Please close excel instances and try again')
-            self.disconnect()
-            return
+        print('ExcelActions: cannot attach to Excel, because instance is not in the foreground.')
+        print('Probably there are more excel instances active.')
+        print('Please close excel instances and try again')
+        self.disconnect()
+        return
 
 
     def recentMatchesTitle(self, recentFile, windowTitle):
@@ -182,7 +181,7 @@ class ExcelActions(AllActions):
         p, name = os.path.split(recentFile)
         if windowTitle.find(name) >= 0:
             return True
-        
+        return False
 
     def disconnect(self):
         """disconnect from excel and set self.app to None
@@ -221,7 +220,8 @@ class ExcelActions(AllActions):
                     print('found book in instance: %s'% b)
                     return b
         print('not found title in instance, bookList: %s'% bookList)
-
+        return None
+    
     def getBookNameFromTitle(self, title):
         """return the book name corresponding with title (being the window title)
         """
@@ -250,7 +250,7 @@ class ExcelActions(AllActions):
         return []
 
     def getCurrentLineNumber(self, handle=None):
-        if not self.app: return
+        if not self.app: return None
         lineStr = self.getCurrentPosition()[1]
         return int(lineStr)
     
@@ -269,7 +269,7 @@ class ExcelActions(AllActions):
                 s = self.app.Worksheets(i+1)
                 sheets.append(s.Name) # assume this is Unicode...
             return sheets
-
+        return None
     
     def selectSheet(self, sheet):
         """select the sheet by name of number
@@ -290,9 +290,8 @@ class ExcelActions(AllActions):
         if len(cr) == 2:
             #print 'currentposition, lencr: %s, cr: %s'% (len(cr), cr)
             return tuple(cr)
-        else:
-            print('excel-actions, no currentposition, lencr: %s, cr: %s'% (len(cr), cr))
-            return None, None
+        print('excel-actions, no currentposition, lencr: %s, cr: %s'% (len(cr), cr))
+        return None, None
 
     def pushToListIfDifferent(self, List, value):
         """add to list (in place) of value differs from last value in list
@@ -313,7 +312,7 @@ class ExcelActions(AllActions):
         while 1:
             newr = self.popFromList(self.currentRows)
             if newr is None:
-                return
+                return None
             if r != newr:
                 return newr
 
@@ -325,7 +324,7 @@ class ExcelActions(AllActions):
         while 1:
             newc = self.popFromList(self.currentColumns)
             if newc is None:
-                return
+                return None
             if c != newc:
                 return newc
     
@@ -337,7 +336,7 @@ class ExcelActions(AllActions):
         if List:
             value = List.pop()
             return value
-
+        return None
 
     # functions that do an action from the action.py module, in case of excel:
     # one parameter should be given    
@@ -347,33 +346,33 @@ class ExcelActions(AllActions):
         goto line in the current column
         """
         rowNum = str(rowNum)
-        if not self.app:  return
+        if not self.app:  return None
         cPrev, rPrev = self.getCurrentPosition()
         if rowNum == rPrev:
             print('row already selected')
             return 1
         try:
-            range = cPrev + rowNum
+            Range = cPrev + rowNum
             #print 'current range: %s, %s'% (rPrev, cPrev)
             sheet = self.app.ActiveSheet
-            #print 'app: %s, sheet: %s (%s), range: %s'% (app, sheet, sheet.Name, range)
-            sheet.Range(range).Select()
+            #print 'app: %s, sheet: %s (%s), range: %s'% (app, sheet, sheet.Name, Range)
+            sheet.Range(Range).Select()
             return 1
         except:
             print('something wrong in excel-actions, metaaction_gotoline.')
-            return
+            return None
             
     def metaaction_selectline(self, dummy=None):
         """select the current line
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.ActiveCell.EntireRow.Select()
         return 1
 
     def metaaction_remove(self, dummy=None):
         """remove the selection, assume rows or columns are selecte
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.Selection.Delete()
 
         return 1
@@ -381,7 +380,7 @@ class ExcelActions(AllActions):
     def metaaction_insert(self, dummy=None):
         """insert the number of lines that are selected
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.Selection.Insert()
 
         return 1
@@ -391,7 +390,7 @@ class ExcelActions(AllActions):
     def metaaction_pasteinsert(self, dummy=None):
         """insert the number of lines that are selected
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.Selection.Insert()
         self.app.CutCopyMode = False
 
@@ -400,7 +399,7 @@ class ExcelActions(AllActions):
     def metaaction_selectpreviousline(self, dummy=None):
         """select the previous line with respect to the activecell
         """
-        if not self.app: return
+        if not self.app: return None
         wantedLine = int(self.currentRow) - 1
         self.metaaction_gotoline(wantedLine)
         self.app.ActiveCell.EntireRow.Select()
@@ -409,21 +408,21 @@ class ExcelActions(AllActions):
     def metaaction_movetotopofselection(self, dummy=None):
         """select first line of a selected range
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.Selection.Rows(1).Select()
         return 1
 
     def metaaction_movetobottomofselection(self, dummy=None):
         """select first line of a selected range
         """
-        if not self.app: return
+        if not self.app: return None
         nRows = self.app.Selection.Rows.Count
         self.app.Selection.Rows(nRows).Select()
         return 1
     def metaaction_movecopypaste(self, dummy=None):
         """insert the clipboard after a movecopy action.
         """
-        if not self.app: return
+        if not self.app: return None
         self.app.ActiveCell.EntireRow.Insert()
         self.app.CutCopyMode = False
         return 1
@@ -431,17 +430,16 @@ class ExcelActions(AllActions):
     def metaaction_lineback(self, dummy=None):
         """goes back to the previous row
         """
-        if not self.app: return
+        if not self.app: return None
         #self.app.ActiveCell.EntireRow.Select()
         prevRow = self.getPreviousRow()
-        print('prevRow: %s'% prevRow)
+        print(f'prevRow: {prevRow}')
         if prevRow:                
             self.gotoRow(prevRow)
         return 1
         
 if __name__ == '__main__':
-    progInfo = ('excel', 'Microsoft Excel - Map1', 'top', 921280)
-    excel = ExcelActions(progInfo)
+    ProgInfo = ('path/to/excel', 'excel', 'Microsoft Excel - Map1', 'top', 921280)
     if excel.app:
         #excel.app.Visible = True
         print('activeCell: %s'% excel.app.ActiveCell)

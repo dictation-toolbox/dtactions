@@ -2,9 +2,11 @@
 #  written by: Quintijn Hoogenboom (QH softwaretraining & advies)
 #  June 2003/August 2021
 #
-#pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613
+#pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613, W0602
 #pylint:disable=E1101
 #pylint:disable=C0209, R1728
+##TODO:
+#pylint:disable=W1514, R1732
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
@@ -39,7 +41,7 @@ from dtactions.sendkeys import sendkeys, sendsystemkeys
 from dtactions import autohotkeyactions # for AutoHotkey support
 from dtactions.unimacro import unimacroutils
 from dtactions.unimacro import inivars
-
+# from dtactions.unimacro import actionclasses
 import natlink
 from natlinkcore import natlinkutils
 from natlinkcore.config import expand_path
@@ -684,7 +686,7 @@ def get_external_module(prog):
         return external_actions_modules[prog]
     try:
         modname = '%s-actions'% str(prog)
-        _temp = __import__('actionclasses', fromlist=[modname])
+        _temp = __import__('dtactions.unimacro.actionclasses', fromlist=[modname])
         mod = getattr(_temp, modname)
         external_actions_modules[prog] = mod
         print('get_external_module, found actions module: %s'% modname)
@@ -695,7 +697,7 @@ def get_external_module(prog):
         # print 'get_external_module, no module found for: %s'% prog
  
 def get_instance_from_progInfo(progInfo):
-    """return the correct intances for progInfo
+    """return the correct instances for progInfo
     """
     prog = progInfo.prog
     hndle = progInfo.hndle

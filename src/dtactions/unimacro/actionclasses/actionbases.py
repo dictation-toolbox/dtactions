@@ -57,7 +57,7 @@ class MessageActions(AllActions):
         self.ctrl = self.handle = self.getInnerHandle(self.progInfo.hndle)
         if not self.handle:
             if newProgInfo and newProgInfo.toporchild == 'top':
-                print('no handle found for (top) edit control for program: %s'% self.progInfo.prog)
+                print(f'no handle found for (top) edit control for program: {self.progInfo.prog}')
             return 0
         print(f'updated program info: {self.progInfo}, edit control (inner) handle: {self.handle}')
         return self.handle  # None if no valid handle        
@@ -103,7 +103,8 @@ class MessageActions(AllActions):
         if not handle:
             return
         mess.setEditText(handle, "")
-        self.updateState()
+        newProgInfo = unimacroutils.getProgInfo()
+        self.update(newProgInfo)
         
     def getSelection(self, handle=None):
         """get the selection of the edit control

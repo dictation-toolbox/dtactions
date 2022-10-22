@@ -5,13 +5,12 @@ now special (QH) metaactions for very special tasks on selections of a file only
 """
 #pylint:disable=C0115, C0116
 import time
+
+import natlink
 # from dtactions import messagefunctions as mf
 from dtactions.unimacro.actionclasses.actionbases import AllActions
 # from dtactions.unimacro.unimacroactions import doAction as action
-from dtactions.unimacro.unimacroactions import doKeystroke as keystroke
-from dtactions.sendkeys import sendkeys
-from dtactions import natlinkclipboard
-
+from dtactions.sendkeys import sendkeys as keystroke
 
 # class KomodoActions(MessageActions):
 class KomodoActions(AllActions):
@@ -46,36 +45,33 @@ class KomodoActions(AllActions):
         #             break
     
     def getCurrentLineNumber(self):
-        debug = 0
-        t1 = time.time()
-        if self.toporchild == "child":
+        if self.progInfo.toporchild == "child":
             return 0
-        cb = natlinkclipboard.Clipboard(save_clear=True, debug=debug)  # clear "debug" to get rid of timing line
         shortcutkey = "{alt+shift+c}"
         keystroke(shortcutkey)
+        time.sleep(0.1)
+        result = natlink.getClipboard()
         
-        # # now collect the clipboard, at most waiting 10 intervals of 0.1 second.
-        result = cb.get_text(waiting_interval=0.01, waiting_iterations=10)    # should be the current line number
-        # print(f'result from clipboard: {result}')
-        t2 = time.time()
-        lapse = t2 - t1
-        if debug:
-            print(f'time in getCurrentLineNumber: {lapse:.3f}')
         try:
             return int(result)
         except (ValueError, TypeError):
+            print('getCurrentLineNumber does not work correct for Komodo:')
+            print('Say "Edit lines" for editing the options of the grammar _lines,')
+            print('and change option "line numbers modulo hundred" in section [general] to F')
+            print(f'Komodo needs a macro to be implemented and bound to the shortcut keys {shortcutkey}.')
+            print('For implementing this macro, see: https://qh.antenna.nl/unimacro/grammars/globalgrammars/lines/implementationdetails.html')
             return 0
         
-    def metaaction_makeunicodestrings(self, dummy=None):
-        """for doctest testing, put u in front of every string
-        """
-        print('metaaction_makeunicodestrings, for Komodo')
-        sendkeys("{ctrl+c}")
-        t = unimacroutils.getClipboard()
-        print('in: %s'% t)
-        t = replaceStringToUnicode(t)
-        unimacroutils.setClipboard(t)
-        natlinkutils.playString("{ctrl+v}{down}")
+    # def metaaction_makeunicodestrings(self, dummy=None):
+    #     """for doctest testing, put u in front of every string
+    #     """
+    #     print('metaaction_makeunicodestrings, for Komodo')
+    #     sendkeys("{ctrl+c}")
+    #     t = unimacroutils.getClipboard()
+    #     print(f'in: {t}')
+    #     t = replaceStringToUnicode(t)
+    #     unimacroutils.setClipboard(t)
+    #     sendkeys("{ctrl+v}{down}")
 
 def _test():
     """do doctests, for changing function

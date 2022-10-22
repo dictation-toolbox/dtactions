@@ -5,21 +5,22 @@ configuring instructions for Visual Studio at the bottom of this file
 getting the current line number!
 """
 import time
+import natlink
 from dtactions.unimacro.actionclasses.actionbases import AllActions
 from dtactions.unimacro.unimacroactions import doAction as action
-from dtactions.unimacro.unimacroactions import doAction as action
-from dtactions import natlinkclipboard
+from dtactions.sendkeys import sendkeys as keystroke
+# from dtactions import natlinkclipboard
 
 class  CodeActions(AllActions):
     def __init__(self, progInfo):
         AllActions.__init__(self, progInfo)
         
     def getCurrentLineNumber(self, handle=None):
-        debug - 0
+        debug = 0
         t1 = time.time()
-        if self.toporchild == "child":
+        if self.progInfo.toporchild == "child":
             return 0
-        cb = natlinkclipboard.Clipboard(save_clear=True, debug=debug)  # clear "debug" to get rid of timing line
+        # cb = natlinkclipboard.Clipboard(save_clear=True, debug=debug)  # clear "debug" to get rid of timing line
         # via the command palette:
         # action("{shift+ctrl+p}; copy current line to clipboard; {enter};")
           
@@ -30,7 +31,9 @@ class  CodeActions(AllActions):
         keystroke(shortcutkey)
         
         # now collect the clipboard, at most waiting 10 intervals of 0.1 second.
-        result = cb.get_text(waiting_interval=0.01, waiting_iterations=10)    # should be the current line number
+        time.sleep(0.1)
+        result = natlink.getClipboard()
+        # result = cb.get_text(waiting_interval=0.01, waiting_iterations=10)    # should be the current line number
         # print(f'result from clipboard: {result}')
         t2 = time.time()
         lapse = t2 - t1
