@@ -14,7 +14,7 @@ class KomodoActions(MessageActions):
         MessageActions.__init__(self, progInfo)
         self.classname = "Scintilla"
         
-    def getInnerHandle(self, handle):
+    def getInnerHandle(self, topHndle):
         # cannot get the correct "inner handle"
         return
         nextHndle = handle 

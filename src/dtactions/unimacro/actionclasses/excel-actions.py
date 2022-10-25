@@ -1,4 +1,3 @@
-import time
 import os
 import os.path
 from pythoncom import com_error
@@ -27,20 +26,20 @@ class ExcelActions(AllActions):
         AllActions.reset(self, progInfo)
         self.prevBook = self.prevSheet = self.prevPosition = None
 
-    def update(self, progInfo):
+    def update(self, newProgInfo=None):
         # (progpath, prog, title, toporchild, classname, hndle)
         print('update of ExcelActions, %s'% self.progInfo.hndle)
-        if self.progInfo.hndle != progInfo.hndle:
-            print(f'reset, old hndle: {self.progInfo.hndle}, new progInfo: {progInfo}')
-            self.reset(progInfo)
+        if self.progInfo.hndle != newProgInfo.hndle:
+            print(f'reset, old hndle: {self.progInfo.hndle}, new newProgInfo: {newProgInfo}')
+            self.reset(newProgInfo)
             if self.app:
-                print(f'wrong app for excel, window handle invalid, app is connected to {self.progInfo.hndle}\n\tforeground window has now {progInfo.hndle}\n\tPlease remove conflicting Excel instance!')
+                print(f'wrong app for excel, window handle invalid, app is connected to {self.progInfo.hndle}\n\tforeground window has now {newProgInfo.hndle}\n\tPlease remove conflicting Excel instance!')
                 self.disconnect() # sets self.app to None
             else:
                 print('try to reconnect to %s'% self.progInfo.hndle)
                 self.connect()
         if self.app:
-            self.checkForChanges(progInfo)
+            self.checkForChanges(newProgInfo)
         else:
             print('no valid excel instance available for hndle: %s'% self.progInfo.hndle)
         
@@ -79,7 +78,7 @@ class ExcelActions(AllActions):
                 return None
         
         try:
-            visible = self.app.Visible
+            _visible = self.app.Visible
         except:
             self.app = None
             self.connect()
@@ -178,7 +177,7 @@ class ExcelActions(AllActions):
     def recentMatchesTitle(self, recentFile, windowTitle):
         """check the recent file with the current window title
         """
-        p, name = os.path.split(recentFile)
+        _p, name = os.path.split(recentFile)
         if windowTitle.find(name) >= 0:
             return True
         return False
@@ -308,7 +307,7 @@ class ExcelActions(AllActions):
         """return the previous row number
         """
         cr = self.getCurrentPosition()
-        c, r = cr
+        _c, r = cr
         while 1:
             newr = self.popFromList(self.currentRows)
             if newr is None:
@@ -320,7 +319,7 @@ class ExcelActions(AllActions):
         """return the previous col letter
         """
         cr = self.getCurrentPosition()
-        c, r = cr
+        c, _r = cr
         while 1:
             newc = self.popFromList(self.currentColumns)
             if newc is None:
@@ -440,15 +439,15 @@ class ExcelActions(AllActions):
         
 if __name__ == '__main__':
     ProgInfo = ('path/to/excel', 'excel', 'Microsoft Excel - Map1', 'top', 921280)
-    if excel.app:
-        #excel.app.Visible = True
-        print('activeCell: %s'% excel.app.ActiveCell)
-        print('books: %s'% excel.app.Workbooks.Count)
-        print('foreground: %s'%excel.isInForeground())
-        print('now click on excel please')
-        print(excel.app.hndle)
-        excel.metaaction_gotoline(345)
-        time.sleep(5)
-    else:
-        print('no excel.app: %s'% excel.app)
+    # if excel.app:
+    #     #excel.app.Visible = True
+    #     print('activeCell: %s'% excel.app.ActiveCell)
+    #     print('books: %s'% excel.app.Workbooks.Count)
+    #     print('foreground: %s'%excel.isInForeground())
+    #     print('now click on excel please')
+    #     print(excel.app.hndle)
+    #     excel.metaaction_gotoline(345)
+    #     time.sleep(5)
+    # else:
+    #     print('no excel.app: %s'% excel.app)
             

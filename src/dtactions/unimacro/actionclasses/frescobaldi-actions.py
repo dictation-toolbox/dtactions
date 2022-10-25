@@ -3,11 +3,11 @@
 now works with copy and so getting the wanted contents of text around the cursor.
 
 """
-from dtactions.unimacro.actionclasses.actionbases import AllActions
-import pprint
-from natlinkcore import natlinkutils
-from dtactions.unimacro import unimacroutils as natqh
+#pylint:disable=C0209
 import time
+from dtactions.unimacro.actionclasses.actionbases import AllActions
+from dtactions.unimacro import unimacroutils
+from dtactions.sendkeys import sendkeys
 
 class FrescobaldiActions(AllActions):
     def __init__(self, progInfo):
@@ -25,18 +25,18 @@ class FrescobaldiActions(AllActions):
     def playString(self, t):
         """send through to natlinkutils.self.playString
         """
-        natlinkutils.playString(t)
+        sendkeys(t)
 
     def getClipboard(self, sleep=0.05):
         """wait little longer if no result
         """
-        for i in range(5):
+        for _ in range(5):
             time.sleep(sleep)
             clip = unimacroutils.getClipboard()
             if clip:
                 return clip
         print('got nothing on clipboard')
-
+        return ""
 
     def getPrevNext(self, n=1, sleep=0.05):
         """return character to the left and to the right of the cursor
@@ -54,18 +54,17 @@ class FrescobaldiActions(AllActions):
         unimacroutils.restoreClipboard()
         if not result:
             print('nothing on clipboard')
-            return
+            return ""
        
         if len(result) == n*2:
             return result[:n], result[n:]
-        elif result == '\n':
+        if result == '\n':
             print('getPrevNext, assume at end of file...')
             # assume at end of file, could also be begin of file, but too rare too handle
             self.playString("{right}")
             return result, result
-        else:
-            print('getPrevNext, len not 2: %s, (%s)'% (len(result), repr(result)))
-            return "", result
+        print(f'getPrevNext, len not 2: {len(result)}, ({result})')
+        return "", result
         
         
     def getNextLine(self, n=1):
@@ -106,40 +105,40 @@ if __name__ == '__main__':
     from dtactions import messagefunctions as mf
     # trying to hack into frescobaldi, no luck (yet)
     tw = mf.findTopWindows(wantedText="frescobaldi")
-    for t in tw:
-        dw = mf.dumpWindow(t)
+    for tt in tw:
+        dw = mf.dumpWindow(tt)
         if dw:
-            print('top: %s, length dump: %s'% (t, len(dw)))
+            print(f'top: {tt}, length dump: {len(dw)}%s'% (tt, len(dw)))
             for subwindow in dw:
-                print('sub: %s'% subwindow)
+                print(f'sub: {subwindow}')
                 hndle = subwindow[0]
                 subhndle = subwindow[-1][0]
                 try:
                     numl = mf.getNumberOfLines(hndle, classname='Scintilla')
-                    print('hndle: %s, subhndle: %s, numlines: %s'% (hndle, subhndle, numl))
+                    print(f'hndle: {hndle}, subhndle: {subhndle}, numlines: {numl}')
                 except TypeError:
-                    print('wrong hndle: %s'% subhndle)
+                    print(f'wrong hndle: {subhndle}')
         else:
             print('try topwindow')
-            hndle = t
+            hndle = tt
             try:
                 numl = mf.getNumberOfLines(hndle, classname='Scintilla')
-                print('top hndle: %s, numlines: %s'% (hndle, numl))
+                print(f'top hndle: {hndle}, numlines: {numl}')
             except TypeError:
-                print('wrong hndle: %s'% subhndle)
+                print(f'wrong hndle: {subhndle}')
             
-            print('top: %s, mp dumpwindow'% t)
+            print(f'top: {tt}, mp dumpwindow')
         # pprint.pprint( mf.dumpWindow(t) )
     ## get correct window handle with "give window info" (_general grammar)
-    progInfo = ('frescobaldi', 'naamloos', 'top', 396616)
+    ProgInfo = ('frescobaldi', 'naamloos', 'top', 396616)
     time.sleep(3)
-    fa = FrescobaldiActions( progInfo )
+    fa = FrescobaldiActions( ProgInfo )
     fa.getPrevNext()
     for j in range(1,11):
         for i in range(10):
-            result = fa.getPrevNext(j)
-            if result:
-                print(result, len(result))
+            Result = fa.getPrevNext(j)
+            if Result:
+                print(f'{Result}, ({len(Result)})')
             else:
                 print('no result')
             fa.playString("{left 3}")

@@ -38,6 +38,7 @@ class MessageActions(AllActions):
         AllActions.__init__(self, progInfo=progInfo)
         self.classname = None   #  Scintilla can be handled quite generically with setting this variable
         self.prevTabName = None
+        self.progInfo = None
         self.update(progInfo)
 
     def getInnerHandle(self, topHndle):
@@ -45,28 +46,31 @@ class MessageActions(AllActions):
         """
         raise NotImplementedError
 
-    def update(self, newProgInfo):
+    def update(self, newProgInfo=None):
         """if prog info changes, then probably only title changes so notice and do nothing
         """
         if newProgInfo == self.progInfo:
             return 1 # OK
         if not newProgInfo:
-            print('actionabases, update, no new ProgInfo')
+            print('actionbases, update, no new ProgInfo')
             return 0
         self.progInfo = newProgInfo
-        self.ctrl = self.handle = self.getInnerHandle(self.progInfo.hndle)
-        if not self.handle:
+        self.innerHndle = self.getInnerHandle(self.progInfo.hndle)
+        if not self.innerHndle:
             if newProgInfo and newProgInfo.toporchild == 'top':
                 print(f'no handle found for (top) edit control for program: {self.progInfo.prog}')
             return 0
-        print(f'updated program info: {self.progInfo}, edit control (inner) handle: {self.handle}')
-        return self.handle  # None if no valid handle        
+        print(f'updated program info: {self.progInfo}, edit control (inner) handle: {self.innerHndle}')
+        return self.innerHndle # None if no valid handle        
 
     def getCurrentLineNumber(self, handle=None):
-        handle = handle or self.handle
-        if not handle:
+        self.update()
+        innerHndle = handle or self.innerHndle
+        if not innerHndle:
             return None
-        linenumber = mess.getLineNumber(handle, classname=self.classname)  # charpos = -1
+        # progpath, prog, title, topchild, classname, hndle = self.progInfo
+        linenumber = mess.getLineNumber(innerHndle, classname=self.progInfo.classname)  # charpos = -1
+        # print(f'linenumber from MessageActions: {linenumber}')
         return linenumber
 
     def getNumberOfLines(self, handle=None):
@@ -74,16 +78,16 @@ class MessageActions(AllActions):
         return nl
     
     def isVisible(self, handle=None):
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return None
         return mess.isVisible(handle, classname=self.classname)
     
     def getEditText(self, handle=None):
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return None
-        tList = mess.getEditText(self.ctrl)
+        tList = mess.getEditText(handle)
         return ''.join(tList)
     
     getWindowText = getEditText
@@ -91,15 +95,15 @@ class MessageActions(AllActions):
     def replaceSelection(self, output, handle=None):
         """overwrite selection with output
         """
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return
-        mess.replaceEditText(self.ctrl, output)
+        mess.replaceEditText(handle, output)
 
     def clearBoth(self, handle=None):
         """clear the target window, and subsequently the dictobj
         """
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return
         mess.setEditText(handle, "")
@@ -111,7 +115,7 @@ class MessageActions(AllActions):
         
         return a 2 tuple
         """
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return None
         return mess.getSelection(handle)
@@ -119,7 +123,7 @@ class MessageActions(AllActions):
     def setSelection(self, start, end, handle=None):
         """change the selection of the edit control
         """
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return
         mess.setSelection(handle, start, end)
@@ -130,7 +134,7 @@ class MessageActions(AllActions):
          control and returns the start and end of the current visible region.
          Never got this working
         """
-        handle = handle or self.handle
+        handle = handle or self.innerHndle
         if not handle:
             return None
         return None, None

@@ -18,7 +18,7 @@ class KomodoActions(AllActions):
         AllActions.__init__(self, progInfo)
         self.classname = "Komodo"
         
-    def getInnerHandle(self, handle):
+    def getInnerHandle(self, topHndle):
         # cannot get the correct "inner handle"
         handle = None
         return handle
