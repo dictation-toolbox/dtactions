@@ -202,7 +202,7 @@ def getProgName(modInfo=None):
         modInfo = natlink.getCurrentModule()
     return modInfo[0]
 
-ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
+# ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 
 def getProgInfo(modInfo=None):
     """returns program info as namedtuple (progpath, prog, title, toporchild, classname, hndle)
