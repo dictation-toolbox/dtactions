@@ -119,22 +119,19 @@ def getCurrentModuleSafe(nWait=5, waitingTime=0.01):
     print(f'getCurrentModuleSafe, could not find modInfo after {waited} seconds')
     return None
 
-def matchModule(modName, wantedTitle = None, modInfo=None, titleExact=0, caseExact=0):
+def matchModule(modName, wantedTitle=None, progInfo=None, titleExact=0, caseExact=0):
     """return modName if title matches, otherwise None
     """
-    #pylint:disable=R0911
-    if modInfo is None:
-        modInfo = natlink.getCurrentModule()
-    if not modInfo[0]:
+    if not progInfo:
+        progInfo = getProgInfo()
+    if not progInfo.hndle:
         return None
-    modName = modName.lower()
+    modName = progInfo.prog
 ##    print 'modName: %s, basename module: %s'% (modName, getBaseName(modInfo[0]))
-    if modName != getBaseNameLower(modInfo[0]):
-        return None
     if not wantedTitle:
         return modName
    
-    winTitle = modInfo[1]
+    winTitle = progInfo.title
     if isinstance(wantedTitle, str):    
         if not caseExact:
             wantedTitle = wantedTitle.lower()
@@ -147,7 +144,7 @@ def matchModule(modName, wantedTitle = None, modInfo=None, titleExact=0, caseExa
                 return modName
     elif isinstance(wantedTitle, (list, tuple)):
         for t in wantedTitle:
-            if matchModule(modName, t, modInfo, titleExact, caseExact):
+            if matchModule(modName, t, progInfo=progInfo, titleExact=titleExact, caseExact=caseExact):
                 return modName
     return None
 
@@ -237,7 +234,7 @@ def getProgInfo(modInfo=None):
     else:
         toporchild = 'child'
          
-    HNDLE = modInfo[2]
+    HNDLE = int(modInfo[2])
          
     classname = win32gui.GetClassName(HNDLE)
 
@@ -1600,8 +1597,7 @@ def lookForWindowTextT(hwnd, text):
 
 def returnFromMessagesWindow():
     #pylint:disable=C0116    
-    modInfo = natlink.getCurrentModule()
-    if matchModule('natspeak', 'Messages from Python Macros', modInfo=modInfo):
+    if matchModule('natspeak', 'Messages from Python Macros'):
         natlink.playString("{Alt+Tab}", natlinkutils.hook_f_systemkeys)
 
             

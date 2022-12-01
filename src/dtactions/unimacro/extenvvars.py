@@ -4,58 +4,24 @@
 #   Portions (c) Copyright 1999 by Dragon Systems, Inc.
 #
 #pylint:disable=E0611, E0401, R0911, R0912, W0702, C0116
+#pylint:disable=C0209
+"""extenvvars.py
 
-"""natlinkcorefunctions.py
+Keep track of environment variables, including added "fake" variables like DROPBOX, "This PC", etc.
 
- Quintijn Hoogenboom, January 2008/September 2015
+ Quintijn Hoogenboom, January 2008/September 2015/November 2022 (python3)
 
-These functions are used by natlinkstatus.py,
-and can also used by all the modules,
-as the core folder will be in the python path
-when natlink is running.
-
-The first function is also, hopefully identical, in
-natlinkconfigfunctions, in the configurenatlinkvocolaunimacro folder
-
-getBaseFolder: returns the folder from the calling module
-fatalError: raises error again, if new_raise is set, otherwise continues executing
-getExtendedEnv(env): gets from os.environ, or from window system calls (CSIDL_...) the
-                     environment. Take PERSONAL for HOME and ~
-getAllFolderEnvironmentVariables: get a dict of all possible HOME and CSIDL variables,
-           that result in a valid folder path
-substituteEnvVariableAtStart: substitute back into a file/folder path an environment variable
-
-Note: for extension with %NATLINK% etc. see natlinkstatus.py
-    (call getAllEnv, this one first takes Natlink variables and then these extended env variables)
 
 """
 import os
 import re
 from win32com.shell import shell, shellcon
-from natlinkcore import inivars
+from dtactions.unimacro import inivars
 import natlinkcore   ## for __init__ and getNatlinkUserdirectory
 
 # import win32api
 # for extended environment variables:
 reEnv = re.compile('(%[A-Z_]+%)', re.I)
-
-# the Natlink Base directory, core/..:
-thisBaseFolder = natlinkcore.getThisDir(__file__)
-coreDirectory = natlinkcore.getNatlinkDirectory()
-
-# report function:
-def fatal_error(message, new_raise=None):
-    #pylint:disable=E0704
-    """prints a fatal error when running this module"""
-    print('natlinkconfigfunctions fails because of fatal error:')
-    print()
-    print(message)
-    print()
-    print('Exit Dragon and run the configurenatlink program (via start_configurenatlink.py)')
-    print() 
-    if new_raise:
-        raise new_raise
-    raise
 
 # keep track of found env variables, fill, if you wish, with
 # getAllFolderEnvironmentVariables.
@@ -270,7 +236,6 @@ def getAllFolderEnvironmentVariables(fillRecentEnv=None):
 
     """
     #pylint:disable=W0603
-    global recentEnv
     D = {}
 
     for k in dir(shellcon):
@@ -410,124 +375,7 @@ def printAllEnvVariables():
     for k in sorted(recentEnv.keys()):
         print("%s\t%s"% (k, recentEnv[k]))
 
-class InifileSection:
-    """simulate a part of the registry through inifiles
-    
-        basic file is natlinkstatus.ini
-        basic section is usersettings
-        
-        So one instance operates only on one section of one ini file!
-        
-        Now uses the inivars module of Quintijn instead of GetProfileVal system calls.
-        
-        Only use for readonly or for one section if you want to rewrite data!!
-        
-        methods:
-        set(key, value): set a key=value entry in the section
-        get(key, defaultValue=None): get the associated value with
-                 key in the current section.
-                 if empty or not there, the defaultValue is returned
-                 if value = "0" or "1" the integer value 0 or 1 is returned
-        delete(key): deletes from section
-        keys(): return a list of keys in the section
-        __repr__: give contents of a section
-        
-    """
-    def __init__(self, section, filepath):
-        """open a section in a inifile
-        
-        """
-        self.section = section
-        self.ini = inivars.IniVars(filepath) # want strings to be returned
-          
-    def __repr__(self):
-        """return contents of sections
-        """
-        L = ["[%s]"% self.section ]
-        for k in self.ini.get(self.section):
-            v = self.ini.get(self.section, k)
-            L.append("%s=%s"% (k, v))
-        return '\n'.join(L)
-    
-    def __iter__(self):
-        for item in self.ini.get(self.section):
-            yield item         
-            
-    def get(self, key, defaultValue=None):
-        """get an item from a key
-        
-        """
-        if defaultValue is None:
-            defaultValue = ''
-        else:
-            defaultValue = str(defaultValue)
-        value = self.ini.get(self.section, key, defaultValue)
-
-        # value = win32api.GetProfileVal(self.section, key, defaultValue, self.filename)
-##        if value:
-##            print 'get: %s, %s: %s'% (self.section, key, value)
-        if value in ("0", "1"):
-            return int(value)
-        return value
-
-    def set(self, key, value):
-        """set an item for akey
-        
-        0 or empty deletes automatically
-        
-        """
-##        print 'set: %s, %s: %s'% (self.section, key, value)
-        if value in [0, "0"]:
-            self.delete(key)
-        elif not value:
-            self.ini.delete(self.section, key)
-        else:
-            self.ini.set(self.section, key, value)
-            self.ini.write()
-            # win32api.WriteProfileVal( self.section, key, str(value), self.filename)
-            # checkValue = win32api.GetProfileVal(self.section, key, 'nonsens', self.filename)
-            # if not (checkValue == value or \
-            #                   value in [0, 1] and checkValue == str(value)):
-            #     print 'set failed:  %s, %s: %s, got %s instead'% (self.section, key, value, checkValue)
-            
-    def delete(self, key):
-        """delete an item for a key (really set to "")
-        
-        """
-        self.ini.delete(self.section, key)
-        self.ini.write()
-        # print 'delete: %s, %s'% (self.section, key)
-        # value = win32api.WriteProfileVal( self.section, key, None,
-        #                                self.filename)
-        # checkValue = win32api.GetProfileVal(self.section, key, 'nonsens', self.filename)
-        # if checkValue != 'nonsens':
-        #     print 'delete failed:  %s, %s: got %s instead'% (self.section, key, checkValue)
-
-    def keys(self):
-        Keys = self.ini.get(self.section)
-        # Keys =  win32api.GetProfileSection( self.section, self.filename)
-        # Keys = [k.split('=')[0].strip() for k in Keys]
-        # #print 'return Keys: %s'% Keys
-        return Keys
-
-defaultFilename = "natlinkstatus.ini"
-defaultSection = 'usersettings'
-class NatlinkstatusInifileSection(InifileSection):
-    """subclass with fixed filename and section"""
-    #pylint:disable=W0613
-    
-    def __init__(self, filename=defaultFilename, section=defaultSection):
-        """get the default inifile:
-        
-        In the users home diretory/.natlink  the ini file natlinkstatus.ini 
-        with section defaultSection
-        """        
-        natlink_ini_file = natlinkcore.getNatlinkInifile()
-        InifileSection.__init__(self, section=section, filepath=natlink_ini_file)
-
-
 if __name__ == "__main__":
-    print(f'this module is in folder: {thisBaseFolder}')
     Vars = getAllFolderEnvironmentVariables()
     for kk in sorted(Vars):
         print('%s: %s'% (kk, Vars[kk]))

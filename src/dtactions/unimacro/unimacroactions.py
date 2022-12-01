@@ -723,13 +723,13 @@ def get_instance_from_progInfo(progInfo):
 
 def doCheckForChanges(previousIni=None):
     #pylint:disable=W0603
-    global  ini, iniFileDate, _topchildDict, childtopDict
+    global  ini, iniFileDate, TopChildDict, ChildTopDict
     newDate = unimacroutils.getFileDate(inifile)
     if newDate > iniFileDate:
         D('----------reloading ini file')
         try:
-            _topchildDict = None
-            childtopDict = None
+            TopChildDict = None
+            ChildTopDict = None
             ini = inivars.IniVars(inifile)
         except inivars.IniError:
             msg = 'repair actions ini file: \n\n' + str(sys.exc_info()[1])
@@ -814,11 +814,11 @@ def getTranslation(language, Dict):
 
 def editActions(comingFrom=None, name=None):
     #pylint:disable=W0603
-    global checkForChanges, iniFileDate, _topchildDict, childtopDict
+    global checkForChanges, iniFileDate, TopChildDict, ChildTopDict
     iniFileDate = unimacroutils.getFileDate(inifile)
     checkForChanges = 1
-    _topchildDict = None
-    childtopDict = None
+    TopChildDict = None
+    ChildTopDict = None
     if comingFrom:
         name=name or ""
         comingFrom.openFileDefault(inifile, name=name)
@@ -1611,50 +1611,52 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
         return 0 
     return 1
 
-_topchildDict = None
-childtopDict = None
+TopChildDict = None
+ChildTopDict = None
 
-def topWindowBehavesLikeChild(modInfo):
+def topWindowBehavesLikeChild(progInfo):
     """return the result of the ini file dict
     
-    cache the contents in _topchildDict
+    cache the contents in TopChildDict
     """
     #pylint:disable=W0603
-    global _topchildDict
-    if _topchildDict is None:
-        _topchildDict = ini.getDict('general', 'top behaves like child')
-        #print '_topchildDict: %s'% _topchildDict
-    if _topchildDict == {}:
+    global TopChildDict 
+    if TopChildDict is None:
+        TopChildDict = ini.getDict('general', 'top behaves like child')
+        #print 'TopChildDict: %s'% TopChildDict
+    if TopChildDict == {}:
         return
-    _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo(modInfo)
-    result = matchProgTitleWithDict(prog, title, _topchildDict, matchPart=1)
-    if result: return result
-    className = win32gui.GetClassName(hndle)
+    _progpath, prog, title, _toporchild, classname, _hndle = progInfo
+    result = matchProgTitleWithDict(prog, title, TopChildDict, matchPart=1)
+    if result:
+        return result
     # print('className: %s'% className)
-    if className in ["MozillaDialogClass"]:
+    if classname in ["MozillaDialogClass"]:
         return True
             
-def childWindowBehavesLikeTop(modInfo):
+def childWindowBehavesLikeTop(progInfo):
     """return the result of the ini file dict
     
     input: modInfo (module info: (progpath, windowTitle, hndle) )
-    cache the contents in childtopDict
+    cache the contents in ChildTopDict
     """
     #pylint:disable=W0603
-    global childtopDict
-    if childtopDict is None:
-        childtopDict = ini.getDict('general', 'child behaves like top')
-        #print 'childtopDict: %s'% childtopDict
-    if childtopDict == {}:
+    global ChildTopDict
+    if ChildTopDict is None:
+        ChildTopDict = ini.getDict('general', 'child behaves like top')
+        #print 'ChildTopDict: %s'% ChildTopDict
+    if ChildTopDict == {}:
         return
-    _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo(modInfo)
-    return matchProgTitleWithDict(prog, title, childtopDict, matchPart=1)
+    _progpath, prog, title, _toporchild, _classname, _hndle = progInfo
+    return matchProgTitleWithDict(prog, title, ChildTopDict, matchPart=1)
 
 def matchProgTitleWithDict(prog, title, Dict, matchPart=None):
     """see if prog is in dict, if so, check title with value(s)
     
+    tested in test_unimacroactions.py
     """
-    if not Dict: return
+    if not Dict:
+        return False
     if prog in Dict:
         titles = Dict[prog]
         if isinstance(titles, str):
@@ -1664,11 +1666,12 @@ def matchProgTitleWithDict(prog, title, Dict, matchPart=None):
         if matchPart:
             for t in titles:
                 if title.find(t) >= 0:
-                    return 1
-            return
+                    return True
+            return False
         # matchPart = False (default)
         if title in titles:
-            return 1
+            return True
+    return False
 
 
 def do_ALERT(alert=1, **kw):
