@@ -1,7 +1,7 @@
 """contains class IniVars, that does inifiles
 
 """
-#pylint:disable=C0116, C0302, R0911, R0912, R0914, R0915, R0901, R0902, R0904, R1702
+#pylint:disable=C0116, C0302, R0911, R0912, R0914, R0915, R0901, R0902, R0904, R1702, C0209
 import os
 import os.path
 import re
@@ -979,7 +979,7 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
             newfile.unlink()
 
     def get(self, s=None, k=None, value="", stripping=stripSpecial):
-        """get sections, keys or values, uin version 3 extended
+        """get sections, keys or values, in version 3 extended
         with s also being a list, examples of this far below.
 
         with version 6, strips more smart, see function stripSpecial below
@@ -1010,6 +1010,8 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
         
         >>> 
         """
+        ## override general class method get of UserDict class:
+        #pylint:disable=W0237
         if isinstance(s, (list, tuple)):
             if k:
                 k = k.strip()
@@ -1473,7 +1475,7 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
             return default
         if not i:
             return False
-        
+        i = str(i)
         if i.lower()[0] in ['t', 'w', '1']:
             return True
         if i.lower()[0] in ['f', 'o', '0']:
@@ -1881,7 +1883,7 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
                 return dict(self[section])
             return {}
         # whole inifile:
-        D = dict()
+        D = {}
         for (k,v) in self.items():
             D[k] = dict(v)
         return D            

@@ -16,10 +16,8 @@ Keep track of environment variables, including added "fake" variables like DROPB
 import os
 import re
 from win32com.shell import shell, shellcon
-from dtactions.unimacro import inivars
-import natlinkcore   ## for __init__ and getNatlinkUserdirectory
-
-# import win32api
+from natlinkcore import natlinkstatus
+status = natlinkstatus.NatlinkStatus()
 # for extended environment variables:
 reEnv = re.compile('(%[A-Z_]+%)', re.I)
 
@@ -149,6 +147,11 @@ def getExtendedEnv(var, envDict=None, displayMessage=1):
 
     DROPBOX added via getDropboxFolder is this module (QH, December 1, 2018)
 
+    Also the directories that are configured inside Natlink can be retrieved, via natlinkstatus.py
+    Natlink_SettingsDir, DragonflyUserDirectory, VocolaDirectory, AhkUserDir
+    
+    Note: these settings are case sensitive! You can leave out Dir or Directory.
+    
     As envDict for recent results either a private (passed in) dict is taken, or
     the global recentEnv.
 
@@ -161,6 +164,10 @@ def getExtendedEnv(var, envDict=None, displayMessage=1):
         myEnvDict = envDict
 ##    var = var.strip()
     var = var.strip("% ")
+
+    result = getDirectoryFromNatlinkstatus(var)
+    if result:
+        return result
     var = var.upper()
     
     if var == "~":
@@ -220,6 +227,22 @@ def getExtendedEnv(var, envDict=None, displayMessage=1):
 
         myEnvDict['SYSTEM'] = result
     return result
+
+def getDirectoryFromNatlinkstatus(envvar):
+    """see if directory can can be retrieved from envvar
+    """
+    # try if function in natlinkstatus:
+    for extra in ('', 'Directory', 'Dir'):
+        var2 = envvar + extra
+        if var2 in status.__dict__:
+            funcName = f'get{var2}'
+            func = getattr(status, funcName)
+            result = func()
+            if result:
+                return result
+    return None
+
+
 
 def clearRecentEnv():
     """for testing, clears above global dictionary
