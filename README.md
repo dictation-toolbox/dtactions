@@ -30,7 +30,7 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 
 ## Instructions for Developers
 
-Your local git repository can be anywhere conveninent. 
+Your local git repository can be anywhere convenient. 
 
 Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
   `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
