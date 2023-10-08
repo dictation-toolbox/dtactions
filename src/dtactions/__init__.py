@@ -8,10 +8,7 @@ including utility functions,
 Note: -as user, having pipped the package, the scripts run from the site-packages directory,
           no editing in source files is meant to be done
       -as developer, you need to clone the package, then `build_package` and,
-       after a `pip uninstall dtactions` do: `flit install --symlink`.
-       When you edit a file, either via the site-packages (symlinked) directory or via the cloned directory,
-       the changes will come in the cloned file, so can be committed again.
-       See more instructions in the file README.md in the source directory of the package.
+       after a `pip uninstall dtactions` do: `pip install -e .` from the root of this project.
 
 Start with the following lines near the top of your python file:
 
@@ -43,10 +40,8 @@ status.getDtactionsUserDirectory()
 ```
 
 """
-
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.5.7'     # oct 27, many changes, sendkeys now here (no link with vocola), many unimacroactions changes
-                          # adding getDtactionsDirectory and getDtactionsUserDirectory
+__version__ = '1.5.7'     # streamlining __init__ a bit oct 23
 ##----------------------
 import sys
 import os
