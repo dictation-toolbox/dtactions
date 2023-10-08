@@ -17,6 +17,8 @@ def test_getNatlinkEnvVariables():
     
     If "Dir" or "Directory" is missing, try to add:
         eg "AhkUser" is expanded to "AhkUserDir"
+        (Ahk can be missing, if not installed)
+        
         and "Unimacro" is expanded to "UnimacroDirectory"
     
     """
@@ -25,14 +27,15 @@ def test_getNatlinkEnvVariables():
     assert Path(result).is_dir()
     result = extenvvars.getExtendedEnv("%VocolaUserDirectory%")    
     assert Path(result).is_dir()
-    assert len(result) 
+    assert len(result)
+    
+    # AHK maybe not installed:
     result1 = extenvvars.getExtendedEnv("%AhkUser%")    
-    assert Path(result1).is_dir()
-    assert len(result1) 
-    result2 = extenvvars.getExtendedEnv("%AhkUserDir%")    
-    assert Path(result2).is_dir()
-    assert len(result2)
-    assert result1 == result2
+    if result1:
+        assert Path(result1).is_dir()
+    result2 = extenvvars.getExtendedEnv("%AhkUserDir%")
+    if result2:
+        assert Path(result2).is_dir()
 
 def test_otherEnvVariables():
     """this tests if "other" env variables are correctly reported
