@@ -1,0 +1,29 @@
+name: Publish Package 📦 to  PyPI
+on:
+  release:
+    types: [published] # with prerelease and release
+
+permissions:
+  contents: read
+
+jobs:
+  build_and_publish:
+    # Set up the environment `CI` references the secret `PYPI_API_TOKEN` in repository settings
+    # https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#referencing-an-environment
+    environment: CI
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Installing build Dependencies
+      run: |
+          python -m pip install --upgrade pip
+          python -m pip install flit
+    - name: Building package with flit
+      run: |
+            flit build
+    - name: Publishing 📦 to  PyPI
+     # Regarding building artifacts within Platform specific environment see https://github.com/pypa/gh-action-pypi-publish#non-goals
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        repository-url: https://upload.pypi.org/legacy/
