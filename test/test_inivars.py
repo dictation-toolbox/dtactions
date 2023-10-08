@@ -28,7 +28,7 @@ def test_inifile():
     testFile = '_brackets.ini'
     testPath = testDir/testFile
     ini = inivars.IniVars(testPath)
-    pass
+    assert isinstance(ini, inivars.IniVars)
     
     
     
