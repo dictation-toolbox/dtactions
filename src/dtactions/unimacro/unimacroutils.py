@@ -1704,7 +1704,7 @@ def restoreClipboard():
     win32clipboard.CloseClipboard()
 
 def getClipboard():
-    """get clipboard through natlink, and strips off backslash r
+    """get clipboard through natlink, and strips off backslash r   
 
     """
     #pylint:disable=W0702       
@@ -1717,7 +1717,7 @@ def getClipboard():
                 # print ' at try', i
                 break
         except:
-            print('getClipboard, got no text')
+            print('getClipboard, but apparently empty')
             shortWait()
         else:
             break
@@ -1738,9 +1738,13 @@ def setClipboard(t, format=1):
     """
     #pylint:disable=W0622    
     win32clipboard.OpenClipboard()
-    win32clipboard.EmptyClipboard()
-    win32clipboard.SetClipboardData(format, t)
-    win32clipboard.CloseClipboard()
+    try:
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(format, t)
+    except:
+        print(f'exception in unimacroutils/setClipboard of "{t}"')
+    finally:
+        win32clipboard.CloseClipboard()
 
 def checkLists(one, two):
     """returns to lists, only in first, only in second

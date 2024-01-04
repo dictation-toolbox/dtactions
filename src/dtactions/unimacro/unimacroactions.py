@@ -2310,6 +2310,8 @@ def try_SCLIP():
     ''' try by running this script, ensure cursor is on a safe place (bottom, or here after a #
     '''
     do_SCLIP('hello')
+    do_SCLIP('9123456789')
+    # now comes the error:
     do_SCLIP('123456789')
 
 
@@ -2317,6 +2319,4 @@ if __name__ == '__main__':
     try_SCLIP()
     
     # UnimacroBringUp("edit", r"C:\Users\Gebruiker\Documents\.natlink\UnimacroGrammars\_brackets.txt")
-    #hello
-    
-    
+
