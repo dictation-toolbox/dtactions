@@ -15,31 +15,31 @@ Keep track of environment variables, including added "fake" variables like DROPB
 """
 import os
 import re
+import copy
 from win32com.shell import shell, shellcon
-from natlinkcore import natlinkstatus
-status = natlinkstatus.NatlinkStatus()
+try:
+    import natlink
+    natlinkAvailable = True
+except ImportError:
+    natlinkAvailable = False
+    
+if natlinkAvailable:
+    if not natlink.isNatSpeakRunning():
+        natlinkAvailable = False
+        
+if natlinkAvailable:
+    from natlinkcore import natlinkstatus
+    status = natlinkstatus.NatlinkStatus()
+    status_dict_full = copy.copy(status.getNatlinkStatusDict())
+    
+    status_dict = {key.upper():value for (key, value) in status_dict_full.items() if os.path.isdir(value)}
+    del status_dict_full
+else:
+    status = None
+    status_dict = None
 # for extended environment variables:
 reEnv = re.compile('(%[A-Z_]+%)', re.I)
 
-# keep track of found env variables, fill, if you wish, with
-# getAllFolderEnvironmentVariables.
-# substitute back with substituteEnvVariableAtStart.
-# and substite forward with expandEnvVariableAtStart
-# in all cases a private envDict can be user, or the global dict recentEnv
-#
-# to collect all env variables, call getAllFolderEnvironmentVariables, see below
-recentEnv = {}
-
-def addToRecentEnv(name, value):
-    """to be filled for NATLINK variables from natlinkstatus
-    """
-    recentEnv[name] = value
-
-def deleteFromRecentEnv(name):
-    """to possibly delete from recentEnv, from natlinkstatus
-    """
-    if name in recentEnv:
-        del recentEnv[name]
 
 def getFolderFromLibraryName(fName):
     """from windows library names extract the real folder
@@ -139,7 +139,7 @@ def matchesStart(listOfDirs, checkDir, caseSensitive):
         
             
 
-def getExtendedEnv(var, envDict=None, displayMessage=1):
+def getExtendedEnv(var):
     """get from environ or windows CSLID
 
     HOME is environ['HOME'] or CSLID_PERSONAL
@@ -152,33 +152,20 @@ def getExtendedEnv(var, envDict=None, displayMessage=1):
     
     Note: these settings are case sensitive! You can leave out Dir or Directory.
     
-    As envDict for recent results either a private (passed in) dict is taken, or
-    the global recentEnv.
-
-    This is merely for "caching results"
-
     """
-    if envDict is None:
-        myEnvDict = recentEnv
-    else:
-        myEnvDict = envDict
 ##    var = var.strip()
-    var = var.strip("% ")
-
-    result = getDirectoryFromNatlinkstatus(var)
-    if result:
-        return result
-    var = var.upper()
+    var = var.strip("% ").upper()
+    if status_dict:
+        result = getDirectoryFromNatlinkstatus(var)
+        if result:
+            return result
+  
     
     if var == "~":
         var = 'HOME'
 
-    if var in myEnvDict:
-        return myEnvDict[var]
-
     if var in os.environ:
-        myEnvDict[var] = os.environ[var]
-        return myEnvDict[var]
+        return os.environ[var]
 
     if var == 'DROPBOX':
         result = getDropboxFolder()
@@ -208,138 +195,53 @@ def getExtendedEnv(var, envDict=None, displayMessage=1):
     if shellnumber < 0:
         # on some systems have SYSTEMROOT instead of SYSTEM:
         if var == 'SYSTEM':
-            return getExtendedEnv('SYSTEMROOT', envDict=envDict)
+            return getExtendedEnv('SYSTEMROOT')
         return ''
         # raise ValueError('getExtendedEnv, cannot find in environ or CSIDL: "%s"'% var2)
     try:
         result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
     except:
-        if displayMessage:
-            print('getExtendedEnv, cannot find in environ or CSIDL: "%s"'% var2)
         return ''
 
     
     result = str(result)
     result = os.path.normpath(result)
-    myEnvDict[var] = result
+    if result and os.path.isdir(result):
     # on some systems apparently:
-    if var == 'SYSTEMROOT':
-
-        myEnvDict['SYSTEM'] = result
-    return result
-
+        return result
+    if result:
+        print(f'getExtendedEnv: no valid path found for "{var}": "{result}"')
+    else:
+        print(f'getExtendedEnv: no path found for "{var}"')
+    return None
+        
 def getDirectoryFromNatlinkstatus(envvar):
     """see if directory can can be retrieved from envvar
     """
+    # if natlink not available:
+    if not natlinkAvailable:
+        # print(f'natlink not available for get "{envvar}"')
+        return None
+
     # try if function in natlinkstatus:
-    for extra in ('', 'Directory', 'Dir'):
-        var2 = envvar + extra
-        if var2 in status.__dict__:
-            funcName = f'get{var2}'
-            func = getattr(status, funcName)
-            result = func()
-            if result:
-                return result
-    return None
-
-
-
-def clearRecentEnv():
-    """for testing, clears above global dictionary
-    """
-    recentEnv.clear()
-
-def getAllFolderEnvironmentVariables(fillRecentEnv=None):
-    """return, as a dict, all the environ AND all CSLID variables that result into a folder
+    if not status_dict:
+        return None
     
-    Now also implemented:  Also include NATLINK, UNIMACRO, VOICECODE, DRAGONFLY, VOCOLAUSERDIR, UNIMACROUSERDIR
-    This is done by calling from natlinkstatus, see there and example in natlinkmain.
-
-    Optionally put them in recentEnv, if you specify fillRecentEnv to 1 (True)
-
-    """
-    #pylint:disable=W0603
-    D = {}
-
-    for k in dir(shellcon):
-        if k.startswith("CSIDL_"):
-            kStripped = k[6:]
-            try:
-                v = getExtendedEnv(kStripped, displayMessage=None)
-            except ValueError:
-                continue
-            if len(v) > 2 and os.path.isdir(v):
-                D[kStripped] = v
-            elif v == '.':
-                D[kStripped] = os.getcwd
-    # os.environ overrules CSIDL:
-    for k in os.environ:
-        v = os.environ[k]
-        if os.path.isdir(v):
-            v = os.path.normpath(v)
-            if k in D and D[k] != v:
-                print('warning, CSIDL also exists for key: %s, take os.environ value: %s'% (k, v))
-            D[k] = v
-    if isinstance(fillRecentEnv, dict):
-        recentEnv.update(D)
-    return D
-
-#def setInRecentEnv(key, value):
-#    if key in recentEnv:
-#        if recentEnv[key] == value:
-#            print 'already set (the same): %s, %s'% (key, value)
-#        else:
-#            print 'already set (but different): %s, %s'% (key, value)
-#        return
-#    print 'setting in recentEnv: %s to %s'% (key, value)
-#    recentEnv[key] = value
-
-def substituteEnvVariableAtStart(filepath, envDict=None): 
-    r"""try to substitute back one of the (preused) environment variables back
-
-    into the start of a filename
-
-    if ~ (HOME) is D:\My documents,
-    the path "D:\My documents\folder\file.txt" should return "~\folder\file.txt"
-
-    pass in a dict of possible environment variables, which can be taken from recent calls, or
-    from  envDict = getAllFolderEnvironmentVariables().
-
-    Alternatively you can call getAllFolderEnvironmentVariables once, and use the recentEnv
-    of this module! getAllFolderEnvironmentVariables(fillRecentEnv)
-
-    If you do not pass such a dict, recentEnv is taken, but this recentEnv holds only what has been
-    asked for in the session, so no complete list!
-
-    """
-    if envDict is None:
-        envDict = recentEnv
-    Keys = list(envDict.keys())
-    # sort, longest result first, shortest keyname second:
-    decorated = [(-len(envDict[k]), len(k), k) for k in Keys]
-    decorated.sort()
-    Keys = [k for (dummy1,dummy2, k) in decorated]
-    for k in Keys:
-        val = envDict[k]
-        if filepath.lower().startswith(val.lower()):
-            if k in ("HOME", "PERSONAL"):
-                k = "~"
-            else:
-                k = "%" + k + "%"
-            filepart = filepath[len(val):]
-            filepart = filepart.strip('/\\ ')
-            return os.path.join(k, filepart)
-    # no hit, return original:
-    return filepath
+    for extra in ('', 'DIRECTORY', 'DIR'):
+        var2 = envvar + extra
+        result = status_dict.get(var2, "")
+        if result:
+            return result
+    return None
        
-def expandEnvVariableAtStart(filepath, envDict=None): 
+def expandEnvVariableAtStart(filepath): 
     """try to substitute environment variable into a path name
 
     """
     filepath = filepath.strip()
 
     if filepath.startswith('~'):
-        folderpart = getExtendedEnv('~', envDict)
+        folderpart = getExtendedEnv('~')
         filepart = filepath[1:]
         filepart = filepart.strip('/\\ ')
         return os.path.normpath(os.path.join(folderpart, filepart))
@@ -347,7 +249,7 @@ def expandEnvVariableAtStart(filepath, envDict=None):
         envVar = reEnv.match(filepath).group(1)
         # get the envVar...
         try:
-            folderpart = getExtendedEnv(envVar, envDict)
+            folderpart = getExtendedEnv(envVar)
         except ValueError:
             print('invalid (extended) environment variable: %s'% envVar)
         else:
@@ -358,7 +260,7 @@ def expandEnvVariableAtStart(filepath, envDict=None):
     # no match
     return filepath
     
-def expandEnvVariables(filepath, envDict=None): 
+def expandEnvVariables(filepath): 
     """try to substitute environment variable into a path name,
 
     ~ only at the start,
@@ -369,7 +271,7 @@ def expandEnvVariables(filepath, envDict=None):
     filepath = filepath.strip()
     
     if filepath.startswith('~'):
-        folderpart = getExtendedEnv('~', envDict)
+        folderpart = getExtendedEnv('~')
         filepart = filepath[1:]
         filepart = filepart.strip('/\\ ')
         filepath = os.path.normpath(os.path.join(folderpart, filepart))
@@ -383,7 +285,7 @@ def expandEnvVariables(filepath, envDict=None):
                 continue
             if part == "~" or (part.startswith("%") and part.endswith("%")):
                 try:
-                    folderpart = getExtendedEnv(part, envDict)
+                    folderpart = getExtendedEnv(part)
                 except ValueError:
                     folderpart = part
                 List2.append(folderpart)
@@ -394,40 +296,23 @@ def expandEnvVariables(filepath, envDict=None):
     # no match
     return filepath
 
-def printAllEnvVariables():
-    for k in sorted(recentEnv.keys()):
-        print("%s\t%s"% (k, recentEnv[k]))
 
 if __name__ == "__main__":
-    Vars = getAllFolderEnvironmentVariables()
-    for kk in sorted(Vars):
-        print('%s: %s'% (kk, Vars[kk]))
-        if not os.path.isdir(Vars[kk]):
-            print('----- not a directory: %s (%s)'% (Vars[kk], kk))
 
     print('testing       expandEnvVariableAtStart')
     print('also see expandEnvVar in natlinkstatus!!')
-    for p in ("D:\\natlink\\unimacro", "~/unimacroqh",
+    for p in ("~", "%home%", "D:\\natlink\\unimacro", "~/unimacroqh",
               "%HOME%/personal",
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = expandEnvVariableAtStart(p)
         print('expandEnvVariablesAtStart: %s: %s'% (p, expanded))
     print('testing       expandEnvVariables')  
-    for p in ("%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%", "%NATLINK%\\unimacro", "%UNIMACROUSER%",
+    for p in ("%NATLINK%\\unimacro", "%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%", "%UNIMACROUSER%",
               "%HOME%/personal", "%HOME%", "%personal%"
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = expandEnvVariables(p)
         print('expandEnvVariables: %s: %s'% (p, expanded))
 
-    # testIniSection = NatlinkstatusInifileSection()
-    # print testIniSection.keys()
-    # testIniSection.set("test", "een test")
-    # testval = testIniSection.get("test")
-    # print 'testval: %s'% testval
-    # testIniSection.delete("test")
-    # testval = testIniSection.get("test")
-    # print 'testval: %s'% testval
-    print('recentEnv: %s'% len(recentEnv))
     np = getExtendedEnv("NOTEPAD")
     print(np)
     for lName in ['Snelle toegang', 'Quick access', 'Documenten', 'Documents', 'Muziek', 'Afbeeldingen', 'Dropbox', 'OneDrive', 'Desktop', 'Bureaublad']:
