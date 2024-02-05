@@ -67,17 +67,28 @@ def do_ahk_script(script, filename=None):
     filename = filename or 'tempscript.ahk'
     if not ahk_is_active():
         print('ahk is not active, cannot run script')
-        return
+        return 0
     #print 'AHK with script: %s'% script
+    if script.strip().endswith('.ahk'):
+        script = script.strip()
+        scriptPath = ahkscriptfolder/script
+        if scriptPath.is_file():
+            call_ahk_script_path(scriptPath)
+            return 1
+        print(f'not a valid filepath for AHK script: "{str(scriptPath)}"')
+        return 0
+    
     scriptPath = ahkscriptfolder/filename
+            
     if isinstance(script, (list, tuple)):
         script = '\n'.join(script)         
     if not script.endswith('\n'):
         script += '\n'
     
-    with open(scriptPath, 'w') as fp:
+    with open(scriptPath, 'w', encoding='utf-8') as fp:
         fp.write(script)
     call_ahk_script_path(scriptPath)
+    return 1
 
 def call_ahk_script_path(scriptPath):
     """call the specified ahk script  
@@ -96,7 +107,7 @@ def call_ahk_script_path(scriptPath):
     else:
         raise ValueError(f'autohotkeyactions, call_ahk_script_path: path should end with ".ahk", or ".exe"\n    path: {scriptPath}')
     if result:
-        print('non-zero result of call_ahk_script_path "%s": %s'% (scriptPath, result))
+        print(f'non-zero result of call_ahk_script_path "{scriptPath}": {result}')
 
 ProgInfo = collections.namedtuple('ProgInfo', 'progpath prog title toporchild classname hndle'.split(' '))
 
@@ -150,7 +161,7 @@ FileAppend, %wHndle%, ##proginfofile##
 def getProgInfoResult(info_file):
     """extract the contents of the info_file, and return the progInfo
     """
-    with open(info_file, 'r') as fp:
+    with open(info_file, 'r', encoding='utf-8') as fp:
         progInfo = fp.read().split('\n')
         
     # note ahk returns 5 lines, but ProgInfo has 6 items.   
@@ -289,7 +300,8 @@ def ahkBringup(app, filepath=None, title=None, extra=None, waitForStart=1):
 
     ## do the script!!
     do_ahk_script(script)
-    message = open(ErrorFile, 'r').read().strip()
+    with open(ErrorFile, 'r', encoding='utf-8') as fp:
+        message = fp.read().strip()
     if message:
         return message  
 
@@ -468,7 +480,7 @@ def GetForegroundWindow():
     script = script.replace('##hndlefile##', str(HndleFile))
     do_ahk_script(script, filename="getforegroundwindow.ahk")
 
-    with open(HndleFile, 'r') as fp:
+    with open(HndleFile, 'r', encoding='utf-8') as fp:
         gotHndle = fp.read().strip()
     try:
         if gotHndle:
@@ -521,7 +533,8 @@ def SetForegroundWindow(hndle):
         mess = f'Error with SetForegroundWindow to {hndle}, InfoFile cannot be found'
         return mess
         
-    winHndle = open(ProgInfoFile, 'r').read().strip()
+    with open(ProgInfoFile, 'r', encoding='utf-8') as fp:
+        winHndle = fp.read().strip()
     if winHndle:
         try:
             winHndle = int(winHndle)
@@ -613,7 +626,7 @@ def clearErrorMessagesFile():
     return the path of the ErrorMessagesFile
     """
     ErrorFile = ahkscriptfolder/"errormessagefromahk.txt"
-    with open(ErrorFile, 'w') as f:
+    with open(ErrorFile, 'w', encoding='utf-8') as f:
         f.write('\n')
     return ErrorFile
 
@@ -621,7 +634,7 @@ def readErrorMessagesFile():
     """get the error messages if any
     """
     ErrorFile = ahkscriptfolder/"errormessagefromahk.txt"
-    with open(ErrorFile, 'r') as f:
+    with open(ErrorFile, 'r', encoding='utf-8') as f:
         mess = f.read()
     if mess.strip():
         return f'autohotkeyactions.ahkBringup failed:\n===={mess}'
@@ -724,7 +737,9 @@ if __name__ ==  "__main__":
     Result = ahkBringup("notepad")
     print(f'\nresult of ahkBringup("notepad"):\n{repr(Result)}')
     if Result.hndle:
-        killWindow(Result.hndle)
+        killWindow(Result.hndle, silent=False)
+    Result = do_ahk_script('showmessageswindow.ahk')
+    pass
     
     
 
