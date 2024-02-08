@@ -49,7 +49,7 @@ visibleWaitFactor = 3                 # default for Wait and W
 longWaitFactor = 10                   # times 3 for visible wait
 shortWaitFactor = 0.3                 # times 10 for long wait
                                 # times 0.3 for short wait
-debugMode = -1
+debugMode = 0     #-1
 
 pendingExecScripts = []
 
@@ -1683,20 +1683,22 @@ def restoreClipboard():
         print('No "previousClipboardText" available, empty clipboard...')
         t = None
         return
-    for _i in range(10):
-        try:
-            win32clipboard.OpenClipboard()
-            break
-        except:
-            time.sleep(0.1)
-            continue
-        else:
-            print("could not restore clipboard")
-            return
-    win32clipboard.EmptyClipboard()
-    if t:
-        win32clipboard.SetClipboardData(format_unicode, t)
-    win32clipboard.CloseClipboard()
+    try:
+        for _i in range(10):
+            try:
+                win32clipboard.OpenClipboard()
+                break
+            except:
+                time.sleep(0.1)
+                continue
+            else:
+                print("could not restore clipboard")
+                return
+        win32clipboard.EmptyClipboard()
+        if t:
+            win32clipboard.SetClipboardData(format_unicode, t)
+    finally:
+        win32clipboard.CloseClipboard()
 
 def getClipboard():
     """get clipboard through natlink, and strips off backslash r
@@ -1731,11 +1733,13 @@ def setClipboard(t, format=1):
     format = win32con.CF_UNICODETEXT (13): as unicode
 
     """
-    #pylint:disable=W0622    
-    win32clipboard.OpenClipboard()
-    win32clipboard.EmptyClipboard()
-    win32clipboard.SetClipboardData(format, t)
-    win32clipboard.CloseClipboard()
+    #pylint:disable=W0622
+    try:
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(format, t)
+    finally:
+        win32clipboard.CloseClipboard()
 
 def checkLists(one, two):
     """returns to lists, only in first, only in second
