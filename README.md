@@ -47,9 +47,11 @@ You can run pytest from project root folder to run the tests that don't depend o
 
 ## Notes About Packaging for Developers
 
-The package is specified in `pyproject.toml` and built with [flit](https://pypi.org/project/flit/). 
+The package is specified in `pyproject.toml` and uses  [flit](https://pypi.org/project/flit/) as the underlying build tool. 
 
-`py -m flit build` (or just `flit build`) builds the package.  A github action publishes to  publishes to [Python Packaging Index](https://pypi.org/). 
+Too build the package locally, 
+
+`py -m flit build` (or just `flit build`) builds the package. You can also use `python -m build` if you have build installed.   A github action publishes to  publishes to [Python Packaging Index](https://pypi.org/). 
 
 
  
