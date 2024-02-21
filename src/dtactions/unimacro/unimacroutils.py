@@ -49,8 +49,7 @@ visibleWaitFactor = 3                 # default for Wait and W
 longWaitFactor = 10                   # times 3 for visible wait
 shortWaitFactor = 0.3                 # times 10 for long wait
                                 # times 0.3 for short wait
-#debugMode 0 = not, -1 == dvcMode, 1 is light, 2 = normal, 3 = heavy
-debugMode = 1
+debugMode = 0     #-1
 
 pendingExecScripts = []
 
@@ -209,7 +208,7 @@ def getProgInfo(modInfo=None):
 
     prog always lowercase
     
-    title now with capital letters.
+    title now with mixed (lower and upper case) letters.
 
     toporchild 'top' or 'child', or '' if no valid window
     """
@@ -227,7 +226,7 @@ def getProgInfo(modInfo=None):
         ## assume desktop, no foreground window, treat as top...
         return ProgInfo("", "", "", "top", "", 0)
     progpath = modInfo[0]
-    prog = Path(modInfo[0].lower()).stem
+    prog = Path(modInfo[0].lower()).stem  
     title = modInfo[1]
     if isTopWindow(modInfo[2]):
         toporchild = 'top'
@@ -734,7 +733,7 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
         btn = 0
         nclick = 0
     #nClick = nClick or nclick   # take things from "mouse" if nClick  not used
-    #print 'btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState)
+    print('btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState))
     if onlyMove:
         print('onlyMove to %s, %x'% (xp, yp))
         natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
@@ -812,17 +811,23 @@ def buttonClick(button='left', nclick=1, modifiers=None):
     """do a natspeak buttonclick, but release mouse first if necessary
     """
     # make button numeric:
-    #if button in buttons:
-    #    button = buttons[button]
-    #if button not in [1, 2, 4]:
-    #    raise UnimacroError('buttonClick invalid button: %s'% button)
-    #if nclick not in [1,2]:
-    #    raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
+    buttons = {'left':1, 'right':2, 'middle':4}
+    if button in buttons:
+       button = buttons[button]
+    if button not in [1, 2, 4]:
+       raise UnimacroError('buttonClick invalid button: %s'% button)
+    if nclick not in [1,2]:
+       raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
     if mouseState:
         releaseMouse()
         
-    natlinkutils.buttonClick(button, nclick, modifiers)
-    #natlink.execScript("ButtonClick %s,%s"%(button, nclick))
+    # natlinkutils.buttonClick(button, nclick, modifiers)
+    if button == 1 and nclick == 1:
+        script = 'ButtonClick'
+    else:
+        script = f'ButtonClick {button},{nclick}'
+    print(f'buttonClick via execScript: "{script}"')
+    natlink.execScript(script)
     
 
 
@@ -1425,23 +1430,13 @@ def deleteWordIfNecessary(w):
     if isInActiveVoc:
         natlink.deleteWord(w)
 
-if DEBUG:
-    fOutName = 'c:\\DEBUG '+__name__+'.txt'
-    debugFile = open(fOutName, 'w', encoding='utf-8')
-    print('DEBUG uitvoer naar: %s'% fOutName)
-
 def debugPrint(t):
     """print to debug file (is this working???)
     """
     if not DEBUG:
         return
-    if isinstance(t, str):
-        debugFile.write(t)
-    else:
-        debugFile.write(repr(t))
-    debugFile.write('\n')
-    debugFile.flush()
-
+    print(t)
+    
 def GetForegroundWindow():
     """return the handle of the current foreground window
     """
@@ -1688,20 +1683,22 @@ def restoreClipboard():
         print('No "previousClipboardText" available, empty clipboard...')
         t = None
         return
-    for _i in range(10):
-        try:
-            win32clipboard.OpenClipboard()
-            break
-        except:
-            time.sleep(0.1)
-            continue
-        else:
-            print("could not restore clipboard")
-            return
-    win32clipboard.EmptyClipboard()
-    if t:
-        win32clipboard.SetClipboardData(format_unicode, t)
-    win32clipboard.CloseClipboard()
+    try:
+        for _i in range(10):
+            try:
+                win32clipboard.OpenClipboard()
+                break
+            except:
+                time.sleep(0.1)
+                continue
+            else:
+                print("could not restore clipboard")
+                return
+        win32clipboard.EmptyClipboard()
+        if t:
+            win32clipboard.SetClipboardData(format_unicode, t)
+    finally:
+        win32clipboard.CloseClipboard()
 
 def getClipboard():
     """get clipboard through natlink, and strips off backslash r
@@ -1736,11 +1733,13 @@ def setClipboard(t, format=1):
     format = win32con.CF_UNICODETEXT (13): as unicode
 
     """
-    #pylint:disable=W0622    
-    win32clipboard.OpenClipboard()
-    win32clipboard.EmptyClipboard()
-    win32clipboard.SetClipboardData(format, t)
-    win32clipboard.CloseClipboard()
+    #pylint:disable=W0622
+    try:
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(format, t)
+    finally:
+        win32clipboard.CloseClipboard()
 
 def checkLists(one, two):
     """returns to lists, only in first, only in second

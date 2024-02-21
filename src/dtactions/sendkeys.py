@@ -11,10 +11,7 @@ At top your module insert:
 and then in a function:
     
     :code:`sendkeys("keystrokes")`
-
-This module now adopts the Dragonfly :code:`action_key` module,
-so `"{alt+w}"` is (in the function) converted to `"a-w"` etc.
-
+    
 Optionally, you can also use sendsystemkeys, which is implmented via Dragon SendSystemKeys (via natlink.execScript)
 
 (Quintijn Hoogenboom, 2021-04-04)
@@ -27,6 +24,8 @@ def sendkeys(keys):
     """sends keystrokes via the vocola Keys extension 
    
 :code:`"{shift+right 4}"`
+
+This functions is similar to the Dragonfly `sendkeys` function, but now works via the Vocola Keys extension.
 
 Tested at bottom of this file interactively...
     """
@@ -47,8 +46,13 @@ if __name__ == "__main__":
     # sendkeys("{a 3}") #aaa
     # sendkeys("x y z ")
     # sendkeys("test, test, met komma.{home}")
-    sendkeys("{ctrl+end}{up 2}{home}{shift+end}{del}this is wrong{shift+left 5}right")
+    # try:
+    #     natlink.natConnect()
+    #     sendsystemkeys("a{win+e}b")
+    # finally:
+    #     natlink.natDisconnect()
+    
+    # sendkeys("{ctrl+end}{up 2}{home}{shift+end}{del}this is wrong{shift+left 5}right")
     # ##
 """
-
 """
