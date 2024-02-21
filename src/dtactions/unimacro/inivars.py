@@ -207,6 +207,16 @@ def getIniList(t, sep=(";", "\n")):
     the end of the string. Raises error if anything else than a
     space his met
 
+    # edge cases:
+    
+    >>> list(getIniList("''''''"))
+    ['abc']
+    >>> list(getIniList("'"))
+    ["'"]
+    
+    # single item, single quotes
+    >>> list(getIniList('a'))
+    ['a']
     >>> list(getIniList("a; c"))
     ['a', 'c']
     >>> list(getIniList("a;c"))
@@ -229,6 +239,9 @@ def getIniList(t, sep=(";", "\n")):
     l = len(t)
     state = 0
     hadQuote = ''
+    if l == 1:
+        yield t
+        return
 ##    print '---------------------------length: %s'% l
     for j in range(l):
         c = t[j]
@@ -1436,12 +1449,25 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
         ... except: pass
         >>> ini = IniVars('getint.ini')
         >>> ini.set('s', 'three', 3)
+        >>> ini.set('s', 'booltrue', 'T')
+        >>> ini.set('s', 'boolfalse', 'F')
         >>> ini.getInt('s', 'three')
         3
         >>> ini.getInt('s', 'unknown')
         0
         >>> ini.getInt('s', 'unknowndefault', 11)
         11
+        
+
+        ##Edge cases: if t T f F (bool)return 1 or 0
+        ## two error cases for less errors in practice...
+        >>> ini.getInt('s', 'booltrue')
+        ini method getInt, got "T", return 1
+        1
+        >>> ini.getInt('s', 'boolfalse')
+        ini method getInt, got "F", return 0
+        0
+        
         
         """
         try:
@@ -1456,6 +1482,12 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
                 try:
                     return int(i)
                 except ValueError as exc:
+                    if i in ('t', 'T'):
+                        print('ini method getInt, got "%s", return 1'% i)
+                        return 1
+                    if i in ('f', 'F'):
+                        print('ini method getInt, got "%s", return 0'% i)
+                        return 0
                     raise IniError('ini method getInt, value not a valid integer: %s (section: %s, key: %s)'% (section, key, i)) from exc
             else:
                 return default
@@ -1467,6 +1499,9 @@ Warning inivars: returnStrings is Obsolete, inivars only returns Unicode
 
 t, T, true, True, Waar, waar, w, W, 1 -->> True
 empty, o, f, F, False, false, Onwaar, o, none -->> False
+        
+        Errors: return False
+        
         
         """
         try:
@@ -1480,9 +1515,9 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
             return True
         if i.lower()[0] in ['f', 'o', '0']:
             return False
-        raise IniError('inivars, getBool, unexpected value: "%s" (section: %s, key: %s)'%
-                         (i, section, key))
-
+        print('inivars, getBool, unexpected value: "%s" (section: %s, key: %s), return False'% (i, section, key))
+        return False
+    
     def getFloat(self, section, key, default=0.0):
         """get a value and convert into a float
 
