@@ -29,6 +29,9 @@ def test_matchProgTitleWithDict():
     assert matchProgTitleWithDict('natspeak', 'ragonbar', child_behaves_like_top) is True
     assert matchProgTitleWithDict('natspeak', 'Dragonbar', child_behaves_like_top, matchPart=True) is True
     assert matchProgTitleWithDict('natspeak', 'ragonbar', child_behaves_like_top, matchPart=True) is False
+
+
+# test SCLIP via unimacro/unimacroactions.py direct run.
     
     
 if __name__ == "__main__":
