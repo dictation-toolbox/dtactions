@@ -18,19 +18,29 @@ from os.path import normpath, isfile, isdir, join
 import re
 from pathlib import Path
 from win32com.shell import shell, shellcon
-import platformdirs
-from natlinkcore import natlinkstatus
-status = natlinkstatus.NatlinkStatus()
+try:
+    import natlink
+    natlinkAvailable = True
+except ImportError:
+    natlinkAvailable = False
+    
+if natlinkAvailable:
+    if not natlink.isNatSpeakRunning():
+        natlinkAvailable = False
+        
+if natlinkAvailable:
+    from natlinkcore import natlinkstatus
+    status = natlinkstatus.NatlinkStatus()
+    status_dict_full = copy.copy(status.getNatlinkStatusDict())
+    
+    status_dict = {key.upper():value for (key, value) in status_dict_full.items() if os.path.isdir(value)}
+    del status_dict_full
+else:
+    status = None
+    status_dict = None
 # for extended environment variables:
 reEnv = re.compile('(%[A-Z_]+%)', re.I)
 
-# keep track of found env variables, fill, if you wish, with
-# getAllFolderEnvironmentVariables.
-# substitute back with substituteEnvVariableAtStart.
-# and substite forward with expandEnvVariableAtStart
-# in all cases a private envDict can be user, or the global dict recentEnv
-#
-# to collect all env variables, call getAllFolderEnvironmentVariables, see below
 class ExtEnvVars:
     """gives and "remembers" environment variables, with extensions
     
@@ -45,8 +55,6 @@ class ExtEnvVars:
         - several from "Libraries" (like Music, Documents), via platformdirs
         - others from "CSIDL_variables" directly
     
-    """
-
     def __init__(self):
         self.recentEnv = {}
         self.homeDir = self.getHome()        # starting at least reventEnv dict.
@@ -278,14 +286,23 @@ class ExtEnvVars:
             return result
         self.addToRecentEnv(var, result)
         return self.recentEnv[var]
-
+    else:
+        print(f'getExtendedEnv: no path found for "{var}"')
+    return None
+        
     def getDirectoryFromNatlinkstatus(self, envvar):
         """see if directory can can be retrieved from envvar
         """
+    # if natlink not available:
+    if not natlinkAvailable:
+        # print(f'natlink not available for get "{envvar}"')
+        return None
+
         # try if function in natlinkstatus:
         if not status:
             return None
         for extra in ('', 'Directory', 'Dir'):
+    for extra in ('', 'DIRECTORY', 'DIR'):
             var2 = envvar + extra
             if var2 in status.__dict__:
                 funcName = f'get{var2}'
@@ -330,7 +347,6 @@ class ExtEnvVars:
                     print('warning, CSIDL also exists for key: %s, take os.environ value: %s'% (k, v))
                 D[k] = v
         return D
-
     def substituteEnvVariableAtStart(self, filepath, envDict=None): 
         r"""try to substitute back one of the (preused) environment variables back
     
@@ -441,10 +457,7 @@ class ExtEnvVars:
 if __name__ == "__main__":
     env = ExtEnvVars()
     Vars = env.getAllFolderEnvironmentVariables()
-    for kk in sorted(Vars):
-        print('%s: %s'% (kk, Vars[kk]))
         if not isdir(Vars[kk]):
-            print('----- not a directory: %s (%s)'% (Vars[kk], kk))
     print('recemtEnv: ')
     print(env.recentEnv)
     print('='*80)
@@ -452,13 +465,13 @@ if __name__ == "__main__":
 
     print('testing       expandEnvVariableAtStart')
     print('also see expandEnvVar in natlinkstatus!!')
-    for p in ("D:\\natlink\\unimacro", "~/unimacroqh",
+    for p in ("~", "%home%", "D:\\natlink\\unimacro", "~/unimacroqh",
               "%HOME%/personal",
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = env.expandEnvVariableAtStart(p)
         print('expandEnvVariablesAtStart: %s: %s'% (p, expanded))
     print('testing       expandEnvVariables')  
-    for p in ("%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%", "%NATLINK%\\unimacro", "%UNIMACROUSER%",
+    for p in ("%NATLINK%\\unimacro", "%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%", "%UNIMACROUSER%",
               "%HOME%/personal", "%HOME%", "%personal%"
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = env.expandEnvVariables(p)
