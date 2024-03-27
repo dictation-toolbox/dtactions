@@ -15,9 +15,11 @@ Keep track of environment variables, including added "fake" variables like DROPB
 """
 import os
 from os.path import normpath, isfile, isdir, join
+import copy
 import re
 from pathlib import Path
 from win32com.shell import shell, shellcon
+import platformdirs
 try:
     import natlink
     natlinkAvailable = True
@@ -54,6 +56,7 @@ class ExtEnvVars:
     Libraries, that are returned from a getFolderFromActiveWindow (_folders grammar of unimacro):
         - several from "Libraries" (like Music, Documents), via platformdirs
         - others from "CSIDL_variables" directly
+    """
     
     def __init__(self):
         self.recentEnv = {}
@@ -286,23 +289,19 @@ class ExtEnvVars:
             return result
         self.addToRecentEnv(var, result)
         return self.recentEnv[var]
-    else:
-        print(f'getExtendedEnv: no path found for "{var}"')
-    return None
-        
+
     def getDirectoryFromNatlinkstatus(self, envvar):
         """see if directory can can be retrieved from envvar
         """
-    # if natlink not available:
-    if not natlinkAvailable:
-        # print(f'natlink not available for get "{envvar}"')
-        return None
-
+        # if natlink not available:
+        if not natlinkAvailable:
+            # print(f'natlink not available for get "{envvar}"')
+            return None
+    
         # try if function in natlinkstatus:
         if not status:
             return None
         for extra in ('', 'Directory', 'Dir'):
-    for extra in ('', 'DIRECTORY', 'DIR'):
             var2 = envvar + extra
             if var2 in status.__dict__:
                 funcName = f'get{var2}'
@@ -319,7 +318,7 @@ class ExtEnvVars:
         """
         self.recentEnv.clear()
     
-    def getAllFolderEnvironmentVariables(self):
+    def getAllFolderEnvironmentVariables(self, displayMessage=False):
         """return, as a dict, all the os.environ AND all CSLID variables that result into a folder
         
         Now also implemented:  Also include NATLINK, UNIMACRO, VOICECODE, DRAGONFLY, VOCOLAUSERDIR, UNIMACROUSERDIR
@@ -334,7 +333,7 @@ class ExtEnvVars:
             if k.startswith("CSIDL_"):
                 kStripped = k[6:]
                 try:
-                    v =self.getExtendedEnv(kStripped, noCache=True)    ## displayMessage=False)
+                    v =self.getExtendedEnv(kStripped, noCache=True, displayMessage=displayMessage)    ## displayMessage=False)
                 except ValueError:
                     continue
                 if len(str(v)) > 2 and isdir(v):
@@ -457,7 +456,6 @@ class ExtEnvVars:
 if __name__ == "__main__":
     env = ExtEnvVars()
     Vars = env.getAllFolderEnvironmentVariables()
-        if not isdir(Vars[kk]):
     print('recemtEnv: ')
     print(env.recentEnv)
     print('='*80)
