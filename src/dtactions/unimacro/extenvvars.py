@@ -278,7 +278,7 @@ class ExtEnvVars:
             # on some systems have SYSTEMROOT instead of SYSTEM:
             if var == 'SYSTEM':
                 return self.getExtendedEnv('SYSTEMROOT')
-            # raise ValueError('getExtendedEnv, cannot find in os.environ or CSIDL: "%s"'% var2)
+            return ''
         try:
             result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
         except:
@@ -462,16 +462,21 @@ if __name__ == "__main__":
     
 
     print('testing       expandEnvVariableAtStart')
-    print('also see expandEnvVar in natlinkstatus!!')
+    print('also see expandEnvVar in natlinkstatus!! and test_extenvvars.py in dtactions/test')
     for p in ("~", "%home%", "D:\\natlink\\unimacro", "~/unimacroqh",
               "%HOME%/personal",
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = env.expandEnvVariableAtStart(p)
         print('expandEnvVariablesAtStart: %s: %s'% (p, expanded))
+        
     print('testing       expandEnvVariables')  
-    for p in ("%NATLINK%\\unimacro", "%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%", "%UNIMACROUSER%",
-              "%HOME%/personal", "%HOME%", "%personal%"
+    p = "%UNIMACROUSER%"
+    expanded = env.expandEnvVariables(p)
+
+
+    for p in ("%NATLINK%\\unimacro", "%DROPBOX%/QuintijnHerold/jachthutten", "D:\\%username%",  "%UNIMACROUSER%", "%HOME%/personal", "%HOME%", "%personal%"
               "%WINDOWS%\\folder\\strange testfolder"):
         expanded = env.expandEnvVariables(p)
         print('expandEnvVariables: %s: %s'% (p, expanded))
+
 
