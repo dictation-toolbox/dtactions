@@ -456,7 +456,7 @@ class ExtEnvVars:
 if __name__ == "__main__":
     env = ExtEnvVars()
     Vars = env.getAllFolderEnvironmentVariables()
-    print('recemtEnv: ')
+    print('recentEnv: ')
     print(env.recentEnv)
     print('='*80)
     
