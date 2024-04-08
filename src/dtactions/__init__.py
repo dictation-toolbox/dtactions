@@ -41,7 +41,7 @@ status.getDtactionsUserDirectory()
 
 """
 ## version to be updated when a new release is sent to pypi:
-__version__ = '1.5.7'     # streamlining __init__ a bit oct 23
+__version__ = '1.6.1'     # new middle number with extenvvar.py and requirement of natlink, april 24
 ##----------------------
 import sys
 import os
