@@ -2,70 +2,11 @@
    in python3 also the path module as subclass of the standard path class
 """
 #pylint:disable=C0116, C0302,  W0613, R0912, R0914, R0915, R0911, W0702
-import sys
 import unicodedata
 import os
 import re
-import traceback
 import collections
-import time
 from pathlib import Path
-
-# skip the string.maketrans business, ook de fixwordquotes
-# _allchars = string.maketrans('', '')
-# ## string translator functions:
-# def translator(frm=b'', to=b'', delete=b'', keep=None):
-#     """closure function to implement the string.translate functie
-#     python cookbook (2), ch 1 recipe 9
-# obsolete, test for doctest unicode functions...
-# 
-# # functions below, see also testUtilsqh.py in unittest.
-# >>> fixwordquotes(b'\x91aa\x92')
-# b"'aa'"
-# >>> fixwordquotes(b'\x93bb\x94')
-# b'"bb"'
-# 
-# ## do these via unicode:
-# >>> normalizeaccentedchars('d\\u00e9sir\\u00e9 //\u00ddf..# -..e.')
-# 'desire //Yf..# -..e.'
-# 
-# # this one should go before normalizeaccentedchars
-# #(and after splitting of the extension and folder parts)
-# >>> fixdotslash('abc/-.def this is no extension.')
-# 'abc_-_def this is no extension_'
-# 
-# ## do via unicode:
-# ## normalise a inivars key (or section)
-# >>> fixinivarskey('abcd')
-# 'abcd'
-# >>> fixinivarskey("abcd e'f  g")
-# 'abcd e_f g'
-# >>> fixinivarskey("##$$abcd)e'f  g*")
-# 'abcd_e_f g'
-# """
-#     if len(to) == 1:
-#         to = to * len(frm)
-#     trans = string.maketrans(frm, to)
-#     if keep is not None:
-#         delete = _allchars.translate(_allchars, keep.translate(_allchars, delete))
-#     def translate(s):
-#         return s.translate(trans)
-#     return translate
-# 
-# fixwordquotes = translator(b'\x91\x92\x93\x94\x95\x96', b"''\"\"  ")
-
-###removenoncharacters = translator('
-# def fixinivarskey(s):
-#     """remove all non letters to underscore, remove leading underscore
-#     remove double spaces
-#     """
-#     if isinstance(s, str):
-#         s = str(s)
-#     t = translate_non_alphanumerics(s)
-#     t = t.strip("_ ")
-#     while '  ' in t:
-#         t = t.replace('  ', ' ')
-#     return t
     
 def unifyaccentedchars(to_translate):
     """change acuted characters with combining code to single characters
@@ -148,71 +89,12 @@ def doubleaccentedchars(to_translate):
                     # print("c cedilla, but NO C, ignore (%s)"% to_translate)
                     pass
             else:
-                print('(yet) unknown combining char %s in "%s", ignore'% (comb, to_translate))
+                print(f'(yet) unknown combining char {comb} in "{to_translate}", ignore')
             last = ""
         else:
             shaved.append(c)
             last = c
     return ''.join(shaved)
-    # shaved = ''.join(c for c in norm_txt if not unicodedata.combining(c))
-    # return shaved
-    
-# def convertToBinary(unicodeString, encoding=None):
-#     """convert a str (unicodeString) to bytes
-#     
-#     encode encoding (list of strings or string).
-#     when encoding is None: take ['ascii', 'cp1252', 'latin-1']
-#     
-# ## \u0041 is A
-# ##unichr(233) or \u00e9 is e accent acute
-#     
-# # >>> t = '\u0041-xyz-' + unichr(233) + '-abc-'
-# >>> t = '\u0041-xyz-\u00e9-abc-'
-# >>> convertToBinary(t)
-# b'A-xyz-\\xe9-abc-'
-# >>> convertToBinary(t+'ascii', 'ascii')
-# convertToBinary, cannot convert to printable string with encoding: ['ascii']
-# return with "?": b'A-xyz-?-abc-ascii'
-# b'A-xyz-?-abc-ascii'
-# >>> convertToBinary(t+'cp1252', 'cp1252')
-# b'A-xyz-\\xe9-abc-cp1252'
-# >>> byteslatin1 = convertToBinary(t+'latin-1', 'latin-1')
-# >>> byteslatin1
-# b'A-xyz-\\xe9-abc-latin-1'
-# >>> bytesutf8 = convertToBinary(t+'utf-8', 'utf-8')
-# >>> bytesutf8
-# b'A-xyz-\\xc3\\xa9-abc-utf-8'
-# >>> convertToBinary(t+'ascii + cp1252', ['ascii', 'cp1252'])
-# b'A-xyz-\\xe9-abc-ascii + cp1252'
-# >>> convertToBinary(convertToBinary(t+'double convert'))
-# b'A-xyz-\\xe9-abc-double convert'
-# >>> convertToBinary(byteslatin1)
-# b'A-xyz-\\xe9-abc-latin-1'
-# >>> convertToBinary(bytesutf8)
-# b'A-xyz-\\xe9-abc-utf-8'
-# 
-# ## \x92 (PU2) is from cp1252 (windows convention): 
-# >>> convertToBinary('fondationnimba rapportsd\x92archive index.html')
-# b'fondationnimba rapportsd\\x92archive index.html'
-#     """
-#     # a binary string can hold accented characters:
-#     if type(unicodeString) == bytes:
-#         unicodeString = convertToUnicode(unicodeString)
-#     if encoding is None:
-#         encoding = ['ascii', 'cp1252', 'latin-1']
-#     elif encoding and type(encoding) in (str, bytes):
-#         encoding = [encoding]
-#     res = ''
-#     for enc in encoding:
-#         try:
-#             res = unicodeString.encode(enc)
-#             break
-#         except UnicodeEncodeError:
-#             pass
-#     else:
-#         res = unicodeString.encode('ascii', 'replace')
-#         print('convertToBinary, cannot convert to printable string with encoding: %s\nreturn with "?": %s'% (encoding, res))
-#     return res
 
 class peek_ahead:
     """ An iterator that supports a peek operation.
@@ -403,6 +285,7 @@ class peek_ahead:
     def next(self,n=None):
         """python2 compatibility
         """
+        #pylint:disable=C2801
         return self.__next__(n)
     
     def isFirst(self):
@@ -477,34 +360,6 @@ class peek_ahead_stripped(peek_ahead):
                 Next = self.sentinel
             self._cache.append(Next)
      
-
-def isSubList(largerList, smallerList):
-    """returns 1 if smallerList is a sub list of largerList
-
->>> isSubList([1,2,4,3,2,3], [2,3])
-True
->>> isSubList([1,2,3,2,2,2,2], [2])
-True
->>> isSubList([1,2,3,2], [2,4])
-False
-    """
-    if not smallerList:
-        raise ValueError("isSubList: smallerList is empty: %s"% smallerList)
-    item0 = smallerList[0]
-    lenSmaller = len(smallerList)
-    lenLarger = len(largerList)
-    if lenSmaller > lenLarger:
-        return False  # can not be sublist
-    # get possible relevant indexes for first item
-    indexes0 = [i for (i,item) in enumerate(largerList) if item == item0 and i <= lenLarger-lenSmaller]
-    if not indexes0:
-        return False
-    for start in indexes0:
-        _slice = largerList[start:start+lenSmaller]
-        if _slice == smallerList:
-            return True
-    return False
-
 # helper string functions:
 def replaceExt(fileName, ext):
     """change extension of file
@@ -532,37 +387,7 @@ def getExt(fileName):
 ''
     """
     _a, ext = os.path.splitext(fileName)
-    return str(ext)
-
-def fileHasImageExtension(fileName):
-    """return True if fileName has extension .jpg, .jpeg or .png
->>> fileHasImageExtension(u"a.JPG")
-True
->>> fileHasImageExtension(u"yyy.JPEG")
-True
->>> fileHasImageExtension(u"C:/a/b/d/e/xxx.png")
-True
->>> fileHasImageExtension(u"a.txt")
-False
-
-    """
-    ext = getExt(fileName)
-    if not ext:
-        return None
-    return ext.lower() in [".jpg", ".jpeg", ".png"]
-
-def fileHasJpgExtension(fileName):
-    """return True if fileName has extension .jpg, .jpeg
->>> fileHasJpgExtension(u"a.JPG")
-True
->>> fileHasJpgExtension(u"yyy.PNG")
-False
-
-    """
-    ext = getExt(fileName)
-    if not ext:
-        return None
-    return ext.lower() in [".jpg", ".jpeg"]
+    return ext
 
 def removeFromStart(text, toRemove, ignoreCase=None):
     """returns the text with "toRemove" stripped from the start if it matches
@@ -589,6 +414,7 @@ working of ignoreCase:
     if text2.startswith(toRemove):
         return text[len(toRemove):]
     return text
+
 
 def removeFromEnd(text, toRemove, ignoreCase=None):
     """returns the text with "toRemove" stripped from the end if it matches
@@ -711,76 +537,8 @@ def appendBeforeExt(text, toAppend):
     base, ext = os.path.splitext(text)
     return base + toAppend + ext
 
-def getBaseFolder(globalsDict):
-    """get in a module the folder of this module.
-
-    either sys.argv[0] (when run direct) or
-    __file__, which can be empty. In that case take the working directory
-    """
-    baseFolder = ""
-    if globalsDict['__name__']  == "__main__":
-        baseFolder = os.path.split(sys.argv[0])[0]
-        print('baseFolder from argv: %s'% baseFolder)
-    elif globalsDict['__file__']:
-        baseFolder = os.path.split(globalsDict['__file__'])[0]
-        print('baseFolder from __file__: %s'% baseFolder)
-    if not baseFolder or baseFolder == '.':
-        baseFolder = os.getcwd()
-    return baseFolder
-
 Classes = ('ExploreWClass', 'CabinetWClass')
 
-
-def partition_range(max_range):
-    """partition for milla website in lengths of 3 or 4
-    
->>> partition_range(3)
-[[0], [1], [2]]
->>> partition_range(5)
-[[0], [1], [2], [3, 4]]
->>> partition_range(8)
-[[0, 1], [2, 3], [4, 5], [6, 7]]
->>> partition_range(12)
-[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
-
-    """
-    lst = list(range(max_range))
-    if max_range <= 4:
-        return [[i] for i in lst]
-    if max_range == 5:
-        L = [[i] for i in range(4)]
-        L[3].append(4)
-        return L
-    if max_range == 6:
-        return [[0, 1], [2, 3], [4, 5]]
-    if max_range == 7:
-        return [[0], [1, 2], [3, 4], [5, 6]]
-    if max_range == 8:
-        return [[0, 1], [2, 3], [4, 5], [6, 7]]
-    return [lst] # alle images achter elkaar, scrollen afhankelijk van de browser
-    
-
-
-
-        
-
-def unravelList(menu):
-    """unravel from menu list to dropdown list order
-    
->>> unravelList([1, [2, [3, 4, 5], 6], 7, 8])
-[[1, 7, 8], [2, 6], [3, 4, 5]]
-
-    """
-    L, M = [], None
-    for elt in menu:
-        if isinstance(elt, list):
-            M = unravelList(elt)
-        else:
-            L.append(elt)
-    if M and isinstance(M, list):
-        M.insert(0, L)
-        return M
-    return [L]
 
 ## to pathqh:
 # # def toUnixName(t, glueChar="", lowercase=1, canHaveExtension=1, canHaveFolders=1, mayBeEmpty=False):
@@ -809,188 +567,6 @@ def _sendkeys_escape(s):
     else:
         result = s
     return str(result)
-
-def print_exc_plus(filename=None, skiptypes=None, takemodules=None,
-                   specials=None):
-    """ Print the usual traceback information, followed by a listing of
-    all the local variables in each frame.
-    
-    
-    """
-    #print('specials:', specials')
-    # normal traceback:
-    traceback.print_exc()
-    tb = sys.exc_info()[2]
-    while tb.tb_next:
-        tb = tb.tb_next
-    stack = []
-    f = tb.tb_frame
-    while f:
-        stack.append(f)
-        f = f.f_back
-    stack.reverse()
-    traceback.print_exc()
-    L = []
-    # keys that are in specialsSitegen are recorded in next array:
-    specialsDict = {}
-    push = L.append
-
-    push('traceback date/time: %s'% time.asctime(time.localtime(time.time())))
-    pagename = ''
-    menuname = ''
-    for frame in stack:
-        if takemodules and not [_f for _f in [frame.f_code.co_filename.find(t) > 0 for t in takemodules] if _f]:
-            continue
-        functionname = frame.f_code.co_name
-        push('\nFrame "%s" in %s at line %s' % (frame.f_code.co_name,
-                                frame.f_code.co_filename,
-                                frame.f_lineno))
-        keys = []
-        values = []
-        for key, value in list(frame.f_locals.items()):
-            if key[0:2] == '__':
-                continue
-            try:
-                v = repr(value)
-            except:
-                continue
-            if skiptypes and [_f for _f in [v.find(s) == 1 for s in skiptypes] if _f]:
-                continue
-            keys.append(key)
-            if functionname == 'go' and key == 'self':
-                if v.find('Menu instance') > 0:
-                    menuname = value.name
-                    push('menu name: %s'% menuname)
-            if functionname == 'makePage' and key == 'self':
-                if v.find('Page instance') > 0:
-                    pagename = value.name
-                    push('page name: %s'% pagename)
-
-            # we must _absolutely_ avoid propagating exceptions, and value
-            # COULD cause any exception, so we MUST catch any...:
-            v = v.replace('\n', '|')
-            values.append(v)
-        if keys:
-            maxlenkeys = max(15, max(list(map(len, keys))))
-            allowedlength = 80-maxlenkeys
-            kv = list(zip(keys, values))
-            kv.sort()
-            for k,v in kv:
-                if v.startswith('<built-in method'):
-                    continue
-                if len(v) > allowedlength:
-                    half = allowedlength//2
-                    v = v[:half] + " ... " + v[-half:]
-                push(k.rjust(maxlenkeys) + " = " + v)
-    if specials:
-        stack.reverse()
-        for frame in stack:
-            if 'self' in frame.f_locals:
-                push('\ncontents of self (%s)'% repr(frame.f_locals['self']))
-                inst = frame.f_locals['self']
-                keys, values = [], []
-                for key in dir(inst):
-                    value = getattr(inst, key)
-                    if key[0:2] == '__':
-                        continue
-                    try:
-                        v = repr(value)
-                    except:
-                        continue
-                    if skiptypes and [_f for _f in [v.find(s) == 1 for s in skiptypes] if _f]:
-                        continue
-                    # specials for eg sitegen
-                    if specials and key in specials:
-                        #print('found specialskey: %s: %s'% (key, v)')
-                        specialsDict[key] = v
-                    keys.append(key)
-                    # we must _absolutely_ avoid propagating exceptions, and value
-                    # COULD cause any exception, so we MUST catch any...:
-                    v = v.replace('\n', '|')
-                    values.append(v)
-                if not keys:
-                    break
-                maxlenkeys = max(15, max(list(map(len, keys))))
-                allowedlength = 80-maxlenkeys
-                for k,v in zip(keys, values):
-                    if v and len(v) > allowedlength:
-                        half = allowedlength//2
-                        v = v[:half] + " ... " + v[-half:]
-                    push(k.rjust(maxlenkeys) + " = " + str(v))
-                break
-            print('no self of HTMLDoc found')
-
-    callback = []
-
-    if menuname:
-        push('menu: %s'% menuname)
-        callback.append('menu: %s'% menuname)
-    elif pagename == 'index':
-        push('menu: top')
-        callback.append('menu: top')
-        
-    if pagename:
-        push('page: %s'% pagename)
-        callback.append('page: %s'% pagename)
-    push('\ntype: %s, value: %s\n'% (sys.exc_info()[0], sys.exc_info()[1]))
-    callback.append('error: %s'%sys.exc_info()[1])
-
-    print('\nerror occurred:')
-    callback = '\n'.join(callback)
-    print(callback)
-
-    sys.stderr.write('\n'.join(L))
-    sys.stderr.write(callback)
-    if filename:
-        print("skip writing to file %s"% filename)
-        # with open(filename, 'w') as fout:
-        #     fout.write("\n".join(L))
-        #     print("written traceback in %s"% filename)    
-    #print('result specialsDict: %s'% specialsDict')
-    return callback, specialsDict
-
-def cleanTraceback(tb, filesToSkip=None):
-    """strip boilerplate in traceback (unittest)
-
-    the purpose is to skip the lines "Traceback" (only if filesToSkip == True),
-    and to skip traceback lines from modules that are in filesToSkip.
-
-    in use with unimacro unittest and voicecode unittesting.
-
-    filesToSkip are (can be "unittest.py" and "TestCaseWithHelpers.py"
-
-    """
-    L = tb.split('\n')
-    snip = "  ..." # leaving a sign of the stripping!
-    if filesToSkip:
-        singleLineSkipping = ["Traceback (most recent call last):"]
-    else:
-        singleLineSkipping = None
-    M = []
-    skipNext = 0
-    for line in L:
-        # skip the traceback line:
-        if singleLineSkipping and line in singleLineSkipping:
-            continue
-        # skip trace lines from one one the filesToSkip and the next one
-        # UNLESS there are no leading spaces, in case we hit on the error line itself.
-        if skipNext and line.startswith(" "):
-            skipNext = 0
-            continue
-        if filesToSkip:
-            for f in filesToSkip:
-                if line.find(f + '", line') >= 0:
-                    skipNext = 1
-                    if M and  M[-1] == snip:
-                        pass
-                    else:
-                        M.append(snip)
-                    break
-            else:
-                skipNext = 0
-                M.append(line)
-
-    return '\n'.join(M)
 
 def getSublists(L, maxLen, sepLen):
     """generator function, that gives pieces of the list, up to
@@ -1207,8 +783,8 @@ def _convertToPythonArg(t):
         if t == '0':
             return 0
         if t.startswith('0'):
-            print('warning convertToPythonArg, could be int, but assume string: %s'% t)
-            return '%s'% t
+            print(f'warning convertToPythonArg, could be int, but assume string: {t}')
+            return str(t)
         return i
     except ValueError:
         pass
@@ -1216,8 +792,8 @@ def _convertToPythonArg(t):
         f = float(t)
         if t.find(".") >= 0:
             return f
-        print('warning convertToPythonArg, can be float, but assume string: %s'% t)
-        return '%s'% t
+        print(f'warning convertToPythonArg, can be float, but assume string: {t}')
+        return str(t)
     except ValueError:
         pass
 

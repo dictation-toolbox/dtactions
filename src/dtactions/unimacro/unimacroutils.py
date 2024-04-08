@@ -11,7 +11,7 @@
 Previous this was natlinkutilsqh.py in unimacro
 
 """
-#pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613, C0209, W0602
+#pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613, C0209, W0602, W0621, R1715, W0702
 #pylint:disable=E1101
 import time
 import re
@@ -810,14 +810,14 @@ def catchClick(mouse):
 def buttonClick(button='left', nclick=1, modifiers=None):
     """do a natspeak buttonclick, but release mouse first if necessary
     """
-    # make button numeric:
+     # make button numeric:
     buttons = {'left':1, 'right':2, 'middle':4}
     if button in buttons:
-       button = buttons[button]
+        button = buttons[button]
     if button not in [1, 2, 4]:
-       raise UnimacroError('buttonClick invalid button: %s'% button)
+        raise UnimacroError('buttonClick invalid button: %s'% button)
     if nclick not in [1,2]:
-       raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
+        raise UnimacroError('buttonClick invalid number of clicks: %s'% nclick)
     if mouseState:
         releaseMouse()
         
@@ -1701,7 +1701,7 @@ def restoreClipboard():
         win32clipboard.CloseClipboard()
 
 def getClipboard():
-    """get clipboard through natlink, and strips off backslash r
+    """get clipboard through natlink, and strips off backslash r   
 
     """
     #pylint:disable=W0702       
@@ -1714,7 +1714,7 @@ def getClipboard():
                 # print ' at try', i
                 break
         except:
-            print('getClipboard, got no text')
+            print('getClipboard, but apparently empty')
             shortWait()
         else:
             break
@@ -1738,6 +1738,8 @@ def setClipboard(t, format=1):
         win32clipboard.OpenClipboard()
         win32clipboard.EmptyClipboard()
         win32clipboard.SetClipboardData(format, t)
+    except:
+        print(f'exception in unimacroutils/setClipboard of "{t}"')
     finally:
         win32clipboard.CloseClipboard()
 
