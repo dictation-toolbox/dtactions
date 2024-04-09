@@ -18,7 +18,9 @@ from os.path import normpath, isfile, isdir, join
 import copy
 import re
 from pathlib import Path
-from win32com.shell import shell, shellcon
+from win32com.shell import shellcon
+import ctypes
+
 import platformdirs
 try:
     import natlink
@@ -280,7 +282,9 @@ class ExtEnvVars:
                 return self.getExtendedEnv('SYSTEMROOT')
             return ''
         try:
-            result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
+            # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
+            result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
+            print(f'result: {result}')
         except:
             if displayMessage:
                 print('getExtendedEnv, cannot find in os.environ or CSIDL: "%s"'% var)
