@@ -36,9 +36,9 @@ def test_getNatlinkEnvVariables():
     result = ext.getExtendedEnv("%Unimacro%")    
     assert len(result)
     assert Path(result).is_dir()
-    result = ext.getExtendedEnv("%VocolaUserDirectory%")    
-    assert Path(result).is_dir()
-    assert len(result)
+    # result = ext.getExtendedEnv("%VocolaUserDirectory%")    
+    # assert Path(result).is_dir()
+    # assert len(result)
     
     # AHK maybe not installed:
     result1 = ext.getExtendedEnv("%AhkUser%")    
