@@ -17,8 +17,10 @@ import os
 from os.path import normpath, isfile, isdir, join
 import copy
 import re
+import ctypes
 from pathlib import Path
-from win32com.shell import shell, shellcon
+from win32com.shell import shellcon
+
 import platformdirs
 try:
     import natlink
@@ -118,6 +120,32 @@ class ExtEnvVars:
             return platformdirs.windows.get_win_folder("CSIDL_COMMON_APPDATA")
         if name in ['LOCAL_APPDATA']:
             return platformdirs.windows.get_win_folder("CSIDL_LOCAL_APPDATA")
+
+        # # General case, try via shellcon! TODO: QH
+        # try:
+        #     CSIDL_variable =  'CSIDL_%s'% name
+        #     shellnumber = getattr(shellcon,CSIDL_variable, -1)
+        #     print(f'getFolderFromLibraryName, shellnumber of "{CSIDL_variable}": {shellnumber}')
+        # except:
+        #     print('getExtendedEnv, cannot find CSIDL_variable for: "%s"'% name)
+        #     return ''
+        # if shellnumber < 0:
+        #     # on some systems have SYSTEMROOT instead of SYSTEM:
+        #     print('getExtendedEnv, cannot find CSIDL_variable for (returns -1): "%s"'% name)
+        # try:
+        #     csidl_const = shellnumber
+        #     # copied from platformdirs/windows.py:
+        #     buf = ctypes.create_unicode_buffer(1024)
+        #     windll = getattr(ctypes, "windll")  # noqa: B009 # using getattr to avoid false positive with mypy type checker
+        #     windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
+        #     result = buf.value
+        #     # # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
+        #     # result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
+        #     print(f'result from SHGetFolderPathW: {result}')
+        # except:
+        #     print('getFolderFromLibraryName, cannot path for CSIDL: "%s"'% name)
+        #     return ''
+
         
         ## extra cases:
         # if name in ['Quick access', 'Snelle toegang']:
@@ -280,7 +308,15 @@ class ExtEnvVars:
                 return self.getExtendedEnv('SYSTEMROOT')
             return ''
         try:
-            result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
+            csidl_const = shellnumber
+            # copied from platformdirs/windows.py:
+            buf = ctypes.create_unicode_buffer(1024)
+            windll = getattr(ctypes, "windll")  # noqa: B009 # using getattr to avoid false positive with mypy type checker
+            windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
+            result = buf.value
+            # # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
+            # result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
+            print(f'result from SHGetFolderPathW: {result}')
         except:
             if displayMessage:
                 print('getExtendedEnv, cannot find in os.environ or CSIDL: "%s"'% var)

@@ -1132,7 +1132,6 @@ def do_SCLIP(*s, **kw):
     #    for i, t in enumerate(s):
     #        print "SCLIP:", i, t
     total = total.replace("{enter}", "\n")
-    # print 'SCLIP: %s type: %s'% (total, type(total))
     unimacroutils.setClipboard(total, format=13)
     unimacroutils.Wait()
     #print 'send through clipboard: %s'% total5N
@@ -2310,9 +2309,12 @@ def try_SCLIP():
     ''' try by running this script, ensure cursor is on a safe place (bottom, or here after a #
     '''
     do_SCLIP('hello')
-    do_SCLIP('9123456789')
+    print('try first number:')
+    do_SCLIP('9123454321')
     # now comes the error:
+    print('try second number:')
     do_SCLIP('123456789')
+    print('ready')
 
 
 if __name__ == '__main__':
