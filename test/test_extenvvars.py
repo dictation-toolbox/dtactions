@@ -61,7 +61,6 @@ def test_otherEnvVariables():
     assert len(result) > 0
     assert isdir(result)
     
-    
 def test_windows_Library_dirs():
     """most of them with platformdirs.windows, some special treatment.
     
