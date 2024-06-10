@@ -1,0 +1,503 @@
+###
+### Wrapper functions for calling Unimacro shorthand actions
+###
+### WARNING!  WARNING!  WARNING!  
+###
+###     This file (Unimacro.vch) is automatically updated at start up,
+### overwriting any changes you may have made.  This is to ensure that
+### it correctly corresponds to the current version of Unimacro you
+### are running.
+### 
+
+###########################################################################
+#                                                                         #
+# Pressing keys/typing/producing characters:                              #
+#                                                                         #
+###########################################################################
+
+## 
+## Pressing the Windows modifier key.
+## Examples:
+##
+##   WINKEY(e)    opens an Explorer window
+##   WINKEY(b)    moves focus to the icon tray
+##
+##   WINKEY0()    just opens the start menu
+## 
+
+WINKEY(key) := Unimacro("WINKEY $key");
+WINKEY0()   := Unimacro("WINKEY");
+
+## 
+## Typing ASCII characters by their decimal character number.
+## 
+## Examples:
+## 
+##   A(65)  types "B"
+##   A(10)  types a newline ({ctrl+j})
+## 
+
+A(n) := Unimacro("A $n");
+
+
+## 
+## Entering (really pasting) Unicode characters into an application.
+## 
+## First puts the given character on the clipboard and then tries to
+## paste it into the current application via {ctrl+v}.  Attempts to
+## not disturb the clipboard by saving it beforehand and restoring it
+## afterwards.
+## 
+## Examples:
+## 
+##   U(Delta) paste a Greek letter Delta
+##   U(916)   same (decimal 916 is the Unicode number for the above letter)
+##   U(040a)  same, but specified in hexadecimal (0x040a == 916)
+##
+
+U(char) := Unimacro("U $char");
+
+
+## 
+## Type the current date in the format "<day>/<month>"
+## 
+
+DATE() := Unimacro("DATE");
+
+##
+## DATE1 with format option:
+## format may be 0 (default %d/%m meaning "<day>/<month>", but also:
+##              %B %d "<long month day"> (default for what == speak or
+##              %m-%d-%Y "<month> <day> <long year>" etc.
+DATE1(format) := Unimacro("DATE $format");
+##
+## DATE2 with format option AND what option:
+## format may be 0 or different, see above
+## what can be 
+##   print  (on the screen)
+##   speak  (with ttsplaystring)
+DATE2(format, what) := Unimacro("DATE $format, $what");
+
+## 
+## Type the current time in the format "<hour>:<minute>"
+## 
+
+TIME() := Unimacro("TIME");
+
+##
+## TIME1 with format option:
+## format may be 0 (default %H:%M meaning "hour:minute")
+## or a string, eg --%M %H--  (reversing the order and putting in a space and hyphens around)
+##
+TIME1(format) := Unimacro("TIME $format");
+##
+## TIME2 with format option AND what option:
+## format may be 0 or different, see above
+## what can be 
+##   print  (on the screen)
+##   speak  (with ttsplaystring)
+TIME2(format, what) := Unimacro("TIME $format, $what");
+
+## speaking something through TTSPlayString
+SPEAK(text) := Unimacro("SPEAK $text");
+
+## printing to Messages of Python Macros window:
+PRINT(text) := Unimacro("PRINT $text");
+
+##
+## Shortcut name for SendSystemKeys($keys):
+## and for simple SendKeys, temporarily with {shift} in front as workaround for Frank Olaf
+##
+## Currently, $keys may not contain a ";".
+##
+S(keys) := Unimacro("S $keys");
+SSK(keys) := Unimacro("SSK $keys");
+
+
+
+###########################################################################
+#                                                                         #
+# Waiting:                                                                #
+#                                                                         #
+###########################################################################
+
+## 
+## Waiting for a given number of seconds:
+##
+##   Equivalent to recent versions of Dragon NaturallySpeaking's
+##   Wait(seconds) command.  Note that Vocola's Wait command takes
+##   milliseconds, not seconds to be compatible with earlier versions
+##   of Dragon NaturallySpeaking.
+## 
+## If the wait time equals or exceeds five seconds, a warning message
+## ("warning, long waiting time: <time>") is printed to the Messages
+## from Python Macros window.
+## 
+
+  # both of these commands do the same thing:
+W1(seconds) := Unimacro("W $seconds");
+WW(seconds) := Unimacro("W $seconds");
+
+
+## 
+## Predetermined waits:
+## 
+
+  # wait for 0.1 seconds:
+W()  := Unimacro("W");
+
+  # wait for a short time (0.3 seconds):
+SW() := Unimacro("SW");
+
+  # wait for a longer time (1 second):
+LW() := Unimacro("LW");
+
+
+## 
+## Wait for a noticeable time (0.3 seconds), so the user can see things
+## happening.
+##
+## For example, one might use this after highlighting a selection and
+## before cutting it.
+##
+
+VW() := Unimacro("VW");
+
+
+## 
+## Wait for the active window's title to change to text containing a
+## specified string (case sensitive).  Returns immediately if this
+## condition is already met.
+## 
+## (This can happen by either the application changing its window's title,
+## or by which window is currently active changing.)
+## 
+## Times out after 2.5 seconds.  Time out does *not* stop execution of
+## the rest of the calling Vocola command.  Flashes a red W in the
+## icon tray while waiting.
+## 
+## Currently, $text may not contain a ";".
+## 
+WWT(text) := Unimacro("WWT $text");
+
+
+## 
+## Wait for the active window to become different from the window last
+## remembered by the RW() action.  Returns immediately if this
+## condition is already met.
+## 
+## Times out after 2.5 seconds.  Time out does *not* stop execution of
+## the rest of the calling Vocola command.  Flashes a red W in the
+## icon tray while waiting.
+## 
+## Example: the {ctrl+o} command in IE 7 takes varying amounts of time
+##          to open a dialog box:
+## 
+##   OpenURL(url) := RW() {ctrl+o} WTC() $url {enter};
+## 
+
+WTC()       := Unimacro("WTC"); 
+
+  # same but timeout is $units * 0.05 seconds:
+WTC1(units) := Unimacro("WTC $units"); 
+
+
+
+###########################################################################
+#                                                                         #
+# Mouse commands:                                                         #
+#                                                                         #
+###########################################################################
+
+## 
+## Determining mouse positions for use in Unimacro actions:
+## 
+##       These actions print in the "Messages from Python Macros" window
+##   the correct actions to move the mouse back to its current position.
+## 
+##       Several different versions are printed, depending on what part
+##   of the screen (e.g., the entire screen, the entire active window,
+##   or just the client area (excludes the title bar, etc.) of the
+##   active window) the positioning is being done in.
+## 
+
+  # absolute positioning from top left for MP(-) action:
+PMP()   := Unimacro("PMP");
+
+  # relative positioning from top right for RMP(-) action:
+PRMP()  := Unimacro("PRMP");
+
+
+  # absolute positioning from all 4 corners for MP(-) action:
+PMP1()  := Unimacro("PMP 1");
+
+  # relative positioning from all 4 corners for RMP(-) action:
+PRMP1() := Unimacro("PRMP 1");
+
+
+  # all of the above:
+PALLMP() := Unimacro("PALLMP");
+
+
+## 
+## Moving and then (optionally) clicking the mouse:
+## 
+## $area determines what part of the screen the positioning is being done in:
+## 
+##   0 = complete screen
+##   1 = active window
+##   2 = relative to current mouse position (MP only)
+##   5 = client area of window
+## 
+## 
+## $clicking determines what to do once the mouse has been moved; it
+## has the format [<button>][<action>].
+## 
+## Valid values for <button>:
+## 
+##   left   - specifies the left mouse button                       [default]
+##   middle - specifies the middle mouse button
+##   right  - specifies the right mouse button
+## 
+## Valid values for <action>:
+## 
+##   click   - click the specified mouse button once                [default]
+##   double  - double-click the specified mouse button
+##   down    - push and continue to hold down the specified mouse button 
+##   up      - release the specified mouse button
+##   release - release the specified mouse button
+## 
+## Exception: you may use "noclick" or "0" for $clicking to mean do nothing
+## (leaves mouse button state unchanged).
+## 
+## 
+## Note: holding down the mouse buttons does not appear to work for
+##       all applications (e.g., xterms).
+## 
+
+  # absolute positioning in pixels:
+ MP(area,x,y,clicking) := Unimacro("MP $area,$x,$y,$clicking");
+  # relative positioning in fractional coordinates (-1 to 1):
+RMP(area,x,y,clicking) := Unimacro("RMP $area,$x,$y,$clicking");
+
+
+## 
+## Press and hold down the left mouse button:
+##
+##   (Allows the user to drag without holding the mouse button down)
+## 
+
+  # (equivalent to MP(2,0,0,left down))
+MDOWN()    := Unimacro("MDOWN");
+
+  # release mouse buttons (undoes MDOWN(); equivalent to MP(2,0,0,release)):
+ENDMOUSE() := Unimacro("ENDMOUSE");
+
+
+
+## 
+## Remembering the current position of the mouse so can return later:
+## 
+
+  # remember mouse position
+RM()          := Unimacro("RM");
+
+  # return mouse to position it was in when RM() was called; also
+  # releases any held mouse buttons *afterwords*:
+CANCELMOUSE() := Unimacro("CANCELMOUSE");
+
+
+
+###########################################################################
+#                                                                         #
+# Switching between windows/applications:                                 #
+#                                                                         #
+###########################################################################
+
+## 
+## Bring up a predefined/configured application.  More precisely, if
+## the application was already started by this action and is still
+## running, switch to it.  Otherwise, start and remember it.
+## 
+## The set of predefined applications is contained in the task grammar
+## INI file (Unimacro command "edit tasks").  Configurable are: the
+## shorthand name for the application, the path to its executable, and
+## any arguments it needs to be passed.  
+##
+## See http://qh.antenna.nl/unimacro/features/actions/bringupdetails.html
+## for how to configure applications. 
+## 
+## Special handling is available for Voice coder and the Messages from
+## Python Macros window (see above link).
+## 
+
+BRINGUP(app) := Unimacro("BRINGUP $app");
+
+
+## 
+## Remember current window for use by the WTC() and RTW() actions.
+## 
+
+RW()  := Unimacro("RW"); 
+
+
+## 
+## Return to window remembered by RW().  Does not uniconify the window
+## if it is iconifed.
+## 
+
+RTW() := Unimacro("RTW"); 
+
+
+
+###########################################################################
+#                                                                         #
+# Closing windows/applications:                                           #
+# Do an action conditionally                                              #
+#                                                                         #
+###########################################################################
+
+## 
+## Close a window and say yes automatically if asked for confirmation.
+## 
+## 
+## More precisely, 
+##
+##   * sends $key ({alt+f4} for KW()), which is assumed to be a command for
+##     the current window to close.  
+## 
+##   * wait up to 1 second for either:
+##     * the current window to change to a window belonging to a different 
+##       executable, or 
+##     * a new non-top-level window belonging to the same executable to appear
+## 
+##   * in the later case, performs the Unimacro action <<killletter>> 
+##     (defaults to 'y')
+## 
+
+  # Kill window via {alt+f4}:
+KW()   := Unimacro("KW");
+
+  # Kill window with an alternative key (e.g., {ctrl+f4} for a close
+  # document command):
+KW1(key) := Unimacro("KW $key");
+  # Kill window with an alternative key AND an alternative key IF a dialog window comes up
+KW2(key, alternativekey) := Unimacro("KW $key, $alternativekey");
+
+## 
+## Do an action only if the window title matches (part of window title,
+##                                                case insensitive)
+## 
+IFWT(title, action) := Unimacro("IFWT $title, $action");
+
+
+###########################################################################
+#                                                                         #
+# Dealing with the Windows clipboard                                      #
+#                                                                         #
+###########################################################################
+
+## 
+## Push current contents of the Windows clipboard on a stack, then
+## empty clipboard:
+## 
+CLIPSAVE()    := Unimacro("CLIPSAVE");
+
+## 
+## Pop saved clipboard contents stack and store popped value in the Windows
+## clipboard.  It is an error if the stack is empty.
+## 
+CLIPRESTORE() := Unimacro("CLIPRESTORE");
+
+## send text via the clipboard (needed for some keyboard layouts, possibly
+## useful for long text), existing clipboard content (if text) is maintained
+SCLIP(text) := Unimacro("SCLIP $text");
+
+# 
+## Compound action to deal with selected text.
+## 
+## More precisely, does the following:
+## 
+##   * pushes the current contents of the Windows clipboard
+##   * empties the clipboard
+##   * sends the keystrokes $selector (really a Unimacro action sequence),
+##     which should place information in the Windows clipboard
+##   * checks to see if the Windows clipboard is still empty; if so,
+##     aborts this compound action, restoring the clipboard from the stack
+##   * otherwise, sends the keystrokes $actions (really a Unimacro action 
+##     sequence)
+##   * restores the clipboard from the stack
+## 
+## Example:
+##
+##   The following compound action places parentheses around the
+##   currently selected text if any without disturbing the clipboard.
+## 
+##     UseClipboard('{ctrl+c}', '(){left}{ctrl+v}{right}')
+## 
+## 
+UseClipboard(selector, actions) :=
+	Unimacro("CLIPSAVE; $selector; CLIPISNOTEMPTY; $actions; CLIPRESTORE");
+
+
+
+###########################################################################
+#                                                                         #
+# Communicating with the user:                                            #
+#                                                                         #
+###########################################################################
+
+## 
+## Pop up an information dialog box entitled "Unimacro Message"
+## containing the message $text and an OK button, wait for the
+## button to be pressed, and then remove the dialog box.
+## 
+## Currently, $text may not contain a ";". 
+## 
+
+  # these commands do the same thing:
+    MSG(text) := Unimacro("MSG $text");
+MESSAGE(text) := Unimacro("MESSAGE $text");
+
+
+## 
+## Similar, but the dialog box has yes and no buttons instead of an OK
+## button.  
+## 
+## Only if the user selects the yes button, the keystrokes $ifyes are
+## sent (really a Unimacro action).
+## 
+## Currently, $text may not contain a ";". 
+## 
+
+YESNO(text, ifyes)   := Unimacro("YESNO $text; $ifyes");
+
+
+
+###########################################################################
+#                                                                         #
+# Miscellaneous actions:                                                  #
+#                                                                         #
+###########################################################################
+
+## 
+## Run an Emacs meta-x command; more precisely, types {alt+x}$command{enter}.
+##
+## An Emacs window should have focus.
+##
+EMACS(command) := Unimacro("EMACS $command");
+
+
+## 
+## Smarter version of HeardWord / shortcut for HeardWord.
+## 
+## HW("a, b, c") is equivalent to HeardWord(a, b, c).
+## 
+## HW("a b c") first tries HeardWord(a, b, c), and if that fails to be
+## recognized, tries HeardWord("a b c").
+## 
+
+HW(text) := Unimacro("HW $text");
+
+## AutoHotkey support:
+AHK(script) := Unimacro("AHK $script");
