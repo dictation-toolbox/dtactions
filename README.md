@@ -3,7 +3,7 @@
 dtactions is an OpenSource extension module for the speech recognition program Dragon.
 It is meant to perform actions that are common to other packages like Dragonfly, Unimacro and Vocola.
 
-This document describes how to instlall dtactions for end users and for developers.
+This document describes how to install dtactions for end users and for developers.
 
 ## Status
 Sucessfully upgraded to Python 3.
@@ -16,29 +16,28 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
    
 
 1. Install dtactions
+   
    It will also pull any prerequisites from the [Python Packaging Index](https://pypi.org/).
 
-   - `py -m pip install  dtactions`
-
-   This will install the packages in your Python site-packages area. It will also add the following commands, which should be
-   in your path now in your commmand prompt:
-
+   In a `cmd` or `powershell` window (possibly in elevated mode) run:
+   - `py -m pip install dtactions`
+   
 
 ## Instructions for Developers
 
 If you are working on dtactions the most convenient setup is an [editable install](https://peps.python.org/pep-0660/).  Your local git repository can be anywhere convenient. 
 
-Uninstall the packages you wish to develop. i.e pip if you want to work on dtactions:
+Uninstall the packages you wish to develop. i.e pip if you want to work on `dtactions`:
   `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Run `py -m pip install -e .`  from the dtactions project root.  
+Run `py -m pip install -e .`  from the dtactions project root.
 
 
 ### Unit testing
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
-and [pytest](https://docs.pytest.org/).  IF adding a test, pytest seems to be a lot more convenient and powerful.
+and [pytest](https://docs.pytest.org/).  If adding a test, pytest seems to be a lot more convenient and powerful.
 
-Most tests go in test;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+Most tests go in `test`;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
 
 You can run `py -m pip install dtactions[test]` or `py -m pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
 
