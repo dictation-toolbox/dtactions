@@ -61,8 +61,11 @@ pythonpath = [
     "src/dtactions",
 ]
 testpaths= [
-    "unittest/",
+    "tests",
 ]
 python_files = [
+			"unittest*.py",
+			"test_*.py",
 	]
+ 
 
