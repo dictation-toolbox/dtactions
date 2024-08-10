@@ -30,14 +30,14 @@ If you are working on dtactions the most convenient setup is an [editable instal
 Uninstall the packages you wish to develop. i.e pip if you want to work on `dtactions`:
   `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Run `py -m pip install -e .`  from the dtactions project root.
+Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You can run `py -m pip install -e .` if you already have the build and test dependencies installed.
 
 
 ### Unit testing
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
 and [pytest](https://docs.pytest.org/).  If adding a test, pytest seems to be a lot more convenient and powerful.
 
-Most tests go in `test`;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+Most tests go in `tests`;  tests that require a natlink install go in `natlink_test` as not every package dependent on natlink.  
 
 You can run `py -m pip install dtactions[test]` or `py -m pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
 
@@ -46,13 +46,12 @@ You can run pytest from project root folder to run the tests that don't depend o
 
 ## Notes About Packaging for Developers
 
-The package is specified in `pyproject.toml` and uses  [flit](https://pypi.org/project/flit/) as the underlying build tool. 
+The package is specified in `pyproject.toml`. 
 
 Too build the package locally, 
 
-`py -m flit build` (or just `flit build`) builds the package. You can also use `python -m build` if you have build installed.   A github action publishes to  publishes to [Python Packaging Index](https://pypi.org/). 
+`python -m build`.  If this fails because you don't have build installed, run `pip install -e .[dev]`.    
 
+To publish to [dtactions in the Python Packaging Index](https://pypi.org/project/dtactions/), increase the version number in `__init__.py` and [draft a new release](https://github.com/dictation-toolbox/dtactions/releases).
 
- 
-Version numbers of the packages must be increased before your publish to [Python Packaging Index](https://pypi.org/). 
 

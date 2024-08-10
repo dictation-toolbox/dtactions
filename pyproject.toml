@@ -36,7 +36,7 @@ test = [
 
 dev = [
 	"pyenvutils",
-	"flit"
+	"build"
 ]
 
 [project.scripts]
