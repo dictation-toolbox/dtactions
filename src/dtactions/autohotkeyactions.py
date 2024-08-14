@@ -9,6 +9,10 @@
 
 This module contains actions via AutoHotkey
 
+Note: most are sucking and not tested. Working are two important functions `getProgInfo` and `getModInfo`,
+which give the wanted information also when Dragon is not running. (And of course the workflow functions
+described below).
+
 (see autohotkey.com)
 
 1. the ahkexe and ahkscriptfolder are checked for at the bottom of the import procedure.
@@ -24,13 +28,7 @@ This module contains actions via AutoHotkey
 5. When scripts want information back into python, write this information into a file eg "INFOfromAHK.txt".
    Scripts that use this feature, should have a function in this module, in order to read the data from this file.
    See getProgInfo and getCurrentModule below.
-
-timing results:
-  1    0.000    0.000    0.401    0.401 autohotkeyactions.py:456(killWindow)
-  4    0.000    0.000    0.261    0.065 autohotkeyactions.py:91(getProgInfo)
-  1    0.000    0.000    0.234    0.234 autohotkeyactions.py:209(ahkBringup)
-  1    0.000    0.000    0.052    0.052 autohotkeyactions.py:323(GetForegroundWindow)
-  
+ 
 """
 import subprocess
 import shutil
