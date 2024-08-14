@@ -11,13 +11,7 @@ import pytest
 # from dtactions.unimacro import unimacroinivars as inivars  # old style
 from dtactions.unimacro import inivars
 
-try:
-    from dtactions.__init__ import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print('Run this module after "build_package" and "flit install --symlink"\n')
-    raise
-
-thisDir = getThisDir(__file__)
+thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent
 
 testDir = Path(thisDir)/'test_inivarsfiles'

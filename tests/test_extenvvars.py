@@ -12,8 +12,6 @@ from pathlib import Path
 import pytest
 from dtactions.unimacro import extenvvars
 import natlink
-from natlinkcore import natlinkstatus
-status = natlinkstatus.NatlinkStatus()
 thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent
 
@@ -21,7 +19,6 @@ dtactionsDir = thisDir.parent
 @pytest.fixture()
 def envvars():
     return extenvvars.ExtEnvVars()
-
 
 def testStartOfInstance(envvars):
     """instance of ExtEnvVars starts with persistent dict of recentEnv entries, and adds at startup "~"
@@ -61,14 +58,14 @@ def test_getNatlinkEnvVariables(envvars, var_name):
 @pytest.mark.parametrize("var_name",
                 ["unimacrouser", "unimacrodata", "unimacrogrammars"]
                         )
-def test_getUnimacroEnvironmentVariables(envvars, var_name):
+def test_getUnimacroEnvironmentVariables(envvars, var_name, nlstatus):
     """testing the unimacro variables, Unimacro can be on or off
     
     When Unimacro is not enabled (but possibly installed), the results should be fals
         
     """
     result = envvars.getExtendedEnv(var_name)
-    if natlink.isNatSpeakRunning() and status.unimacroIsEnabled():
+    if natlink.isNatSpeakRunning() and nlstatus.unimacroIsEnabled():
         assert len(result)
         assert Path(result).is_dir()
     else:

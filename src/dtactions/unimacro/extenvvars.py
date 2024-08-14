@@ -283,7 +283,7 @@ class ExtEnvVars:
             result = buf.value
             # # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
             # result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
-            print(f'result for "{var}" via SHGetFolderPathW: {result}')
+            # print(f'result for "{var}" via SHGetFolderPathW: {result}')
         except:
             if displayMessage:
                 print('getExtendedEnv, cannot find in os.environ or CSIDL: "%s"'% var)
