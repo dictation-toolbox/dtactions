@@ -6,6 +6,7 @@ Dragon is not running, and the call to `natlink.getCurrentModule()` throws an er
 
 Quintijn Hoogenboom, 2022/2024
 """
+import sys
 import time
 from pathlib import Path
 import pytest
@@ -44,7 +45,36 @@ def test_getProgInfo():
         assert progInfo == progInfoAhk
     else:
         print('test_getProgInfo: cannot test equal result of autohotkeyactions.getProgInfo, and via natlink.getModInfo, because Dragon is not running')
-    
+
+def test_mouse_move(nat_conn):
+    """test moving the mouse, also with Dragon16
+    """
+    xp, yp = 500, 200
+    unimacroutils.set_mouse_position(xp, yp)
+    xpn, ypn = unimacroutils.getMousePosition()
+    xpnl, ypnl = natlink.getCursorPos()
+    assert (xpnl, ypnl) == (xpn, ypn)
+      
+    assert (xp, yp) == (xpn, ypn)
+   
+def test_getMousePositions(nat_conn):
+    """test the function which prints the mouse positions
+    """
+    xp, yp = 500, 200
+    unimacroutils.set_mouse_position(xp, yp)
+    absolute = 0
+    result = unimacroutils.getMousePositions(absolute)
+    assert result == 'abc'
+
+def test_myoutput(capsys, nat_conn): 
+    print("hello")
+    sys.stderr.write("world\n")
+    captured = capsys.readouterr()
+    assert captured.out == "hello\n"
+    assert captured.err == "world\n"
+    print("next")
+    captured = capsys.readouterr()
+    assert captured.out == "next\n"
     
 if __name__ == "__main__":
-    pytest.main(['test_unimacroutils.py'])
+    pytest.main(['test_unimacroutils.py::test_getMousePositions'])

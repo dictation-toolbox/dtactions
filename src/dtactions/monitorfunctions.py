@@ -1198,7 +1198,10 @@ def test_mouse_to_other_monitor():
     # canBeResized = window_can_be_resized(winHndle)
     mon = get_nearest_monitor_window(winHndle)
     others = get_other_monitors(mon)
-    moninfo = MONITOR_INFO[others[0]]
+    try:
+        moninfo = MONITOR_INFO[others[0]]
+    except IndexError:
+        print('test_mouse_to_other_monitor, you have only one monitor')
     mousefour = moninfo['Monitor']
     x, y = mousefour[0] + int((mousefour[2] - mousefour[0])/2.0), mousefour[1] + int((mousefour[3] - mousefour[1])/2.0)
     print('middle of other monitor:', x, y)
@@ -1758,13 +1761,13 @@ if __name__ == "__main__":
     #print 'ra: %s'%  _get_restore_area(winHndle)   
     test_basic_values()
     test_taskbar_position()
-    test_mouse_to_other_monitor()
-    #restore_window(winHndle)
+    # test_mouse_to_other_monitor()
+    # restore_window(win_hndle)
     #test_get_nearest_monitors()
-    #test_individual_points()
+    test_individual_points()
     
     # test_move_to_other_monitor()
-    #test_move_around_monitor_fixed_size()
+    test_move_around_monitor_fixed_size()
     #test_center_different_sizes()
     #test_default_restore()
     # test_minimize_maximize_restore()
