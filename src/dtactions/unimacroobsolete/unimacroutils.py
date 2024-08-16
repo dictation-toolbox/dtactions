@@ -12,7 +12,7 @@ Previous this was natlinkutilsqh.py in unimacro
 
 """
 #pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613, C0209, W0602, W0621, R1715, W0702
-#pylint:disable=E1101, R1735
++#pylint:disable=E1101, R1735
 import time
 import re
 import os
