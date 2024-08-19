@@ -1,11 +1,12 @@
 """utility functions from Quintijn, used in unimacro and in local programs.
    in python3 also the path module as subclass of the standard path class
 """
-#pylint:disable=C0116, C0302,  W0613, R0912, R0914, R0915, R0911, W0702
+#pylint:disable=C0116, C0302,  W0613, R0912, R0914, R0915, R0911, W0702, C0209, W0719
 import unicodedata
 import os
 import re
 import collections
+import shutil
 from pathlib import Path
     
 def unifyaccentedchars(to_translate):
@@ -827,6 +828,54 @@ def makeReadable(t):
     if len(t) > 100:
         return t[:50] + ' ... ' + t[-50:]
     return t
+
+
+def makeEmptyFolder(*args):
+    """delete a folder and creates it again
+
+    arguments can be a string (giving the path of the folder),
+    a list or a tuple of these, or several of previous things
+
+    # if all goes well, action is performed.  If something goes wrong
+    # an OSError is raised
+    # 
+    # >>> folderName = testdrive + '/qhtemp'
+    # >>> try: shutil.rmtree(folderName)
+    # ... except OSError: pass
+    # >>> makeEmptyFolder(folderName)
+    # >>> os.listdir(folderName)
+    # []
+    # >>> makeEmptyFolder(folderName)
+    # >>> os.listdir(folderName)
+    # []
+    # >>> makeEmptyFolder(folderName, folderName)
+    # >>> os.listdir(folderName)
+    # []
+    # >>> makeEmptyFolder([folderName])
+    # >>> os.listdir(folderName)
+    # []
+
+    """
+    for a in args:
+        if not a:
+            continue
+        if isinstance(a, str):
+            a = a.replace('\\', '/') # make outside path instances!
+        if isinstance(a, str):
+            if os.path.isdir(a):
+                if os.path.isdir(a):
+                    shutil.rmtree(a)
+                if os.path.exists(a):
+                    raise OSError('path already exists, but is not a folder, or could not be deleted: %s'% a)
+            os.mkdir(a)
+
+        elif isinstance(a, list):
+            makeEmptyFolder(*tuple(a))
+        elif isinstance(a, tuple):
+            makeEmptyFolder(*a)
+        else:
+            raise Exception('invalid type for makeEmptyFolder: %s'% repr(a))
+
 
 ## functions for generating alternative paths in virtual drives
 ## uses reAltenativePaths, defined in the top of this module
