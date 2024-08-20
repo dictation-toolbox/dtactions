@@ -24,7 +24,7 @@ Then run the following command on Windows to build the documentation:
 
 .. code:: shell
 
-   $ make.bat html
+   $ ./make.bat html   (or simply $ ./make html)
 
 Or use the Makefile on other systems:
 
@@ -35,6 +35,9 @@ Or use the Makefile on other systems:
 If there were no errors during the build process, open the
 *_build/html/index.html* file in a web browser. Make changes, rebuild the
 documentation and reload the doc page(s) in your browser as you go.
+
+
+
 
 
 .. Links.
