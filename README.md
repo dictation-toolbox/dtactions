@@ -30,7 +30,7 @@ If you are working on dtactions the most convenient setup is an [editable instal
 Uninstall the packages you wish to develop. i.e pip if you want to work on `dtactions`:
   `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Run `py -m pip install -e .`  from the dtactions project root.
+Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You can skip `[dev,test]` after the first install.
 
 
 ### Unit testing
@@ -46,13 +46,10 @@ You can run pytest from project root folder to run the tests that don't depend o
 
 ## Notes About Packaging for Developers
 
-The package is specified in `pyproject.toml` and uses  [flit](https://pypi.org/project/flit/) as the underlying build tool. 
+The package is specified in `pyproject.toml`. 
 
 Too build the package locally, 
 
-`py -m flit build` (or just `flit build`) builds the package. You can also use `python -m build` if you have build installed.   A github action publishes to  publishes to [Python Packaging Index](https://pypi.org/). 
+`python -m build`.
 
-
- 
-Version numbers of the packages must be increased before your publish to [Python Packaging Index](https://pypi.org/). 
-
+[Draft a new release](https://github.com/dictation-toolbox/unimacro/releases) to publish a release on [Python Packaging Index](https://pypi.org/). 
