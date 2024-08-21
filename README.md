@@ -30,7 +30,7 @@ If you are working on dtactions the most convenient setup is an [editable instal
 Uninstall the packages you wish to develop. i.e pip if you want to work on `dtactions`:
   `py -m pip uninstall dtactions` and answer yes to all the questions about removing files from your python scripts folder.
 
-Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You can run `py -m pip install -e .` if you already have the build and test dependencies installed.
+Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You can skip `[dev,test]` after the first install.
 
 
 ### Unit testing
