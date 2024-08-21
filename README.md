@@ -37,7 +37,7 @@ Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You ca
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
 and [pytest](https://docs.pytest.org/).  If adding a test, pytest seems to be a lot more convenient and powerful.
 
-Most tests go in `test`;  tests that require a natlink install go in natlink_test as not every package dependent on natlink.  
+Most tests go in `tests`;  tests that require a natlink install go in `natlink_test` as not every package dependent on natlink.  
 
 You can run `py -m pip install dtactions[test]` or `py -m pip install dtactions[natlink_test]` if you don't have the prequisites like pytest.  
 
@@ -50,6 +50,8 @@ The package is specified in `pyproject.toml`.
 
 Too build the package locally, 
 
-`python -m build`.
+`python -m build`.  If this fails because you don't have build installed, run `pip install -e .[dev]`.    
 
-[Draft a new release](https://github.com/dictation-toolbox/unimacro/releases) to publish a release on [Python Packaging Index](https://pypi.org/). 
+To publish to [dtactions in the Python Packaging Index](https://pypi.org/project/dtactions/), increase the version number in `__init__.py` and [draft a new release](https://github.com/dictation-toolbox/dtactions/releases).
+
+
