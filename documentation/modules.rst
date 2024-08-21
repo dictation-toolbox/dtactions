@@ -1,12 +1,13 @@
 Modules
 =======
 
-This section includes the available modules in DT actions.
+This section includes the available modules in :code:`dtactions`.
 
 ..  toctree::
     :maxdepth: 2
 
-    natlinkclipboard
     sendkeys
     monitorfunctions
     messagefunctions
+    natlinkclipboard
+    
