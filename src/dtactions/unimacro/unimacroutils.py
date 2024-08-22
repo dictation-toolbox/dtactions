@@ -743,7 +743,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
         set_mouse_position(xp, yp)   # absolute  
     elif not mouseState:  # ongecompliceerd
         if nClick > 0:
-            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
+            set_mouse_position(xp, yp)
+            # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
             if btn:
                 if debugMode == -1:
                     print('ButtonClick %s, %s' % (btn, nClick))
@@ -757,7 +758,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
 ##                    Wait(0.01)
                     
         elif nClick == 0:
-            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
+            set_mouse_position(xp, yp)
+            # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
         elif nClick == -1:
             if btn:
                 if (xold,yold) != (xp, yp):
@@ -790,7 +792,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
             mouseState = 0
     else:
         # no btn, but mouseState, simply move:
-        natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])  
+        set_mouse_position(xp, yp)
+        # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])  
 
 def catchClick(mouse):
     """return reduced mouse command and nClick
@@ -852,10 +855,10 @@ def set_mouse_position(xp, yp):
             natlink.playEvents(  [(natlinkutils.wm_mousemove, xp, yp)])
         else:
             script = f'SetMousePosition 1, {xp},{yp}'
-            print(f'buttonClick via execScript: "{script}"')
+            print(f'set_mouse_position via execScript: "{script}"')
             natlink.execScript(script)  
     else:
-        print('attempt set_mouse_position via autohotkey')
+        print('future: attempt set_mouse_position via autohotkey')
 
 def releaseMouse():
     """restores the default mouseState

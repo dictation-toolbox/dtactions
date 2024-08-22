@@ -64,7 +64,19 @@ def test_getMousePositions(nat_conn):
     unimacroutils.set_mouse_position(xp, yp)
     absolute = 0
     result = unimacroutils.getMousePositions(absolute)
-    assert result == 'abc'
+    
+    wrong_result = """ABSOLUTE MOUSE POSITIONS:
+---related to WHOLE SCREEN:
+top left: MP(0, 393, 153)
+---related to ACTIVE WINDOW:
+top left: MP(1, 400, 160)
+---related to ACTIVE MONITOR:
+top left: MP(3, 393, 153)
+---related to CLIENT AREA:
+top left: MP(5, 392, 160)"""
+
+    assert result == wrong_result
+    
 
 def test_myoutput(capsys, nat_conn): 
     print("hello")
