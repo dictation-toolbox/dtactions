@@ -121,39 +121,6 @@ class ExtEnvVars:
         if name in ['LOCAL_APPDATA']:
             return platformdirs.windows.get_win_folder("CSIDL_LOCAL_APPDATA")
 
-        # # General case, try via shellcon! TODO: QH
-        # try:
-        #     CSIDL_variable =  'CSIDL_%s'% name
-        #     shellnumber = getattr(shellcon,CSIDL_variable, -1)
-        #     print(f'getFolderFromLibraryName, shellnumber of "{CSIDL_variable}": {shellnumber}')
-        # except:
-        #     print('getExtendedEnv, cannot find CSIDL_variable for: "%s"'% name)
-        #     return ''
-        # if shellnumber < 0:
-        #     # on some systems have SYSTEMROOT instead of SYSTEM:
-        #     print('getExtendedEnv, cannot find CSIDL_variable for (returns -1): "%s"'% name)
-        # try:
-        #     csidl_const = shellnumber
-        #     # copied from platformdirs/windows.py:
-        #     buf = ctypes.create_unicode_buffer(1024)
-        #     windll = getattr(ctypes, "windll")  # noqa: B009 # using getattr to avoid false positive with mypy type checker
-        #     windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
-        #     result = buf.value
-        #     # # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
-        #     # result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
-        #     print(f'result from SHGetFolderPathW: {result}')
-        # except:
-        #     print('getFolderFromLibraryName, cannot path for CSIDL: "%s"'% name)
-        #     return ''
-
-        
-        ## extra cases:
-        # if name in ['Quick access', 'Snelle toegang']:
-        #     templatesfolder =self. getExtendedEnv('TEMPLATES')
-        #     if isdir(templatesfolder):
-        #         QuickAccess = normpath(join(templatesfolder, "..", "Libraries"))
-        #         if isdir(QuickAccess):
-        #             return QuickAccess
         if name.upper() == 'DROPBOX':
             return self.getDropboxFolder()
         if name.upper() in ['ONEDRIVE']:
@@ -316,7 +283,7 @@ class ExtEnvVars:
             result = buf.value
             # # result = shell.SHGetFolderPath (0, shellnumber, 0, 0)
             # result = ctypes.windll.shell32.SHGetFolderPathW(0, shellnumber, 0, 0)
-            print(f'result from SHGetFolderPathW: {result}')
+            # print(f'result for "{var}" via SHGetFolderPathW: {result}')
         except:
             if displayMessage:
                 print('getExtendedEnv, cannot find in os.environ or CSIDL: "%s"'% var)
@@ -337,11 +304,12 @@ class ExtEnvVars:
         # try if function in natlinkstatus:
         if not status:
             return None
-        for extra in ('', 'Directory', 'Dir'):
-            var2 = envvar + extra
-            if var2 in status.__dict__:
-                funcName = f'get{var2}'
-                func = getattr(status, funcName)
+        envvar_capped = envvar.lower()
+        for extra in ('', 'directory', 'dir'):
+            var2 = envvar_capped + extra
+            funcName = f'get{var2}'
+            func = getattr(status, funcName, None)
+            if func:
                 result = func()
                 if result:
                     return result

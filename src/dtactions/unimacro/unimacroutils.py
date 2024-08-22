@@ -12,7 +12,7 @@ Previous this was natlinkutilsqh.py in unimacro
 
 """
 #pylint:disable=C0302, C0116, C0321, R0912, R0913, R0914, R0915, W0613, C0209, W0602, W0621, R1715, W0702
-#pylint:disable=E1101
+#pylint:disable=E1101, R1735
 import time
 import re
 import os
@@ -639,6 +639,10 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
     other actions are performed.  
     Therefore the mouse state is remembered in the variable mouseState.
     
+    2024: because of Dragon 16, with playEvents not working any more, this function restricts to
+    movements and clicking, not dragging any more.
+    
+    
     """
      #pylint:disable=W0603
     global mouseState
@@ -736,10 +740,11 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
     print('btn: %s, nClick: %s, current mouseState: %s'% (btn, nClick, mouseState))
     if onlyMove:
         print('onlyMove to %s, %x'% (xp, yp))
-        natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
+        set_mouse_position(xp, yp)   # absolute  
     elif not mouseState:  # ongecompliceerd
         if nClick > 0:
-            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
+            set_mouse_position(xp, yp)
+            # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
             if btn:
                 if debugMode == -1:
                     print('ButtonClick %s, %s' % (btn, nClick))
@@ -753,7 +758,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
 ##                    Wait(0.01)
                     
         elif nClick == 0:
-            natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
+            set_mouse_position(xp, yp)
+            # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])
         elif nClick == -1:
             if btn:
                 if (xold,yold) != (xp, yp):
@@ -786,7 +792,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
             mouseState = 0
     else:
         # no btn, but mouseState, simply move:
-        natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])  
+        set_mouse_position(xp, yp)
+        # natlink.playEvents([(natlinkutils.wm_mousemove, xp, yp)])  
 
 def catchClick(mouse):
     """return reduced mouse command and nClick
@@ -826,10 +833,32 @@ def buttonClick(button='left', nclick=1, modifiers=None):
         script = 'ButtonClick'
     else:
         script = f'ButtonClick {button},{nclick}'
-    print(f'buttonClick via execScript: "{script}"')
+    # print(f'buttonClick via execScript: "{script}"')
     natlink.execScript(script)
-    
 
+
+    #     script = f'ButtonClick {button},{nclick}'
+    # # print(f'buttonClick via execScript: "{script}"')
+    # natlink.execScript(script)
+
+def set_mouse_position(xp, yp):
+    """set to absolute position
+    
+    when Dragon is running, with playEvents for version <= 15,
+    via execScript if version >= 16
+    
+    when Dragon is NOT running, try via Autohotkey (to be done)
+    """
+    xp, yp = int(xp), int(yp)
+    if natlink.isNatSpeakRunning():
+        if natlink.getDNSVersion() <= 15:
+            natlink.playEvents(  [(natlinkutils.wm_mousemove, xp, yp)])
+        else:
+            script = f'SetMousePosition 1, {xp},{yp}'
+            print(f'set_mouse_position via execScript: "{script}"')
+            natlink.execScript(script)  
+    else:
+        print('future: attempt set_mouse_position via autohotkey')
 
 def releaseMouse():
     """restores the default mouseState
@@ -966,33 +995,39 @@ def getMousePositionActionString(absorrel, which, position):
     return "MP(%s, %s, %s)"% (which, x, y)
 
 def printMousePosition(absorrel, printAll = 0):
-    """printing function for printing the mouse positions
+    result = getMousePositions(absorrel, printAll=printAll)
+    print(result)
+    
+def getMousePositions(absorrel, printAll = 0):
+    """get output for printing the mouse positions
     
     this function can be invoked by PMP and PRMP and PALLMP.
     
     these positions are recognised by the Unimacro Shorthand Commands MP and RMP
     """
+    L = []
     if printAll:
-        print('-'*80)
+        L.append('-'*80)
         cornerRange = list(range(4))
     else:
         cornerRange = list(range(1))
     if absorrel:  # 1: relative:
-        print('RELATIVE MOUSE POSITIONS:')
+        L.append('RELATIVE MOUSE POSITIONS:')
     else:
-        print('ABSOLUTE MOUSE POSITIONS:')
-    for _, which in whichDict.items():
-        print('---related to %s:'% which.upper())
+        L.append('ABSOLUTE MOUSE POSITIONS:')
+    for whichnum, which in whichDict.items():
+        L.append('---related to %s:'% which.upper())
         for cornerPos in cornerRange:
-            print("%s: %s"% (cornerDict[cornerPos], getMousePositionActionString(absorrel, which, cornerPos)))
+            L.append("%s: %s"% (cornerDict[cornerPos], getMousePositionActionString(absorrel, whichnum, cornerPos)))
         if printAll:
-            print('-'*20)
+            L.append('-'*20)
+    return '\n'.join(L)
 
 def getMousePosition(absorrel=0, which=0, position=0):
     """get the parameters for doMouse
     
     absorrel: 0 abs, 1 rel
-    which: 1: active window, 5: client area, 0: whole screen
+    which: 1: active window, 3: active monitor, 5: client area, 0: whole screen
     position: 0: topleft,  1: topright, 2: bottomleft, 3: bottomright
     
     result:
@@ -1004,6 +1039,7 @@ def getMousePosition(absorrel=0, which=0, position=0):
     #pylint:disable=R0912, W0612 
     x, y = currentPos = natlink.getCursorPos()
     _hndle = natlink.getCurrentModule()[2]
+    print(f'which: {which}')
     if which == 0:
         # complete screen
         width, height, xMin, yMin, xMax, yMax = monitorfunctions.getScreenRectData()
@@ -1024,6 +1060,8 @@ def getMousePosition(absorrel=0, which=0, position=0):
         x, y = win32gui.ScreenToClient(_hndle, currentPos)
         rect = win32gui.GetClientRect(_hndle)
         width, height, xMin, yMin, xMax, yMax = getRectData(rect)
+    else:
+        raise ValueError(f'getMousePosition, variable "which" should be in (0, 1, 3, 5), not: {which}')
 
     # now test for boundaries and abs or rel:
     if x < xMin or x > xMax or y < yMin or y > yMax:
@@ -1062,6 +1100,7 @@ def isTopWindow(hndle):
     """returns 1 if window is top,
 
     behaviour changed in python 2.3.4, parent = 0, no exception any more
+    TODO QH: is this correct?
     """
     #pylint:disable=W0702
     try:
@@ -1404,8 +1443,8 @@ def addWordIfNecessary(w):
         print('invalid character in word to add: %s'% w)
         return
         
-    isInVoc = (natlink.getWordInfo(w,1) is not None)
-    isInActiveVoc = (natlink.getWordInfo(w,0) is not None)
+    isInVoc = natlink.getWordInfo(w,1) is not None
+    isInActiveVoc = natlink.getWordInfo(w,0) is not None
     if isInActiveVoc:
         return
     try:
@@ -1426,7 +1465,7 @@ def deleteWordIfNecessary(w):
     """
     if not w:
         return
-    isInActiveVoc = (natlink.getWordInfo(w,0) is not None)
+    isInActiveVoc = natlink.getWordInfo(w,0) is not None
     if isInActiveVoc:
         natlink.deleteWord(w)
 

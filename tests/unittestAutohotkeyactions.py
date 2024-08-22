@@ -3,6 +3,11 @@ UnittestAutohotkeyactions.py
 
 This module tests the actions, that are performed by autohotkey (autohotkeyactions)
 
+Note: August 2024, this module sucks from many sides. Some AHK expert should delve into this...
+
+The autohotkeyactions module has as two important well working functions getProgInfo and getModInfo,
+which give the wanted information also when Dragon is not running.
+
 Quintijn Hoogenboom, 2021
 """
 import unittest
