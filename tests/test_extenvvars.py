@@ -118,7 +118,6 @@ def test_otherEnvVariables(envvars, var_name):
     assert len(result) > 0
     assert isdir(result)
 
-    
 @pytest.mark.parametrize("first_name, alternative_name",
                 [ ("Music", "Muziek"),
                   ("Desktop", "Bureaublad"),

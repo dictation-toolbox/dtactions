@@ -922,8 +922,11 @@ def getEditText(hwnd, visible=False, classname=None):
     
 def setEditText(hwnd, text, append=False, classname=None):
     '''Set an edit control's text.
-    
+
+::
+
     Arguments:
+    
     hwnd            The edit control's hwnd.
     text            The text to send to the control. This can be a single
                     string, or a sequence of strings. If the latter, each will
@@ -936,7 +939,7 @@ def setEditText(hwnd, text, append=False, classname=None):
                     appended to the end of the last line of the existing text.
                     If appending lines of text, you may wish to pass in an
                     empty string as the 1st element of the 'text' argument.
-
+    
     Usage example:  print("Enter various bits of text."
                     setEditText(editArea, "Hello, again!")
                     setEditText(editArea, "You still there?")
