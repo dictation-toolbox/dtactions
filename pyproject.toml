@@ -6,10 +6,10 @@ build-backend = "flit_core.buildapi"
 name = "dtactions"
 authors = [{name = "Quintijn Hoogenboom", email="q.hoogenboom@antenna.nl"}]
 maintainers  = [{name = "Quintijn Hoogenboom", email="q.hoogenboom@antenna.nl"}, {name = "LexiconCode", email = "CasterVoice@protonmail.com"}]
-dynamic = ["version", "description"]
+dynamic = ["description"]
 requires-python = ">=3.9"
 readme = "README.md"
-
+version="1.6.4.dev2"
 dependencies= [
 	"pywin32 >= 300",
 	"debugpy",

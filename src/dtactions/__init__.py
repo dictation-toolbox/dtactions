@@ -40,8 +40,11 @@ status.getDtactionsUserDirectory()
 ```
 
 """
-## version to be updated when a new release is sent to pypi:
-__version__ = '1.6.3'     
+import importlib.metadata
+
+__version__ = importlib.metadata.version('dtactions')  #version set in pyproject.toml now.
+
+
 ##----------------------
 import sys
 import os
