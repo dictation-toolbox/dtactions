@@ -4,7 +4,7 @@
 #
 #pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613, W0602
 #pylint:disable=E1101
-#pylint:disable=C0209, R1728
+#pylint:disable=C0209, R1728, R1735
 ##TODO:
 #pylint:disable=W1514, R1732
 """This module contains actions that can be called from natlink grammars.
@@ -1917,7 +1917,7 @@ def YesNo(t, title=None, icon=32, alert=None, defaultToSecondButton=0, progInfo=
                   'title: %s\n'% (tt, icon, title))
         unimacroutils.Wait(0.1)
         newMicState = natlink.getMicState()
-        result = (newMicState == 'sleeping')
+        result = newMicState == 'sleeping'
         if newMicState != 'off': break   # ok, either on or sleeping
         # try again (maximum 3 times)
         unimacroutils.Wait(0.05)
