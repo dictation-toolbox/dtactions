@@ -17,7 +17,7 @@ from pathlib import Path
 import win32gui
 from dtactions import natlinkclipboard
 from dtactions import autohotkeyactions as ahk
-from dtactions.unimacro import unimacroutils
+from dtactions import unimacroutils
 from dtactions.sendkeys import sendkeys
 try:
     from dtactions.__init__ import getThisDir, checkDirectory

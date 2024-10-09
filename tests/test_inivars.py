@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 # from dtactions import natlinkclipboard
-# from dtactions.unimacro import unimacroinivars as inivars  # old style
-from dtactions.unimacro import inivars
+# from dtactions import unimacroinivars as inivars  # old style
+from dtactions import inivars
 
 thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent

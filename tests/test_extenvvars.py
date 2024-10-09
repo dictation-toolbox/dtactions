@@ -10,7 +10,7 @@ Quintijn Hoogenboom, Februari 2023/August 2024
 from os.path import isdir
 from pathlib import Path
 import pytest
-from dtactions.unimacro import extenvvars
+from dtactions import extenvvars
 import natlink
 thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent

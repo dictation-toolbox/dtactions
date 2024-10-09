@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import win32gui
 # from dtactions import natlinkclipboard
-# from dtactions.unimacro import unimacroinivars as inivars  # old style
+# from dtactions import unimacroinivars as inivars  # old style
 from dtactions.unimacro.unimacroactions import *
 
 thisDir = Path(__file__).parent

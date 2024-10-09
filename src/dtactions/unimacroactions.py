@@ -39,9 +39,9 @@ from dtactions import monitorfunctions
 from dtactions.sendkeys import sendkeys, sendsystemkeys
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
-from dtactions.unimacro import unimacroutils
-from dtactions.unimacro import inivars
-# from dtactions.unimacro import actionclasses
+from dtactions import unimacroutils
+from dtactions import inivars
+# from dtactions import unimacroactionclasses
 import natlink
 from natlinkcore import natlinkutils
 from natlinkcore.config import expand_path
@@ -686,7 +686,7 @@ def get_external_module(prog):
         return external_actions_modules[prog]
     try:
         modname = '%s-actions'% str(prog)
-        _temp = __import__('dtactions.unimacro.actionclasses', fromlist=[modname])
+        _temp = __import__('dtactions.unimacroactionclasses', fromlist=[modname])
         mod = getattr(_temp, modname)
         external_actions_modules[prog] = mod
         print('get_external_module, found actions module: %s'% modname)

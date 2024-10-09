@@ -8,7 +8,7 @@ import time
 
 import natlink
 # from dtactions import messagefunctions as mf
-from dtactions.unimacro.actionclasses.actionbases import AllActions
+from dtactions.unimacroactionclasses.actionbases import AllActions
 # from dtactions.unimacro.unimacroactions import doAction as action
 from dtactions.sendkeys import sendkeys as keystroke
 

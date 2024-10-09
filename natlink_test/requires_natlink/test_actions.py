@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 
 # from dtactions import natlinkclipboard
-# from dtactions.unimacro import unimacroactions as actions  # old style
-from dtactions.unimacro import newactions as actions
-from dtactions.unimacro import unimacroutils
+# from dtactions import unimacroactions as actions  # old style
+from dtactions import unimacroactions as actions
+from dtactions import unimacroutils
 
 try:
     from dtactions.__init__ import getThisDir, checkDirectory
@@ -47,6 +47,7 @@ def xxx_test_keystroke():
     keystroke('{shift+left 11}{ctrl+x}')
     time.sleep(0.01)
     result = unimacroutils.getClipboard()
+    #Hello world
     assert result == 'Hello world'
 #
 def test_save_return_clipboard():
@@ -73,3 +74,4 @@ def test_save_return_clipboard():
     
 if __name__ == "__main__":
     pytest.main(['test_actions.py'])
+    #
