@@ -8,10 +8,13 @@ import pytest
 import win32gui
 # from dtactions import natlinkclipboard
 # from dtactions import unimacroinivars as inivars  # old style
-from dtactions.unimacro.unimacroactions import *
+from dtactions.unimacroactions import *
 
 thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent
+
+def test_dtactions_inifile():
+    pass
 
 
 def test_matchProgTitleWithDict():
@@ -20,19 +23,23 @@ def test_matchProgTitleWithDict():
     the Dict is taken from unimacroactions.ini
     section [general], key "child behaves like top" or "top behaves like child"
     """
-    child_behaves_like_top = {"natspeak": ["dragon-balk", "dragonbar"]}
+    # the definition may contain part of the wanted title, but... only in matchPart is True...
+    child_behaves_like_top = {"natspeak": ["dragon-balk", "ragonbar"]}
     
     # no match:
     assert matchProgTitleWithDict('prog', 'title', child_behaves_like_top, matchPart=None) is False
 
-    assert matchProgTitleWithDict('natspeak', 'Dragonbar', child_behaves_like_top) is True
-    assert matchProgTitleWithDict('natspeak', 'ragonbar', child_behaves_like_top) is True
+    # title must match exact (but case insensitive)
+    assert matchProgTitleWithDict('natspeak', 'Dragon-balk', child_behaves_like_top) is True
+    assert matchProgTitleWithDict('natspeak', 'Dragonbar', child_behaves_like_top) is False
     assert matchProgTitleWithDict('natspeak', 'Dragonbar', child_behaves_like_top, matchPart=True) is True
-    assert matchProgTitleWithDict('natspeak', 'ragonbar', child_behaves_like_top, matchPart=True) is False
+    # also good:
+    assert matchProgTitleWithDict('natspeak', 'Dragon-balk', child_behaves_like_top, matchPart=True) is True
+
 
 
 # test SCLIP via unimacro/unimacroactions.py direct run.
     
     
 if __name__ == "__main__":
-    pytest.main(['test_unimacroutils.py'])
+    pytest.main(['test_unimacroactions.py'])

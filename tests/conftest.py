@@ -5,7 +5,7 @@ import natlink
 from natlinkcore import natlinkstatus
 
 @pytest.fixture(scope="module")
-def nl_stat():
+def nl_status():
     status = natlinkstatus.NatlinkStatus()
     return status
 
