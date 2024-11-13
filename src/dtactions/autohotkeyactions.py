@@ -30,6 +30,7 @@ described below).
    See getProgInfo and getCurrentModule below.
  
 """
+#pylint:disable = W0107
 import subprocess
 import shutil
 import filecmp
@@ -40,16 +41,11 @@ import time
 from textwrap import dedent
 from dtactions.sendkeys import sendkeys
 ## get thisDir and other basics...
-try:
-    from dtactions.__init__ import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print('Run this module after "build_package" and "flit install --symlink"\n')
-    raise
+this_path = Path(__file__).parent
 
-
-dtactions = thisDir = getThisDir(__file__)
-sampleAhkDirectory = dtactions/'samples'/'autohotkey'
-checkDirectory(sampleAhkDirectory)
+sampleAhkDirectory = this_path/'samples'/'autohotkey'
+# TODO: fix this again, but first unimacroactions!
+# checkDirectory(sampleAhkDirectory)
 
 ahkexe = None
 ahkscriptfolder = None
@@ -603,7 +599,8 @@ def GetAhkScriptFolder():
         return ahkscriptfolder
 
     scriptfolder = Path.home()/".autohotkey"
-    checkDirectory(scriptfolder, create=True)
+    # TODO: check ahk checkDirectory function
+    # checkDirectory(scriptfolder, create=True)
     ahkscriptfolder = scriptfolder
     copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)
     return scriptfolder

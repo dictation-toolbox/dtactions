@@ -5,7 +5,6 @@ Quintijn Hoogenboom, December 2022
 """
 from pathlib import Path
 import pytest
-import win32gui
 # from dtactions import natlinkclipboard
 # from dtactions import unimacroinivars as inivars  # old style
 from dtactions.unimacroactions import *
@@ -36,8 +35,12 @@ def test_matchProgTitleWithDict():
     # also good:
     assert matchProgTitleWithDict('natspeak', 'Dragon-balk', child_behaves_like_top, matchPart=True) is True
 
-
-
+def test_dtactions_has_unimacroactions_inifile(dtactions_setup):
+    """see if a copy of a sample ini file for unimacroactions is copied properly
+    """
+    dtactions_userdir = dtactions_setup[0]
+    assert Path(dtactions_userdir).is_dir()
+    pass
 # test SCLIP via unimacro/unimacroactions.py direct run.
     
     

@@ -33,6 +33,9 @@ import win32api
 import win32gui
 import win32con
 # import win32com.client
+import natlink
+from natlinkcore import natlinkutils
+from natlinkcore.config import expand_path
 
 import dtactions
 from dtactions import monitorfunctions
@@ -42,9 +45,6 @@ from dtactions import autohotkeyactions # for AutoHotkey support
 from dtactions import unimacroutils
 from dtactions import inivars
 # from dtactions import unimacroactionclasses
-import natlink
-from natlinkcore import natlinkutils
-from natlinkcore.config import expand_path
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
@@ -55,7 +55,7 @@ class KeystrokeError(Exception):
     "KeystrokeError"
 
 pendingMessage = ''
-thisDir = dtactions.getThisDir(__file__)
+this_path = Path(__file__).parent
 dtactionsDir = dtactions.getDtactionsDirectory()
 dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 
