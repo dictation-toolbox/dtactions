@@ -1,67 +1,62 @@
 """dtactions __init__
 
-including utility functions,
-    - getThisDir, for getting the calling directory of module (in site-packages, also when this is a valid symlink),
-    - findInSitePackages, supporting getThisDir
-    - checkDirectory, check existence of directory, with create=True, do create if directory does not exist yet.
     
 Note: -as user, having pipped the package, the scripts run from the site-packages directory,
           no editing in source files is meant to be done
-      -as developer, you need to clone the package, then `build_package` and,
+      -as developer, you need to clone the package, 
        after a `pip uninstall dtactions` do: `pip install -e .` from the root of this project.
 
-Start with the following lines near the top of your python file:
 
-```
-try:
-    from dtactions import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print(f'Run this module after "build_package" and "flit install --symlink"\n')
-    raise
-   
-thisDir = getThisDir(__file__) # optional: ... , warnings=True)
-```
-
-Also retrieve the DtactionsDirectory and DtactionsUserDirectory from here:
+You can retrieve the DtactionsDirectory and DtactionsUserDirectory from here:
 
 ```
 from dtactions import getDtactionsDirectory, getDtactionsUserDirectory
-
-print(f'DtactionsDirectory: {getDtactionsDirectory()})
-print(f'DtactionsUserDirectory: {getDtactionsUserDirectory()})
+    print(f'dtactions_directory: "{getDtactionsDirectory()}"')
+    print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
+ 
 ```
 
-NOTE: these two directories can also be obtained via Dtactionsstatus:
+Or with the "Path" versions:
+
 ```
-from natlinkcore import natlinkstatus
-status = natlinkstatus.DtactionsStatus()
-status.getDtactionsDirectory()
-status.getDtactionsUserDirectory()
+from dtactions import getDtactionsPath, getDtactionsUserPath
+    print(f'dtactions_user_path: "{getDtactionsUserPath()}", (type: "{Type}"')
+    Type = type(getDtactionsPath())
+    print(f'dtactions_path: "{getDtactionsPath()}", (type: "{Type}")')
 ```
+
 
 """
+
 ## version to be updated when a new release is sent to pypi:
 __version__ = '1.6.3'     
 ##----------------------
 import os
 from pathlib import Path, WindowsPath
 
-def getDtactionsDirectory():
+def get_home_path() -> Path:
+    """get home path, can be tweaked by pytest testing
+    """
+    return WindowsPath.home()
+
+def getDtactionsDirectory() -> str:
     """return the root directory of dtactions
     """
     return str(Path(__file__).parent)
 
+def getDtactionsPath() -> Path:
+    """return the root directory of dtactions as Path instance
+    """
+    return Path(__file__).parent
+
 def getDtactionsUserDirectory() -> str:
     """get the UserDirectory for Dtactions
-    
-    Here are config files, especially "natlink.ini".
-    
-    It seems convenient to use as default the ".natlink" directory, as a sub directory of
-    the users home directory. (which can be overriden by the NATLINK_SETTINGSDIR
-    environment variable).
-    
-    This directory can be overridden by setting the environment variable DTACTIONS_USERDIR
-    to an existing directory.
+
+    This is by default your-home-directory/.dtactions (so decoupled from the Natlink user directory)
+
+    You can override this by setting environment variable `DTACTIONS_USERDIR`
+    to a valid directory of your choice
+
     """
     # default dtHome:
     dta_user_dir = os.getenv("DTACTIONS_USERDIR")
@@ -70,14 +65,19 @@ def getDtactionsUserDirectory() -> str:
             return str(dta_user_dir)
         print(f'WARNING, dtactions.getDtactionsUserDirectory: environment variable DTACTIONS_USERDIR does not point to a valid directory: "{dta_user_dir}"')
 
-    dta_home = WindowsPath.home()
+    home_path = get_home_path()
 
-    dtactions_ini_path = dta_home/".dtactions"
+    dtactions_ini_path = home_path/".dtactions"
     if not dtactions_ini_path.is_dir():
         dtactions_ini_path.mkdir()   #make it if it doesn't exist
     if not dtactions_ini_path.is_dir():
-        raise IOError(F'dtactions.__init__: dtactions_ini_path cannot be created "{dtactions_ini_path}"' )
+        raise IOError(f'dtactions.__init__: dtactions_ini_path cannot be created "{dtactions_ini_path}"' )
     return str(dtactions_ini_path)
+
+def getDtactionsUserPath() -> Path:
+    """the "Path" version of getDtactionsUserDirectory
+    """
+    return Path(getDtactionsUserDirectory())
 
 
 warningTexts = []
@@ -94,6 +94,12 @@ def warning(text):
     
 
 if __name__ == "__main__":
-    print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
     print(f'dtactions_directory: "{getDtactionsDirectory()}"')
+    print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
+ 
+    Type = type(getDtactionsPath())
+    print(f'dtactions_path: "{getDtactionsPath()}", (type: "{Type}")')
+ 
+    Type = type(getDtactionsUserPath())
+    print(f'dtactions_user_path: "{getDtactionsUserPath()}", (type: "{Type}"')
     

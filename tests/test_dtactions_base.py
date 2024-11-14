@@ -21,28 +21,29 @@ def test_dtactions_inifile():
 def test_dtactions_userdir_env_var(dtactions_setup_with_env_var):
     """test if env var DTACTIONS_USERDIR gives correct dtactions_user_dir
     """
-    dtactions_userdir = dtactions_setup_with_env_var
-    print(f'test_dtactions_userdir_env_var, directory: "{dtactions_userdir}"')
-    assert Path(dtactions_userdir).is_dir()
+    dtactions_user_path = dtactions_setup_with_env_var
+    # print(f'test_dtactions_userdir_env_var, directory: "{dtactions_userdir}"')
+    assert dtactions_user_path.is_dir()
     import dtactions
-    actual_dta_userdir = dtactions.getDtactionsUserDirectory()
-    assert actual_dta_userdir == dtactions_userdir
-    
+    actual_dta_user_path = dtactions.getDtactionsUserPath()
+    assert actual_dta_user_path == dtactions_user_path
+    assert dtactions.getDtactionsUserDirectory() == str(dtactions_user_path)    
 
-def test_dtactions_test_copy_of_unimacroactions_ini_file(dtactions_setup_with_env_var):
+def test_sample_unimacroactions_ini_file(dtactions_setup_with_env_var):
     """test if the unimacroactions.ini file is copied into the dtactions user dir
+    and check the validity of that ini file
     
     """
-    dtactions_userdir = dtactions_setup_with_env_var
-    assert Path(dtactions_userdir).is_dir()
+    dta_user_path = dtactions_setup_with_env_var
+    assert dta_user_path.is_dir()
     import dtactions
     
-    actual_dta_userdir = dtactions.getDtactionsUserDirectory()
-    assert actual_dta_userdir == dtactions_userdir
+    actual_dta_user_path= dtactions.getDtactionsUserPath()
+    assert actual_dta_user_path == dta_user_path
     
     from dtactions import unimacroactions
     from dtactions import inivars
-    ua_file = Path(actual_dta_userdir)/'unimacroactions.ini'
+    ua_file = actual_dta_user_path/'unimacroactions.ini'
     ini = inivars.IniVars(ua_file)
     assert ini
     

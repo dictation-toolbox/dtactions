@@ -63,7 +63,7 @@ dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 # baseDirectory = thisDir
 # if not baseDirectory:
 #     raise ImportError( 'no baseDirectory found while loading actions.py, stop loading this module')
-sampleDirectory = Path(dtactionsDir)/"samples"/"unimacro"
+sampleDirectory = Path(dtactionsDir)/"samples"
 
 if not sampleDirectory.is_dir():
     raise OSError(f'dtactions: no sample directory for unimacroactions.ini Inifile found: {sampleDirectory}"')
@@ -72,7 +72,7 @@ sampleInifile = sampleDirectory/"unimacroactions.ini"
 if not sampleInifile.is_file():
     raise OSError(f'no sample Inifile for unimacroactions found: "{sampleInifile}"')
   
-userDirectory = Path(dtactionsUserDir)/'unimacro'
+userDirectory = Path(dtactionsUserDir)
 if not userDirectory.is_dir():
     userDirectory.mkdir()
     
