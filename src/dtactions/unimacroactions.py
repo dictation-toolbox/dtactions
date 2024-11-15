@@ -55,6 +55,7 @@ class KeystrokeError(Exception):
     "KeystrokeError"
 
 pendingMessage = ''
+#TODO: rework into path style...
 this_path = Path(__file__).parent
 dtactionsDir = dtactions.getDtactionsDirectory()
 dtactionsUserDir = dtactions.getDtactionsUserDirectory()
@@ -1990,6 +1991,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     # voicecodeApp ('emacs') and (optional, but in this case) function voicecodeBringUp
     #
     if filepath:
+        filepath = str(filepath)   # in case a Path instance is passed
         app2 = None
         while app in ['open', 'edit']:
             if app == app2: break   #open = open...
@@ -2113,7 +2115,8 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                 if debug > 2: D('bringups: %s'% bringups)
                 if debug: D('delete %s from bringups'% app)
                 del bringups[app]
-                
+
+    UnimacroBringup = UnimacroBringUp 
     #    do_RW()
     #    if app in ('voicecode', 'dragonpad'):
     #        raise UnimacroError("Oops, BRINGUP voicecoder should not come here at all, bringing up: %s"% app)

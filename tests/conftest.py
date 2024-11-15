@@ -3,7 +3,7 @@
 #pylint:disable = E1101
 # from string import Template
 from shutil import copy as file_copy
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from functools import cache
 import importlib
 import pytest
@@ -42,16 +42,17 @@ def copy_unimacroactions_ini():
 
 @pytest.fixture()
 def dtactions_setup_with_env_var(tmp_path, monkeypatch):
-    dta_user_path = tmp_path
+    """dta_user_path points to a tmp_path
+    """
+    dta_user_path = tmp_path   
     print(f'dtactions_setup, dta_userdir: "{dta_user_path}"')
     monkeypatch.setenv("DTACTIONS_USERDIR", str(dta_user_path))
     return dta_user_path
 
 @pytest.fixture()
 def dtactions_setup_default(tmp_path, monkeypatch):
-    """try to send home to one of the newly created folders. MonkeyPatch throws an error
+    """return path of fake_home / '.dtactions'
     
-    TODO QH
     """
     dta_test_home_path = tmp_path
     def fake_home():
@@ -60,7 +61,9 @@ def dtactions_setup_default(tmp_path, monkeypatch):
     print(f'dtactions_setup, default home path: "{dta_test_home_path}"')
     monkeypatch.setenv("DTACTIONS_USERDIR","")
     monkeypatch.setattr(WindowsPath, 'home', fake_home)
-    return dta_test_home_path
+    dta_userdir = dta_test_home_path/'.dtactions'
+    dta_userdir.mkdir()
+    return dta_userdir
 
 
     

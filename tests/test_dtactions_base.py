@@ -7,7 +7,7 @@ env variable DTACTIONS_USERDIR.
 
 Quintijn Hoogenboom, November 2024
 """
-#pylint:disable = C0415
+#pylint:disable = C0415; W0611
 # from pathlib import Path
 import pytest
 
@@ -49,17 +49,17 @@ def test_sample_unimacroactions_ini_file(dtactions_setup_with_env_var):
     
     
 
-# def test_dtactions_userdir_default(dtactions_setup_default):
-#     r"""see if a copy of a sample ini file for dtactions is copied to
-#     ~\.dtactions when no or invalid env variable DTACTIONS_USERDIR is given
-#     
-#     TODO: see question in conftest.py (QH to Doug)
-#     """
-#     dtactions_user_path = dtactions_setup_default
-#     import dtactions
-#     assert dtactions_user_path.is_dir()
-#     actual_dta_user_path = dtactions.getDtactionsUserDirectory()
-#     assert actual_dta_user_path == dtactions_user_path
+def test_dtactions_userdir_default(dtactions_setup_default):
+    r"""see if a copy of a sample ini file for dtactions is copied to
+    ~\.dtactions when no or invalid env variable DTACTIONS_USERDIR is given
+    
+    TODO: see question in conftest.py (QH to Doug)
+    """
+    dtactions_user_path = dtactions_setup_default
+    import dtactions
+    assert dtactions_user_path.is_dir()
+    actual_dta_user_path = dtactions.getDtactionsUserPath()
+    assert actual_dta_user_path == dtactions_user_path
     
 
     
