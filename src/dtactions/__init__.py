@@ -33,11 +33,11 @@ __version__ = '1.6.3'
 ##----------------------
 import os
 from pathlib import Path, WindowsPath
-
-def get_home_path() -> Path:
-    """get home path, can be tweaked by pytest testing
-    """
-    return WindowsPath.home()
+# 
+# def get_home_path() -> Path:
+#     """get home path, can be tweaked by pytest testing
+#     """
+#     return WindowsPath.home()
 
 def getDtactionsDirectory() -> str:
     """return the root directory of dtactions
@@ -65,7 +65,7 @@ def getDtactionsUserDirectory() -> str:
             return str(dta_user_dir)
         print(f'WARNING, dtactions.getDtactionsUserDirectory: environment variable DTACTIONS_USERDIR does not point to a valid directory: "{dta_user_dir}"')
 
-    home_path = get_home_path()
+    home_path = WindowsPath.home()
 
     dtactions_ini_path = home_path/".dtactions"
     if not dtactions_ini_path.is_dir():

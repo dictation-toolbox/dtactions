@@ -41,25 +41,25 @@ def copy_unimacroactions_ini():
  
 
 @pytest.fixture()
-def dtactions_setup_with_env_var(tmp_path_factory):
-    dta_user_path = tmp_path_factory.mktemp("dtactions_user_dir")
+def dtactions_setup_with_env_var(tmp_path, monkeypatch):
+    dta_user_path = tmp_path
     print(f'dtactions_setup, dta_userdir: "{dta_user_path}"')
-    pytest.MonkeyPatch().setenv("DTACTIONS_USERDIR", str(dta_user_path))
+    monkeypatch.setenv("DTACTIONS_USERDIR", str(dta_user_path))
     return dta_user_path
 
 @pytest.fixture()
-def dtactions_setup_default(tmp_path_factory):
+def dtactions_setup_default(tmp_path, monkeypatch):
     """try to send home to one of the newly created folders. MonkeyPatch throws an error
     
     TODO QH
     """
-    dta_test_home_path = tmp_path_factory.mktemp('user_home_dir')
+    dta_test_home_path = tmp_path
     def fake_home():
         return dta_test_home_path
     
     print(f'dtactions_setup, default home path: "{dta_test_home_path}"')
-    pytest.MonkeyPatch().setenv("DTACTIONS_USERDIR","")
-    pytest.MonkeyPatch.setattr(dtactions, 'get_home_path', fake_home)
+    monkeypatch.setenv("DTACTIONS_USERDIR","")
+    monkeypatch.setattr(WindowsPath, 'home', fake_home)
     return dta_test_home_path
 
 

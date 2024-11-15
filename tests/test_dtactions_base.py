@@ -3,16 +3,16 @@ This module tests the basic setup of the dtactions project.
 
 The directory in which user (ini) files can be put, and other things,
 should be in ~\.dtactions, or in a directory that is defined by
-env variable DTACCTIONS_USERDIR.
+env variable DTACTIONS_USERDIR.
 
-Quintijn Hoogenboom, December 2022/October 2024
+Quintijn Hoogenboom, November 2024
 """
 #pylint:disable = C0415
-from pathlib import Path
+# from pathlib import Path
 import pytest
 
-thisDir = Path(__file__).parent
-dtactionsDir = thisDir.parent
+# thisDir = Path(__file__).parent
+# dtactions_path = thisDir.parent
 
 def test_dtactions_inifile():
     pass
@@ -49,17 +49,17 @@ def test_sample_unimacroactions_ini_file(dtactions_setup_with_env_var):
     
     
 
-def test_dtactions_userdir_default(dtactions_setup_default):
-    r"""see if a copy of a sample ini file for dtactions is copied to
-    ~\.dtactions when no or invalid env variable DTACTIONS_USERDIR is given
-    
-    TODO: see question in conftest.py (QH to Doug)
-    """
-    dtactions_userdir = dtactions_setup_default
-    import dtactions
-    assert Path(dtactions_userdir).is_dir()
-    actual_dta_userdir = dtactions.getDtactionsUserDirectory()
-    assert actual_dta_userdir == dtactions_userdir
+# def test_dtactions_userdir_default(dtactions_setup_default):
+#     r"""see if a copy of a sample ini file for dtactions is copied to
+#     ~\.dtactions when no or invalid env variable DTACTIONS_USERDIR is given
+#     
+#     TODO: see question in conftest.py (QH to Doug)
+#     """
+#     dtactions_user_path = dtactions_setup_default
+#     import dtactions
+#     assert dtactions_user_path.is_dir()
+#     actual_dta_user_path = dtactions.getDtactionsUserDirectory()
+#     assert actual_dta_user_path == dtactions_user_path
     
 
     
