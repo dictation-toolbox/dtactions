@@ -25,12 +25,12 @@ import win32clipboard
 import win32con
 # import pywintypes
 
-from dtactions import monitorfunctions  # elaborated version QH
-from dtactions import autohotkeyactions
-
 import natlink
 from natlinkcore import natlinkutils
 from natlinkcore import natlinkstatus
+from dtactions import monitorfunctions  # elaborated version QH
+from dtactions import autohotkeyactions
+
 status = natlinkstatus.NatlinkStatus()
 
 DEBUG = 0
@@ -362,15 +362,17 @@ def ExecScript(script, callingFrom=None):
         return None
     return 1
 
-def AppBringUp(App, Exec=None, Args=None, windowStyle=None, directory=None, callingFrom=None):
+def AppBringUp(App, Exec=None, Args=None, windowStyle=None, directory=None):   ##, callingFrom=None):
     """central BringUp function, can maintain old bringups
     BJ, extended QH.
     can be called from actions (UnimacroBringUp, or (do_)BRINGUP.
 
     """
     #pylint:disable=W0603, R0913, R0912
-    global pendingBringUps
     app = str(App).lower()
+    if app == 'notepad':
+        app = r'C:\Windows\notepad.exe'
+        assert os.path.isfile(app)
     if Args:
         if isinstance(Args, list):
             args=' '.join(Args)
@@ -415,11 +417,11 @@ def AppBringUp(App, Exec=None, Args=None, windowStyle=None, directory=None, call
     cmdline = cmdline.strip(", ")        
     #print "AppBringUp: %s"% cmdline
 
-    if callingFrom and (getattr(callingFrom, 'status', '') == 'new' or
-                        getattr(callingFrom, 'inGotBegin', 0)):
-        #print 'pending AppBringUp for %s, %s'% (callingFrom.getName(), script)
-        pendingBringUps.append(cmdline)
-        return None
+    # if callingFrom and (getattr(callingFrom, 'status', '') == 'new' or
+    #                     getattr(callingFrom, 'inGotBegin', 0)):
+    #     #print 'pending AppBringUp for %s, %s'% (callingFrom.getName(), script)
+    #     pendingBringUps.append(cmdline)
+    #     return None
     try:
         ## this is a tricky thing, execScript only recognises str, not unicode!
         ## as default, ascii or cp1252 or latin-1 is taken, the windows defaults.
@@ -1107,8 +1109,7 @@ def isTopWindow(hndle):
         parent = win32gui.GetParent(hndle)
     except:
         return 1
-    else:
-        return parent == 0
+    return parent == 0
         
 
 # remember the current window, needed before waitForTitleChange can be done
