@@ -28,8 +28,7 @@ from dtactions import getDtactionsPath, getDtactionsUserPath
 
 """
 
-## version to be updated when a new release is sent to pypi:
-__version__ = '1.6.3'     
+
 ##----------------------
 import os
 from pathlib import Path, WindowsPath
