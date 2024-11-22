@@ -32,6 +32,7 @@ Uninstall the packages you wish to develop. i.e pip if you want to work on `dtac
 
 Run `py -m pip install -e .[dev,test]`  from the dtactions project root.  You can skip `[dev,test]` after the first install.
 
+Use [semantic versioning](https://packaging.python.org/en/latest/discussions/versioning/) for version numbers.  Usually version numbers indicate dev, alpha, beta, release candidate etc.  When the release candidate is approved, we can just change pyproject.toml and perform an actual release.
 
 ### Unit testing
 Run pytest to run the tests, written in a combinatin of [unittest](https://docs.python.org/3/library/unittest.html) 
