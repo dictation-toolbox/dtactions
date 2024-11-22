@@ -2061,9 +2061,9 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
             appPath = appName or app
         appArgs = ini.get("bringup %s"% app, "args") or None
     else:
-        appPath = None
-        appArgs = None
-        appName = None
+        appPath = ""
+        appArgs = ""
+        appName = ""
 
     # code to be simplified, but added filename in the appName, so repeated UnimacroBringUps (AppBringUp of Dragon)
     # can refind the opened instance...
@@ -2078,7 +2078,10 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
 
     appName = appName or ''
     if filename:
-        appName += ' ' + filename
+        if appName:
+            appName += ' ' + filename
+        else:
+            appName = filename
 
     if appName and appName.find(' ') > 0:
         appName = f'""{appName}""'

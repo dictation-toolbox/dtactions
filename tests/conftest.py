@@ -10,7 +10,7 @@ import pytest
 import natlink
 import dtactions
 from natlinkcore import natlinkstatus
-thisDir = Path(__file__).parent
+thisPath = Path(__file__).parent
 
 @pytest.fixture(scope="module")
 def nl_status():
@@ -64,6 +64,13 @@ def dtactions_setup_default(tmp_path, monkeypatch):
     dta_userdir = dta_test_home_path/'.dtactions'
     dta_userdir.mkdir()
     return dta_userdir
+
+@pytest.fixture()
+def test_files_path():
+    """return path of test_files (used in test_unimacroactions.py)
+    
+    """
+    return thisPath / 'test_files'
 
 
     
