@@ -4,10 +4,12 @@ This module tests the unimacroactions module
 Quintijn Hoogenboom, December 2022/November 2024
 """
 #pylint:disable = C0415, W0611, W0107
+import time
 import pytest
 # from dtactions import natlinkclipboard
 # from dtactions import unimacroinivars as inivars  # old style
 import dtactions
+from dtactions import unimacroutils as uu
 
 def test_path_and_inifile_default(dtactions_setup_default):
     """test if the unimacroactions.ini file is copied into the dtactions user dir
@@ -95,6 +97,47 @@ def test_bringup(dtactions_setup_default, tmp_path, nat_conn):
     result = ua.UnimacroBringUp(app='open', filepath=file_to_bringup)
     assert result == 1
 
+def test_bringup_and_switch_two_files(dtactions_setup_default, tmp_path, nat_conn):
+    """see if bringup works with default notepad, and switching between the two...
+    
+    """
+    from dtactions import unimacroactions as ua
+    from dtactions import inivars
+    file_one = tmp_path/'test file one.txt'
+    with open(file_one, 'w', encoding='utf-8') as fp:
+        fp.write('open file testing on')
+        fp.write('\n')
+    file_two = tmp_path/'testfil\xe9_two.txt'
+    with open(file_two, 'w', encoding='utf-8') as fp:
+        fp.write('open file testing two with Montr\xe9al.')
+        fp.write('\n')
+    # Notepad appears with the file, close manually...
+    result = ua.UnimacroBringUp(app='open', filepath=file_one)
+    time.sleep(0.3)
+    prog_info = uu.getProgInfo()
+    assert prog_info.title.find('test file one') >= 0
+
+    result = ua.UnimacroBringUp(app='open', filepath=file_two)
+    time.sleep(0.3)
+    prog_info = uu.getProgInfo()
+    assert prog_info.title.find('_two.txt') >= 0
+
+    result = ua.UnimacroBringUp(app='open', filepath=file_one)
+    time.sleep(0.3)
+    prog_info = uu.getProgInfo()
+    assert prog_info.title.find('test file one') >= 0
+    # close the file:
+    ua.doAction('{alt+f4}')
+    
+
+    result = ua.UnimacroBringUp(app='open', filepath=file_two)
+    assert result == 1
+    time.sleep(0.3)
+    prog_info = uu.getProgInfo()
+    assert prog_info.title.find('_two.txt') >= 0
+    # close the file:
+    ua.doAction('{alt+f4}')
+
     
 def test_bringup_wrong_file_setting(dtactions_setup_default, tmp_path, nat_conn):
     """see if bringup works also with wrong input in unimacroactions.ini
@@ -107,7 +150,7 @@ def test_bringup_wrong_file_setting(dtactions_setup_default, tmp_path, nat_conn)
     ua_file = dta_user_path/'unimacroactions.ini'
     ini = inivars.IniVars(ua_file)
     ini.set('bringup edit', 'py', 'komodo')
-    ini.set('bringup komodo', 'path', 'C:/path/to/invalid/komodo.exe')
+    ini.set('bringup komodo', 'path', r'C:\invalid\path\to\komodo')
     ini.write()
 
     # only now import unimacroactions!!
@@ -120,6 +163,7 @@ def test_bringup_wrong_file_setting(dtactions_setup_default, tmp_path, nat_conn)
     # Notepad appears with the file, close manually...
     result = ua.UnimacroBringUp(app='edit', filepath=file_to_bringup)
     assert result == 1
+
 
 def test_do_alert(tmp_path, nat_conn):
     """see if bringup works also with wrong input in unimacroactions.ini
@@ -135,4 +179,4 @@ def test_do_alert(tmp_path, nat_conn):
     
     
 if __name__ == "__main__":
-    pytest.main(['test_unimacroactions.py'])
+    pytest.main(['test_unimacroactions.py::test_bringup_and_switch_two_files'])

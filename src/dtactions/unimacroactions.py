@@ -1964,7 +1964,7 @@ bringups = {}
 # special:
 voicecodeApp = 'emacs'
 
-def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None, comingFrom=None):
+def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None):
     """get a running copy of app in the foreground
 
     the full path can be set in section [bringup app], key path
@@ -2065,18 +2065,32 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
         appArgs = None
         appName = None
 
-    if filepath and filepath.find(' ') > 0:
-        filepath = f'""{filepath}""'
+    # code to be simplified, but added filename in the appName, so repeated UnimacroBringUps (AppBringUp of Dragon)
+    # can refind the opened instance...
+    
+    filename = ''
+
+    if filepath:
+        filename = Path(filepath).name
+        if filepath.find(' ') > 0 or filepath.find('\\') > 0:
+            filepath = f'""{filepath}""'
+        
+
+    appName = appName or ''
+    if filename:
+        appName += ' ' + filename
 
     if appName and appName.find(' ') > 0:
         appName = f'""{appName}""'
+
+    appPath = appPath or ''
 
     if appPath and appPath.find(' ') > 0:
         appPath = f'""{appPath}""'
 
     if appPath:
         if filepath:
-            appPath = f'{appName} {filepath}'
+            appPath = f'{appPath} {filepath}'
     else:
         appPath = filepath
 
