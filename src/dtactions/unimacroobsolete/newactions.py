@@ -39,8 +39,8 @@ import natlink
 from dtactions import monitorfunctions
 from dtactions import autohotkeyactions
 from dtactions import sendkeys
-from dtactions.unimacro import unimacroutils
-from dtactions.unimacro import inivars
+from dtactions import unimacroutils
+from dtactions import inivars
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)

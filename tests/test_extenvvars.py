@@ -10,7 +10,7 @@ Quintijn Hoogenboom, Februari 2023/August 2024
 from os.path import isdir
 from pathlib import Path
 import pytest
-from dtactions.unimacro import extenvvars
+from dtactions import extenvvars
 import natlink
 thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent
@@ -58,14 +58,14 @@ def test_getNatlinkEnvVariables(envvars, var_name):
 @pytest.mark.parametrize("var_name",
                 ["unimacrouser", "unimacrodata", "unimacrogrammars"]
                         )
-def test_getUnimacroEnvironmentVariables(envvars, var_name, nlstatus):
+def test_getUnimacroEnvironmentVariables(envvars, var_name, nl_status):
     """testing the unimacro variables, Unimacro can be on or off
     
     When Unimacro is not enabled (but possibly installed), the results should be fals
         
     """
     result = envvars.getExtendedEnv(var_name)
-    if natlink.isNatSpeakRunning() and nlstatus.unimacroIsEnabled():
+    if natlink.isNatSpeakRunning() and nl_status.unimacroIsEnabled():
         assert len(result)
         assert Path(result).is_dir()
     else:

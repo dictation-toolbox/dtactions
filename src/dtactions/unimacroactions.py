@@ -4,7 +4,7 @@
 #
 #pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613, W0602
 #pylint:disable=E1101
-#pylint:disable=C0209, R1728
+#pylint:disable=C0209, R1728, R1735
 ##TODO:
 #pylint:disable=W1514, R1732
 """This module contains actions that can be called from natlink grammars.
@@ -33,18 +33,18 @@ import win32api
 import win32gui
 import win32con
 # import win32com.client
+import natlink
+from natlinkcore import natlinkutils
+from natlinkcore.config import expand_path
 
 import dtactions
 from dtactions import monitorfunctions
 from dtactions.sendkeys import sendkeys, sendsystemkeys
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
-from dtactions.unimacro import unimacroutils
-from dtactions.unimacro import inivars
-# from dtactions.unimacro import actionclasses
-import natlink
-from natlinkcore import natlinkutils
-from natlinkcore.config import expand_path
+from dtactions import unimacroutils
+from dtactions import inivars
+# from dtactions import unimacroactionclasses
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
@@ -55,7 +55,7 @@ class KeystrokeError(Exception):
     "KeystrokeError"
 
 pendingMessage = ''
-thisDir = dtactions.getThisDir(__file__)
+#TODO: rework into path style...
 dtactionsDir = dtactions.getDtactionsDirectory()
 dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 
@@ -63,7 +63,7 @@ dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 # baseDirectory = thisDir
 # if not baseDirectory:
 #     raise ImportError( 'no baseDirectory found while loading actions.py, stop loading this module')
-sampleDirectory = Path(dtactionsDir)/"samples"/"unimacro"
+sampleDirectory = Path(dtactionsDir)/"samples"
 
 if not sampleDirectory.is_dir():
     raise OSError(f'dtactions: no sample directory for unimacroactions.ini Inifile found: {sampleDirectory}"')
@@ -72,7 +72,7 @@ sampleInifile = sampleDirectory/"unimacroactions.ini"
 if not sampleInifile.is_file():
     raise OSError(f'no sample Inifile for unimacroactions found: "{sampleInifile}"')
   
-userDirectory = Path(dtactionsUserDir)/'unimacro'
+userDirectory = Path(dtactionsUserDir)
 if not userDirectory.is_dir():
     userDirectory.mkdir()
     
@@ -686,7 +686,7 @@ def get_external_module(prog):
         return external_actions_modules[prog]
     try:
         modname = '%s-actions'% str(prog)
-        _temp = __import__('dtactions.unimacro.actionclasses', fromlist=[modname])
+        _temp = __import__('dtactions.unimacroactionclasses', fromlist=[modname])
         mod = getattr(_temp, modname)
         external_actions_modules[prog] = mod
         print('get_external_module, found actions module: %s'% modname)
@@ -1683,7 +1683,11 @@ def do_ALERT(alert=1, **kw):
         except ValueError:
             nAlert = 1
         for _i in range(nAlert):
-            natlink.execScript('PlaySound "'+thisDir+'\\ding.wav"')
+            ding_path = Path(dtactionsDir)/"ding.wav"
+            if not ding_path.is_file():
+                raise OSError('sound file "ding.wav" not present in %s'% dtactionsDir)
+            exec_string = f'PlaySound "{ding_path}"'
+            natlink.execScript(exec_string)
     unimacroutils.Wait(0.1)
     if micState != 'off':
         natlink.setMicState(micState)
@@ -1917,7 +1921,7 @@ def YesNo(t, title=None, icon=32, alert=None, defaultToSecondButton=0, progInfo=
                   'title: %s\n'% (tt, icon, title))
         unimacroutils.Wait(0.1)
         newMicState = natlink.getMicState()
-        result = (newMicState == 'sleeping')
+        result = newMicState == 'sleeping'
         if newMicState != 'off': break   # ok, either on or sleeping
         # try again (maximum 3 times)
         unimacroutils.Wait(0.05)
@@ -1960,7 +1964,7 @@ bringups = {}
 # special:
 voicecodeApp = 'emacs'
 
-def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None, comingFrom=None):
+def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None):
     """get a running copy of app in the foreground
 
     the full path can be set in section [bringup app], key path
@@ -1990,6 +1994,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     # voicecodeApp ('emacs') and (optional, but in this case) function voicecodeBringUp
     #
     if filepath:
+        filepath = str(filepath)   # in case a Path instance is passed
         app2 = None
         while app in ['open', 'edit']:
             if app == app2: break   #open = open...
@@ -2049,34 +2054,55 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                     else:
                         raise OSError('invalid path for app with PROGRAMFILES %s: %s (expanded: %s)'% (app, appPath, appPath2))
                 else:
-                    raise OSError('invalid path for  app %s: %s (expanded: %s)'% (app, appPath, appPath2))
+                    print('UnimacroBringUp, invalid path for app %s: %s, revert to default (Notepad)'% (app, appPath))
+                    appPath = 'notepad'
+                    appName = 'notepad'
         else:
             appPath = appName or app
         appArgs = ini.get("bringup %s"% app, "args") or None
     else:
-        appPath = None
-        appArgs = None
-        appName = None
-    if appName:
-        if filepath:
-            appName = f'{appName} {filepath}'
-    else:
-        appName = filepath
+        appPath = ""
+        appArgs = ""
+        appName = ""
+
+    # code to be simplified, but added filename in the appName, so repeated UnimacroBringUps (AppBringUp of Dragon)
+    # can refind the opened instance...
+    
+    filename = ''
 
     if filepath:
-        filepath = f'""{filepath}""'
-        # print(f'filepath unimacroactions: |{filepath}|')
-        if appArgs:
-            #if filepath.find(" ") > 0:
-                # insert DOUBLE DOUBLE QUOTES for vba line recognition
-            filepath = '""'+filepath+'""'
-            print(f'filepath appArgs unimacroactions: |{filepath}|')
+        filename = Path(filepath).name
+        if filepath.find(' ') > 0 or filepath.find('\\') > 0:
+            filepath = f'""{filepath}""'
+        
 
-            appArgs = f'{appArgs} {filepath}'
-            print(f'appArgs unimacroactions: |{appArgs}|')
-            
+    appName = appName or ''
+    if filename:
+        if appName:
+            appName += ' ' + filename
         else:
-            appArgs = filepath
+            appName = filename
+
+    if appName and appName.find(' ') > 0:
+        appName = f'""{appName}""'
+
+    appPath = appPath or ''
+
+    if appPath and appPath.find(' ') > 0:
+        appPath = f'""{appPath}""'
+
+    if appPath:
+        if filepath:
+            appPath = f'{appPath} {filepath}'
+    else:
+        appPath = filepath
+
+        # # print(f'filepath unimacroactions: |{filepath}|')
+        # if appArgs:
+        #     appArgs = f'{appArgs} {filepath}'
+        #     print(f'appArgs unimacroactions: |{appArgs}|')
+        # else:
+        #     appArgs = filepath
     # for future:
     appWindowStyle = ini.get("bringup %s"% app, "style") or None
     appDirectory = ini.get("bringup %s"% app, "directory") or None
@@ -2113,7 +2139,6 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                 if debug > 2: D('bringups: %s'% bringups)
                 if debug: D('delete %s from bringups'% app)
                 del bringups[app]
-                
     #    do_RW()
     #    if app in ('voicecode', 'dragonpad'):
     #        raise UnimacroError("Oops, BRINGUP voicecoder should not come here at all, bringing up: %s"% app)
@@ -2136,12 +2161,15 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     #                #print 'currentModedule: %s'% repr(natlink.getCurrentModule())
     ##do_RW()
     #print 'unimacrobringup: name: %s, app: %s, args: %s (filepath: %s)'% (appName, appPath, appArgs, filepath)
-    result = unimacroutils.AppBringUp(appName, appPath, appArgs, appWindowStyle, appDirectory)
+    result = unimacroutils.AppBringUp(App=appName, Exec=appPath, Args=appArgs,
+                                      windowStyle=appWindowStyle, directory=appDirectory)
+                                      
     # print("result of UnimacroBringUp:", result)
     if extra:
         doAction(extra)
         
     return result
+
 #    if do_WTC():
 #        prog, title, _topchild, classname, hndle = unimacroutils.getProgInfo()
 #        progFull, titleFull, hndle = natlink.getCurrentModule()

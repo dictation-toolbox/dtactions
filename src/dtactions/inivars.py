@@ -10,7 +10,7 @@ import locale
 from collections import UserDict
 from pathlib import Path
 
-from dtactions.unimacro import utilsqh
+from dtactions import utilsqh
 
 from natlinkcore import readwritefile
 

@@ -12,9 +12,9 @@ from pathlib import Path
 import pytest
 import win32gui
 # from dtactions import natlinkclipboard
-# from dtactions.unimacro import unimacroinivars as inivars  # old style
+# from dtactions import unimacroinivars as inivars  # old style
 import natlink
-from dtactions.unimacro import unimacroutils
+from dtactions import unimacroutils
 from dtactions import autohotkeyactions
 
 

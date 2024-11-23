@@ -9,7 +9,7 @@ maintainers  = [{name = "Quintijn Hoogenboom", email="q.hoogenboom@antenna.nl"},
 dynamic = ["description"]
 requires-python = ">=3.9"
 readme = "README.md"
-version="1.6.4.dev2"
+version="1.6.4.dev3"
 dependencies= [
 	"pywin32 >= 300",
 	"debugpy",
@@ -69,3 +69,8 @@ python_files = [
 	]
  
 
+[tool.ruff]
+include = ["pyproject.toml", "src/**/*.py", "scripts/**/*.py","tests/**/*.py"]
+
+[tool.pyright]
+include = ["pyproject.toml", "src/**/*.py", "scripts/**/*.py","tests/**/*.py"]

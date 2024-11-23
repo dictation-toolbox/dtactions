@@ -153,3 +153,4 @@ cython_debug/
 /documentation/.#*
 .rst
 *.orig
+/.merge_file_*

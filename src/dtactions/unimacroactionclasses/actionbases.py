@@ -5,10 +5,10 @@ This module provides the different classes to base a program specific actionscla
 """
 #pylint:disable=C0116, W0201
 from dtactions import messagefunctions as mess
-from dtactions.unimacro import unimacroutils
+from dtactions import unimacroutils
 
 class AllActions:
-    """base class for all actions that run in actionclasses
+    """base class for all actions that run in unimacroactionclasses
     """
     def __init__(self, progInfo):
         self.reset(progInfo=progInfo)

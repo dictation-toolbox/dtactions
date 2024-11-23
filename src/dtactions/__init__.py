@@ -1,43 +1,30 @@
 """dtactions __init__
 
-including utility functions,
-    - getThisDir, for getting the calling directory of module (in site-packages, also when this is a valid symlink),
-    - findInSitePackages, supporting getThisDir
-    - checkDirectory, check existence of directory, with create=True, do create if directory does not exist yet.
     
 Note: -as user, having pipped the package, the scripts run from the site-packages directory,
           no editing in source files is meant to be done
-      -as developer, you need to clone the package, then `build_package` and,
+      -as developer, you need to clone the package, 
        after a `pip uninstall dtactions` do: `pip install -e .` from the root of this project.
 
-Start with the following lines near the top of your python file:
+
+You can retrieve the DtactionsDirectory and DtactionsUserDirectory from here:
 
 ```
-try:
-    from dtactions.__init__ import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print(f'Run this module after "build_package" and "flit install --symlink"\n')
-    raise
-   
-thisDir = getThisDir(__file__) # optional: ... , warnings=True)
+from dtactions import getDtactionsDirectory, getDtactionsUserDirectory
+    print(f'dtactions_directory: "{getDtactionsDirectory()}"')
+    print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
+ 
 ```
 
-Also retrieve the DtactionsDirectory and DtactionsUserDirectory from here:
+Or with the "Path" versions:
 
 ```
-from Dtactionscore.__init__ import getDtactionsDirectory, getDtactionsUserDirectory
-
-print(f'DtactionsDirectory: {getDtactionsDirectory()})
-print(f'DtactionsUserDirectory: {getDtactionsUserDirectory()})
+from dtactions import getDtactionsPath, getDtactionsUserPath
+    print(f'dtactions_user_path: "{getDtactionsUserPath()}", (type: "{Type}"')
+    Type = type(getDtactionsPath())
+    print(f'dtactions_path: "{getDtactionsPath()}", (type: "{Type}")')
 ```
 
-NOTE: these two directories can also be obtained via Dtactionsstatus:
-```
-import natlinkstatus
-status = natlinkstatus.DtactionsStatus()
-status.getDtactionsDirectory()
-status.getDtactionsUserDirectory()
-```
 
 """
 import importlib.metadata
@@ -45,118 +32,54 @@ __version__ = importlib.metadata.version(__package__)  #version set in pyproject
 
 
 ##----------------------
-import sys
 import os
 from pathlib import Path, WindowsPath
+# 
+# def get_home_path() -> Path:
+#     """get home path, can be tweaked by pytest testing
+#     """
+#     return WindowsPath.home()
 
-def getDtactionsDirectory():
+def getDtactionsDirectory() -> str:
     """return the root directory of dtactions
     """
-    return getThisDir(__file__)
+    return str(Path(__file__).parent)
 
-def getDtactionsUserDirectory():
-    """get the NatlinkUserDirectory
-    
-    Here are config files, especially .natlink
-    
-    By default the users home directory is taken. This directory can be overridden by setting
-    the environment variable DICTATIONTOOLBOXUSER to an existing directory.
-    Restart then the calling program
+def getDtactionsPath() -> Path:
+    """return the root directory of dtactions as Path instance
+    """
+    return Path(__file__).parent
+
+def getDtactionsUserDirectory() -> str:
+    """get the UserDirectory for Dtactions
+
+    This is by default your-home-directory/.dtactions (so decoupled from the Natlink user directory)
+
+    You can override this by setting environment variable `DTACTIONS_USERDIR`
+    to a valid directory of your choice
+
     """
     # default dtHome:
-    dictation_toolbox_user = os.getenv("DICTATIONTOOLBOXUSER")
-    if dictation_toolbox_user:
-        dtHome = Path(dictation_toolbox_user)
-        if not dtHome.is_dir():
-            dtHome = WindowsPath.home()
-            print(f'dtactions.getDtactionsUserDirectory: environment variable DICTATIONTOOLBOXUSER does not point to a valid directory: "{dictation_toolbox_user}", take "{dtHome}"')
-    else:
-        dtHome = WindowsPath.home()
+    dta_user_dir = os.getenv("DTACTIONS_USERDIR")
+    if dta_user_dir:
+        if Path(dta_user_dir).is_dir():
+            return str(dta_user_dir)
+        print(f'WARNING, dtactions.getDtactionsUserDirectory: environment variable DTACTIONS_USERDIR does not point to a valid directory: "{dta_user_dir}"')
 
-    dtactions_ini_folder = dtHome / ".dtactions"
-    if not dtactions_ini_folder.is_dir():
-        dtactions_ini_folder.mkdir()   #make it if it doesn't exist
-    return str(dtactions_ini_folder)
+    home_path = WindowsPath.home()
 
-def getThisDir(fileOfModule, warnings=False):
-    """get directory of calling module, if possible in site-packages
-    
-    call at top of module with `getThisDir(__file__)`
-    
-    If you want to get warnings (each one only once, pass `warnings = True`)
-    
-    More above and in the explanation of findInSitePackages.
+    dtactions_ini_path = home_path/".dtactions"
+    if not dtactions_ini_path.is_dir():
+        dtactions_ini_path.mkdir()   #make it if it doesn't exist
+    if not dtactions_ini_path.is_dir():
+        raise IOError(f'dtactions.__init__: dtactions_ini_path cannot be created "{dtactions_ini_path}"' )
+    return str(dtactions_ini_path)
+
+def getDtactionsUserPath() -> Path:
+    """the "Path" version of getDtactionsUserDirectory
     """
-    thisFile = Path(fileOfModule)
-    thisDir = thisFile.parent
-    thisDir = findInSitePackages(thisDir, warnings=warnings)
-    return thisDir
+    return Path(getDtactionsUserDirectory())
 
-def findInSitePackages(directory, warnings):
-    """get corresponding directory in site-packages 
-    
-    For users, just having pipped this package, the "directory" is returned, assuming it is in
-    the site-packages.
-    
-    For developers, the directory is either
-    --in a clone from github.
-        The corresponding directory in site-packages should be a symlink,
-        otherwise there was no "flit install --symlink" yet.
-    --a directory in the site-packages. This directory should be a symlink to a cloned dir.
-    
-    The site-packages directory is returned, but the actual files accessed are in the cloned directory.
-    
-    To get this "GOOD" situation, you perform the steps as pointed out above (or in the README.md file)
-
-    When problems arise, set warnings=True, in the call, preferably when calling getThisDir in the calling module.
-    """
-    dirstr = str(directory)
-    if dirstr.find('\\src\\') < 0:
-        if warnings:
-            warning(f'directory {dirstr} not connected to a github clone directory, changes will not persist across updates...')
-        return directory
-
-    commonpart = dirstr.rsplit('\\src\\', maxsplit=1)[-1]
-    spDir = Path(sys.prefix, 'Lib', 'site-packages', commonpart)
-    if spDir.is_dir():
-        spResolve = spDir.resolve()
-        if spResolve == spDir:
-            if warnings:
-                warning(f'corresponding site-packages directory is not a symlink: {spDir}.\nPlease use "flit install --symlink" when you want to test this package')
-        elif spResolve == directory:
-            # print(f'directory is symlink: {spDir} and resolves to {directory} all right')
-            ## return the symbolic link in the site-packages directory, that resolves to directory!!
-            return spDir
-        else:
-            if warnings:
-                warning(f'directory is symlink: {spDir} but does NOT resolve to {directory}, but to {spResolve}')
-    else:
-        if warnings:
-            warning('findInSitePackages, not a valid directory in site-packages, no "flit install --symlink" yet: {spDir}')
-    return directory        
-
-def checkDirectory(directory, create=None):
-    """check existence of directory path
-    
-    create == False, None (default): raise OSError if directory is not there
-
-    create == True: create if not existent yet... 
-              raise OSError if something strange happens...
-    returns None
-    """
-    if not isinstance(directory, Path):
-        directory = Path(directory)
-    if directory.is_dir():
-        return
-    if create is False:
-        raise OSError(f'Cannot find directory {directory}, but it should be there.')
-    if directory.exists():
-        raise OSError(f'path exists, but is not a directory: {directory}')
-    directory.mkdir(parents=True)
-    if directory.is_dir():
-        print('created directory: {directory}')
-    else:
-        raise OSError(f'did not manage to create directory: {directory}')
 
 warningTexts = []
 def warning(text):
@@ -172,5 +95,12 @@ def warning(text):
     
 
 if __name__ == "__main__":
+    print(f'dtactions_directory: "{getDtactionsDirectory()}"')
     print(f'dtactions_user_directory: "{getDtactionsUserDirectory()}"')
+ 
+    Type = type(getDtactionsPath())
+    print(f'dtactions_path: "{getDtactionsPath()}", (type: "{Type}")')
+ 
+    Type = type(getDtactionsUserPath())
+    print(f'dtactions_user_path: "{getDtactionsUserPath()}", (type: "{Type}"')
     
