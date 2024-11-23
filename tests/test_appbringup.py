@@ -276,5 +276,5 @@ def test_bringup_wrong_file_setting(dtactions_setup_default, tmp_path, nat_conn)
     ua.doAction('{alt+f4}')
 
 if __name__ == "__main__":
-    pytest.main(['test_appbringup.py::test_bringup_and_switch_two_files_vscode'])
-    # pytest.main(['test_appbringup.py'])
+    # pytest.main(['test_appbringup.py::test_bringup_and_switch_two_files_vscode'])
+    pytest.main(['test_appbringup.py'])
