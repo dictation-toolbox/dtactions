@@ -27,6 +27,8 @@ from dtactions import getDtactionsPath, getDtactionsUserPath
 
 
 """
+import importlib.metadata
+__version__ = importlib.metadata.version(__package__)  #version set in pyproject.toml now.
 
 
 ##----------------------
