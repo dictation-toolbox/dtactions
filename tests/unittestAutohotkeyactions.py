@@ -17,19 +17,13 @@ from pathlib import Path
 from dtactions import autohotkeyactions as ahk
 from dtactions.sendkeys import sendkeys
 
-try:
-    from dtactions.__init__ import getThisDir, checkDirectory
-except ModuleNotFoundError:
-    print('\n'.join(['If trying to test this in a git cloned package,',
-          'please run this module after "build_package" and "flit install --symlink"',
-          'otherwise, this is an unexpected error', 'please report']))
-    raise
 
-thisDir = getThisDir(__file__)
+thisDir = Path(__file__).parent
 dtactionsDir = thisDir.parent
 
 dataDir = Path.home()/".autohotkey"
-checkDirectory(dataDir, create=True)
+dataDir.mkdir(exist_ok=True)
+# checkDirectory(dataDir, create=True)
 
 class UnittestAutohotkeyactions(unittest.TestCase):
     """test actions of the module "autohotkeyactions"
@@ -283,4 +277,6 @@ def run():
     unittest.TextTestRunner().run(suite)
 
 if __name__ == "__main__":
+    print(f'thisDir: "{thisDir}"')
+    print(f'dataDir: "{dataDir}"')
     run()
