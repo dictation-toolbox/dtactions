@@ -25,6 +25,11 @@ Install Python and Natlink and the packages you would like to use (Dragonfly, Ca
 
 ## Instructions for Developers
 
+Starting 1.6.5.dev1 ( going to 1.6.5 ASAP) renaming of the unimacro actions part has been done:
+- unimacroutils directory renamed to **uniutils**
+- unimacro/unimacroactions.py renamed to **uniactions/uactions.py**
+- unimacroactionsclasses renamed to **uniactions/actionsclasses**  (so directory is renamed and moved, internal use only)
+
 If you are working on dtactions the most convenient setup is an [editable install](https://peps.python.org/pep-0660/).  Your local git repository can be anywhere convenient. 
 
 Uninstall the packages you wish to develop. i.e pip if you want to work on `dtactions`:
