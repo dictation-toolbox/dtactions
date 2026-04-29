@@ -4,9 +4,8 @@
 #
 #pylint:disable=C0302, C0116, R0913, R0914, R1710, R0911, R0912, R0915, C0321, W0702, W0613, W0602
 #pylint:disable=E1101
-#pylint:disable=C0209, R1728, R1735
-##TODO:
-#pylint:disable=W1514, R1732
+#pylint:disable=C0209, R1728
+#pylint:disable=R1735
 """This module contains actions that can be called from natlink grammars.
 
 The central functions are "doAction" and "doKeystroke".
@@ -33,18 +32,18 @@ import win32api
 import win32gui
 import win32con
 # import win32com.client
-import natlink
-from natlinkcore import natlinkutils
-from natlinkcore.config import expand_path
 
 import dtactions
 from dtactions import monitorfunctions
 from dtactions.sendkeys import sendkeys, sendsystemkeys
 # from dtactions import messagefunctions
 from dtactions import autohotkeyactions # for AutoHotkey support
-from dtactions import unimacroutils
+from dtactions import uniutils
 from dtactions import inivars
-# from dtactions import unimacroactionclasses
+# from dtactions.uniactions import actionclasses
+import natlink
+from natlinkcore import natlinkutils
+from natlinkcore.config import expand_path
 
 external_actions_modules = {}  # the modules, None if not available (for prog)
 external_action_instances = {} # the instances, None if not available (for hndle)
@@ -55,7 +54,7 @@ class KeystrokeError(Exception):
     "KeystrokeError"
 
 pendingMessage = ''
-#TODO: rework into path style...
+thisDir = Path(__file__).parent
 dtactionsDir = dtactions.getDtactionsDirectory()
 dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 
@@ -66,17 +65,17 @@ dtactionsUserDir = dtactions.getDtactionsUserDirectory()
 sampleDirectory = Path(dtactionsDir)/"samples"
 
 if not sampleDirectory.is_dir():
-    raise OSError(f'dtactions: no sample directory for unimacroactions.ini Inifile found: {sampleDirectory}"')
+    raise OSError(f'dtactions: no sample directory for uniactions.ini Inifile found: {sampleDirectory}"')
 
-sampleInifile = sampleDirectory/"unimacroactions.ini"
+sampleInifile = sampleDirectory/"uniactions.ini"
 if not sampleInifile.is_file():
-    raise OSError(f'no sample Inifile for unimacroactions found: "{sampleInifile}"')
+    raise OSError(f'no sample Inifile for uniactions found: "{sampleInifile}"')
   
 userDirectory = Path(dtactionsUserDir)
 if not userDirectory.is_dir():
     userDirectory.mkdir()
     
-userInifile = userDirectory/'unimacroactions.ini'
+userInifile = userDirectory/'uniactions.ini'
 if not userInifile.is_file():
     shutil.copy(sampleInifile, userInifile)
 # print(f'unimacroactions, inifile: {userInifile}')
@@ -218,7 +217,7 @@ def doAction(action, completeAction=None, pauseBA=None, pauseBK=None,
         if not ini:
             D('no valid inifile for actions')
             return
-        progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
+        progInfo = uniutils.getProgInfo(modInfo=modInfo)
         #D('new progInfo: %s'% repr(progInfo))
         prog = progInfo.prog
         if sectionList is None:
@@ -502,7 +501,7 @@ def doKeystroke(action, hardKeys=None, pauseBK=None,
         
 def getMetaAction(a, sectionList=None, progInfo=None):
     if progInfo is None:
-        progInfo = unimacroutils.getProgInfo()
+        progInfo = uniutils.getProgInfo()
     if sectionList is None:
         sectionList = getSectionList(progInfo)
     
@@ -555,7 +554,7 @@ natspeakCommands = ['ActiveControlPick', 'ActiveMenuPick', 'AppBringUp', 'AppSwa
 
 def getSectionList(progInfo=None):
     if not progInfo:
-        progInfo = unimacroutils.getProgInfo()
+        progInfo = uniutils.getProgInfo()
     _progpath, prog, title, _topchild, _classname, _hndle = progInfo
     if debug > 5:
         D('search for prog: %s and title: %s' % (prog, title))
@@ -665,7 +664,7 @@ def getFromIni(keyword, default='',
     if not ini:
         return ''
     if sectionList is None:
-        if progInfo is None: progInfo = unimacroutils.getProgInfo()
+        if progInfo is None: progInfo = uniutils.getProgInfo()
         _progpath, prog, title, _toporchild, _classname, _hndle = progInfo
         sectionList = ini.getSectionsWithPrefix(prog, title) + \
                       ini.getSectionsWithPrefix('default', title)
@@ -686,7 +685,7 @@ def get_external_module(prog):
         return external_actions_modules[prog]
     try:
         modname = '%s-actions'% str(prog)
-        _temp = __import__('dtactions.unimacroactionclasses', fromlist=[modname])
+        _temp = __import__('dtactions.uniactions.actionclasses', fromlist=[modname])
         mod = getattr(_temp, modname)
         external_actions_modules[prog] = mod
         print('get_external_module, found actions module: %s'% modname)
@@ -724,7 +723,7 @@ def get_instance_from_progInfo(progInfo):
 def doCheckForChanges(previousIni=None):
     #pylint:disable=W0603
     global  ini, iniFileDate, TopChildDict, ChildTopDict
-    newDate = unimacroutils.getFileDate(inifile)
+    newDate = uniutils.getFileDate(inifile)
     if newDate > iniFileDate:
         D('----------reloading ini file')
         try:
@@ -750,7 +749,7 @@ def writeDebug(s):
         print('_actions debug: %s'% s)
        
 D =writeDebug
-def debugActions(n, openMode='w'):
+def debugActions(n, openMode='w', encoding='utf-8'):
     #pylint:disable=W0603
     global debug, debugSock
     debug = n
@@ -759,7 +758,7 @@ def debugActions(n, openMode='w'):
         debugSock.close()
         debugSock = None
     if n:
-        debugSock = open(debugFile, openMode)
+        debugSock = open(debugFile, openMode, encoding=encoding)
         
         
 
@@ -769,10 +768,10 @@ def debugActionsShow():
     #win32api.ShellExecute(0, "open", debugFile, None , "", 1)
     
 
-def showActions(progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
+def showActions(progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None, encoding='utf-8'):
     if progInfo is None:
-        progInfo = unimacroutils.getProgInfo()
-    language = unimacroutils.getLanguage()
+        progInfo = uniutils.getProgInfo()
+    language = uniutils.getLanguage()
     
     sectionList = getSectionList(progInfo)
 
@@ -793,9 +792,8 @@ def showActions(progInfo=None, lineLen=60, sort=1, comingFrom=None, name=None):
     l.append(T(language, dict(enx='consult grammar "control" for the exact commands',
                               nld='raadpleeg grammatica "controle" voor de precieze commando\'s')))
     
-    sock = open(whatFile, 'w')
-    sock.write('\n'.join(l))
-    sock.close()
+    with open(whatFile, 'w', encoding=encoding) as sock:
+        sock.write('\n'.join(l))
     if comingFrom:
         name=name or ""
         comingFrom.openFileDefault(whatFile, name=name)
@@ -815,7 +813,7 @@ def getTranslation(language, Dict):
 def editActions(comingFrom=None, name=None):
     #pylint:disable=W0603
     global checkForChanges, iniFileDate, TopChildDict, ChildTopDict
-    iniFileDate = unimacroutils.getFileDate(inifile)
+    iniFileDate = uniutils.getFileDate(inifile)
     checkForChanges = 1
     TopChildDict = None
     ChildTopDict = None
@@ -833,14 +831,14 @@ def setPosition(name, pos, prog=None):
     """
     #pylint:disable=W0603
     global checkForChanges, iniFileDate
-    iniFileDate = unimacroutils.getFileDate(inifile)
+    iniFileDate = uniutils.getFileDate(inifile)
     checkForChanges = 1
     if prog:
         section = 'positions %s'% prog
     else:
         section = 'positions'
     ini.set(section, name, pos)
-    unimacroutils.Wait(0.1)
+    uniutils.Wait(0.1)
     ini.write()
 
 def getPosition(name, prog=None):
@@ -856,7 +854,7 @@ def getPosition(name, prog=None):
 # -----------------------------------------------------------
 
 def do_TEST(*args, **kw):
-    # x, y = unimacroutils.testmonitorinfo(args[0], args[1])
+    # x, y = uniutils.testmonitorinfo(args[0], args[1])
     # print 'in do_test: ', x, y
     tup = natlink.getCurrentModule()
     hndle = tup[2]
@@ -919,31 +917,31 @@ def do_MP(scrorwind, x, y, mouse='left', nClick=1, **kw):
     if not scrorwind in [0,1,2,3,4,5]:
         raise ActionError('Mouse action not supported with relativeTo: %s' % scrorwind)
     # first parameter 1: relative:
-    unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick)  # abs, rel to window, x, y, click
+    uniutils.doMouse(0,scrorwind,x,y,mouse,nClick)  # abs, rel to window, x, y, click
     return 1
 
 def do_CLICK(mouse='left', nClick=1, **kw):
     scrorwind = 2
     x, y, = 0, 0
     # click at current position:
-    unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
+    uniutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
     return 1
 
 
 def do_ENDMOUSE(**kw):
-    unimacroutils.endMouse()
+    uniutils.endMouse()
     return 1
     
 def do_CANCELMOUSE(**kw):
-    unimacroutils.cancelMouse()
+    uniutils.cancelMouse()
     return 1
 
 def do_MDOWN(button='left', **kw):
-    unimacroutils.mousePushDown(button)
+    uniutils.mousePushDown(button)
     return 1
 
 def do_RM(**kw):
-    unimacroutils.rememberMouse()
+    uniutils.rememberMouse()
     return 1
  
 def do_MOUSEISMOVING(**kw):
@@ -1034,7 +1032,7 @@ def do_CHECKMOUSESTEADY(**kw):
 #     returns 0 if it keeps moving
 #     """
 #     ### TODOQH
-#     unimacroutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
+#     uniutils.doMouse(0,scrorwind,x,y,mouse,nClick) 
 #     return 1
 
 
@@ -1044,38 +1042,38 @@ def do_RMP(scrorwind, x, y, mouse='left', nClick=1, **kw):
     if not scrorwind in [0,1,3,5]:
         raise ActionError(f'Mouse action not supported with relativeTo: "{scrorwind}"')
     # first parameter 1: relative:
-    unimacroutils.doMouse(1,scrorwind,x,y,mouse,nClick)  # relative, rel to window, x, y,click
+    uniutils.doMouse(1,scrorwind,x,y,mouse,nClick)  # relative, rel to window, x, y,click
     return 1
     
 def do_PRMP(all=0, **kw):
     #pylint:disable=W0622
     # print relative mouse position
-    unimacroutils.printMousePosition(1,all)  # relative
+    uniutils.printMousePosition(1,all)  # relative
     return 1
     
 
 def do_PMP(all=0, **kw):
     #pylint:disable=W0622
     # print absolute mouse position
-    unimacroutils.printMousePosition(0,all)  # absolute
+    uniutils.printMousePosition(0,all)  # absolute
     return 1
 
 def do_PALLMP(**kw):
     # print all mouse positions
-    unimacroutils.printMousePosition(0,1)  # absolute
-    unimacroutils.printMousePosition(1,1)  # relative
+    uniutils.printMousePosition(0,1)  # absolute
+    uniutils.printMousePosition(1,1)  # relative
     
 
 # Get the NatSpeak main menu:
 def do_NSM(**kw):
     modInfo = natlink.getCurrentModule()
-    prog = unimacroutils.getProgName(modInfo)
+    prog = uniutils.getProgName(modInfo)
     if prog == 'natspeak':
         if modInfo[1].find('DragonPad') >= 0:
             sendkeys('{alt+n}')
             return 1
     natlink.recognitionMimic(["NaturallySpeaking"])
-    return unimacroutils.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
+    return uniutils.waitForWindowTitle(['DragonBar', 'Dragon-balk', 'Voicebar'],10,0.1)
 
 
 # shorthand for sendsystemkeys:
@@ -1120,8 +1118,8 @@ def do_ALTNUM(s, **kw):
 def do_SCLIP(*s, **kw):
     """send keystrokes through the clipboard
     """
-    unimacroutils.saveClipboard()
-    unimacroutils.Wait()    
+    uniutils.saveClipboard()
+    uniutils.Wait()    
     ## actions should be able to catch , in string, now , seems to be separator for
     ## function parameters.
     ## assume , = ", "
@@ -1132,35 +1130,35 @@ def do_SCLIP(*s, **kw):
     #    for i, t in enumerate(s):
     #        print "SCLIP:", i, t
     total = total.replace("{enter}", "\n")
-    unimacroutils.setClipboard(total, format=13)
-    unimacroutils.Wait()
+    uniutils.setClipboard(total, format=13)
+    uniutils.Wait()
     #print 'send through clipboard: %s'% total5N
     doAction("<<paste>>")
-    unimacroutils.Wait()
-    unimacroutils.restoreClipboard() 
+    uniutils.Wait()
+    uniutils.restoreClipboard() 
 
 
 def do_RW(**kw):
-    unimacroutils.rememberWindow()
+    uniutils.rememberWindow()
     return 1
 
 def do_CW(**kw):
     """obsolete..."""
-    unimacroutils.clearWindowHandle()
+    uniutils.clearWindowHandle()
     return 1
 
 def do_RTW(**kw):
-    unimacroutils.returnToWindow()
+    uniutils.returnToWindow()
     return 1
 
 def do_SELECTWORD(count=1, direction=None, **kw):
     """select the word under the cursor"""
     print('try to select %s word(s) under cursor (direction: %s)'% (count, direction))
-    unimacroutils.saveClipboard()
+    uniutils.saveClipboard()
     if not direction in ['left', 'right']:
         # try if at end of word:
         doKeystroke("{extright}{shift+extleft}{ctrl+c}{extright}{extleft}")
-        t = unimacroutils.getClipboard()
+        t = uniutils.getClipboard()
         if isinstance(t, str):
             direction = 'right'
             print('make direction right')
@@ -1172,10 +1170,10 @@ def do_SELECTWORD(count=1, direction=None, **kw):
     elif direction == 'right':
         doKeystroke("{extright}{ctrl+extleft}{shift+ctrl+extright %s}"% count)
 
-    unimacroutils.Wait()
+    uniutils.Wait()
     doAction("<<copy>>")
-    unimacroutils.visibleWait()
-    t = unimacroutils.getClipboard()
+    uniutils.visibleWait()
+    t = uniutils.getClipboard()
     if not isinstance(t, str):
         ## not a str clipboard, TODO QH
         return ''
@@ -1189,8 +1187,8 @@ def do_SELECTWORD(count=1, direction=None, **kw):
         while t and t.endswith(' '):
             doKeystroke("{shift+extleft}")
             t = t[:-1]
-    unimacroutils.restoreClipboard()
-    #print 'SELECTWORD, selected word: |%s| (leave on clipboard: %s'% (repr(t), repr(unimacroutils.getClipboard()))
+    uniutils.restoreClipboard()
+    #print 'SELECTWORD, selected word: |%s| (leave on clipboard: %s'% (repr(t), repr(uniutils.getClipboard()))
     return t
 
 
@@ -1203,38 +1201,38 @@ def do_WTC(nWait=20, waitingTime=0.05, **kw):
     
     after found, check also if title is stable
     """
-    return unimacroutils.waitForNewWindow(nWait, waitingTime, **kw)
-##    unimacroutils.ForceGotBegin()
+    return uniutils.waitForNewWindow(nWait, waitingTime, **kw)
+##    uniutils.ForceGotBegin()
 
 # wait for Window Title
 def do_WWT(titleName, nWait=20, waitingTime=0.05, **kw):
     """wait for specified window title, on succes return 1
     """
-    return unimacroutils.waitForWindowTitle(titleName, nWait, waitingTime, **kw)
+    return uniutils.waitForWindowTitle(titleName, nWait, waitingTime, **kw)
   
 # waiting function:
 def do_W(t=None, **kw):
     t = t or 0.1
     if debug > 7: D('waiting: %s'%t)
     elif debug and t > 2: D('waiting: %s'%t)
-    unimacroutils.Wait(t)
+    uniutils.Wait(t)
     return 1
         
 do_WAIT = do_W
 # Long Wait:
 def do_LW(**kw):
-    unimacroutils.longWait()
+    uniutils.longWait()
     return 1
 do_LONGWAIT = do_LW
 # Visible Wait:
 def do_VW(**kw):
-    unimacroutils.visibleWait()
+    uniutils.visibleWait()
     return 1
 do_VISIBLEWAIT = do_VW
 
 # Short Wait:
 def do_SW(**kw):
-    unimacroutils.shortWait()
+    uniutils.shortWait()
     return 1
 do_SHORTWAIT = do_SW
 
@@ -1257,12 +1255,12 @@ def do_KW(action1=None, action2=None, progInfo=None, comingFrom=None):
 ##     """reformat selection, cleaning newlines
 
 ##     """
-##     unimacroutils.saveClipboard()
+##     uniutils.saveClipboard()
 ##     doKeystroke('{ctrl+c}')
-##     t = unimacroutils.getClipboard()
-##     unimacroutils.restoreClipboard()
+##     t = uniutils.getClipboard()
+##     uniutils.restoreClipboard()
 ##     if t:
-##         T = unimacroutils.cleanParagraphs(t)
+##         T = uniutils.cleanParagraphs(t)
 ##         doKeystroke(T)
 ##     else:
 ##         print 'reformat selection (RS) requires a selection first'
@@ -1403,11 +1401,11 @@ def do_U(n, **kw):
         return
     u = chr(Code)
     # output through the clipboard with special code:
-    unimacroutils.saveClipboard()
+    uniutils.saveClipboard()
     #win32con.CF_UNICODETEXT = 13
-    unimacroutils.setClipboard(u, format=13)
+    uniutils.setClipboard(u, format=13)
     sendkeys('{ctrl+v}')
-    unimacroutils.restoreClipboard()    
+    uniutils.restoreClipboard()    
     return 1
                 
 
@@ -1420,7 +1418,7 @@ def do_MSG(*args, **kw):
 def do_DOCUMENT(number=None, **kw):
     """switch to document (program specific) with number"""
 ##    print 'action: goto task: %s'% number
-    _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
+    _progpath, prog, title, _toporchild, _classname, _hndle = uniutils.getProgInfo()
     if not prog:
         print(f'action DOCUMENT, no program in foreground: "{prog}", title: "{title}"')
         return
@@ -1447,9 +1445,9 @@ def do_DOCUMENT(number=None, **kw):
         my = mouseY1 + (count-1)*mouseYdiff
 ##        print 'mx, my:', mx, my
         #print 'task to %s, %s'% (mx, my)
-        unimacroutils.doMouse(0, 0, mx, my)
-##        unimacroutils.shortWait()
-##        unimacroutils.buttonClick()
+        uniutils.doMouse(0, 0, mx, my)
+##        uniutils.shortWait()
+##        uniutils.buttonClick()
     else:
         print('call action DOCUMENT with a number!')
         return
@@ -1462,7 +1460,7 @@ def do_TASK(number=None, **kw):
     _progpath, prog, title, _toporchild, _classname, _hndle = kw['progInfo']
     if prog == 'explorer' and not title:
         doKeystroke('{esc}')
-        unimacroutils.shortWait()
+        uniutils.shortWait()
     if number:
         try:
             count = int(number)
@@ -1485,10 +1483,10 @@ def do_TASK(number=None, **kw):
         my = mouseY1 + (count-1)*mouseYdiff
         # print 'mx, my:', mx, my
         #print 'task to %s, %s'% (mx, my)
-        unimacroutils.doMouse(0, 0, mx, my)
-        # unimacroutils.longWait()
-##        unimacroutils.shortWait()
-##        unimacroutils.buttonClick()
+        uniutils.doMouse(0, 0, mx, my)
+        # uniutils.longWait()
+##        uniutils.shortWait()
+##        uniutils.buttonClick()
     else:
         print('call action TASK with a number!')
     return 1
@@ -1504,20 +1502,20 @@ def do_TOCLOCK(click=None, **kw):
     except ValueError:
         x = y = 0
     if x and y:
-        unimacroutils.doMouse(0,0,x,y,click)
-        unimacroutils.Wait()
+        uniutils.doMouse(0,0,x,y,click)
+        uniutils.Wait()
     else:
         print('invalid mouse position for clock, do "task position clock" from grammar _general')
     return 1
  
 def do_CLIPSAVE(**kw):
     """saves and empties the clipboard"""
-    unimacroutils.saveClipboard()
+    uniutils.saveClipboard()
     return 1
 
 def do_CLIPRESTORE(**kw):
     """saves and empties the clipboard"""
-    unimacroutils.restoreClipboard()
+    uniutils.restoreClipboard()
     return 1
 
 def do_CLIPISNOTEMPTY(**kw):
@@ -1526,15 +1524,15 @@ def do_CLIPISNOTEMPTY(**kw):
     should be done after a CLIPEMPTY
     restores the clipboard if 0
     """
-    t = unimacroutils.getClipboard()
+    t = uniutils.getClipboard()
     if t:
         return 1
     D('empty clipboard found, restore and return')
-    unimacroutils.restoreClipboard()
+    uniutils.restoreClipboard()
     
 def do_GETCLIPBOARD(**kw):
     """returns the contents of the clipboars"""
-    return unimacroutils.getClipboard()
+    return uniutils.getClipboard()
    
 def do_COPYNAME(**kw):
     """returns the name of a file or folder if windows explorer or #32770
@@ -1554,7 +1552,7 @@ def do_IFWT(title, action, **kw):
 def IfWindowTitleDoAction(title, action, **kw):
     """do an action only if the title matches the window title
     """
-    if unimacroutils.matchTitle(title):
+    if uniutils.matchTitle(title):
         # print 'title: %s, yes, action: %s'% (title, action)
         doAction(action)
     # else:
@@ -1572,20 +1570,20 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
  
     """
     if not progInfo:
-        progInfo = unimacroutils.getProgInfo(modInfo=modInfo)
+        progInfo = uniutils.getProgInfo(modInfo=modInfo)
     
     _progpath, prog, _title, _toporchild, _classname, hndle = progInfo
         
     progNew = prog
     prevHandle = hndle
     doAction(action1, progInfo=progInfo, comingFrom=comingFrom)
-    unimacroutils.shortWait()
+    uniutils.shortWait()
     count = 0
     while count < 20:
         count += 1
         try:
             modInfo = natlink.getCurrentModule()
-            progNew = unimacroutils.getProgName(modInfo)
+            progNew = uniutils.getProgName(modInfo)
             print("progInfo (New) through natlink: %s"% repr(progInfo))
         except:
             progInfo = autohotkeyactions.getProgInfo()
@@ -1595,7 +1593,7 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
         hndle = modInfo[2]
         if hndle != prevHandle:
 
-            if not unimacroutils.isTopWindow(hndle):
+            if not uniutils.isTopWindow(hndle):
                 # child:
                 print('do action2: %s'% action2)
                 doAction(action2)
@@ -1604,7 +1602,7 @@ def killWindow(action1='<<windowclose>>', action2='<<killletter>>', modInfo=None
                 doAction(action2)
             break
         
-        unimacroutils.shortWait()
+        uniutils.shortWait()
     else:
         # no break occurred, false return:
         return 0 
@@ -1683,12 +1681,9 @@ def do_ALERT(alert=1, **kw):
         except ValueError:
             nAlert = 1
         for _i in range(nAlert):
-            ding_path = Path(dtactionsDir)/"ding.wav"
-            if not ding_path.is_file():
-                raise OSError('sound file "ding.wav" not present in %s'% dtactionsDir)
-            exec_string = f'PlaySound "{ding_path}"'
-            natlink.execScript(exec_string)
-    unimacroutils.Wait(0.1)
+            dingfile = str(thisDir) + '\\ding.wav"'
+            natlink.execScript('PlaySound "'+ dingfile)
+    uniutils.Wait(0.1)
     if micState != 'off':
         natlink.setMicState(micState)
     return 1
@@ -1710,7 +1705,7 @@ def do_WINKEY(letter=None, **kw):
     return 1
 
     #
-    #dllFile = os.path.join(unimacroutils.getOriginalUnimacroDirectory(), "dlls", "DNSKeys.dll")
+    #dllFile = os.path.join(uniutils.getOriginalUnimacroDirectory(), "dlls", "DNSKeys.dll")
     #letter = str(letter)
     #if letter.lower() == "{tab}":
     #    letter = '\t'
@@ -1904,10 +1899,10 @@ def YesNo(t, title=None, icon=32, alert=None, defaultToSecondButton=0, progInfo=
         do_ALERT(alert)
 
     if micState != 'on':
-        unimacroutils.Wait(0.05)
+        uniutils.Wait(0.05)
         natlink.setMicState('on')
     newMicState = natlink.getMicState()
-    unimacroutils.Wait(0.1)
+    uniutils.Wait(0.1)
     ttt = tt
     for _i in range(3):
         try:
@@ -1919,19 +1914,19 @@ def YesNo(t, title=None, icon=32, alert=None, defaultToSecondButton=0, progInfo=
                   'tt: %s\n' \
                   'icon: %s\n' \
                   'title: %s\n'% (tt, icon, title))
-        unimacroutils.Wait(0.1)
+        uniutils.Wait(0.1)
         newMicState = natlink.getMicState()
         result = newMicState == 'sleeping'
         if newMicState != 'off': break   # ok, either on or sleeping
         # try again (maximum 3 times)
-        unimacroutils.Wait(0.05)
+        uniutils.Wait(0.05)
         natlink.setMicState('on')
         ttt = checkTextInMessage("Please do not switch off the microphone\nwhile (re)answering the question:\n\n")+tt
     else:
         raise UserWarning("microphone should not be switched off while answering the YesNo question\n(and you got 3 chances to answer correct)")
     if micState != newMicState:
         natlink.setMicState(micState)
-        unimacroutils.Wait(0.05)
+        uniutils.Wait(0.05)
     return result
 
 
@@ -1948,11 +1943,11 @@ def putCursor():
 def findCursor():
     """find the previous entered cursor text"""
     doAction('<<startsearch>>; "%s"; VW; <<searchgo>>'% cursorText)
-    _progpath, prog, _title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
+    _progpath, prog, _title, _toporchild, _classname, _hndle = uniutils.getProgInfo()
     if prog == 'emacs':
         doAction("{shift+left %s}"% len(cursorText))
     doAction("CLIPSAVE; <<cut>>")
-    t = unimacroutils.getClipboard()
+    t = uniutils.getClipboard()
     if t == cursorText:
         doAction("CLIPRESTORE")
         return 1
@@ -1964,7 +1959,7 @@ bringups = {}
 # special:
 voicecodeApp = 'emacs'
 
-def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None):
+def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, progInfo=None, comingFrom=None):
     """get a running copy of app in the foreground
 
     the full path can be set in section [bringup app], key path
@@ -1994,7 +1989,6 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     # voicecodeApp ('emacs') and (optional, but in this case) function voicecodeBringUp
     #
     if filepath:
-        filepath = str(filepath)   # in case a Path instance is passed
         app2 = None
         while app in ['open', 'edit']:
             if app == app2: break   #open = open...
@@ -2054,55 +2048,34 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                     else:
                         raise OSError('invalid path for app with PROGRAMFILES %s: %s (expanded: %s)'% (app, appPath, appPath2))
                 else:
-                    print('UnimacroBringUp, invalid path for app %s: %s, revert to default (Notepad)'% (app, appPath))
-                    appPath = 'notepad'
-                    appName = 'notepad'
+                    raise OSError('invalid path for  app %s: %s (expanded: %s)'% (app, appPath, appPath2))
         else:
             appPath = appName or app
         appArgs = ini.get("bringup %s"% app, "args") or None
     else:
-        appPath = ""
-        appArgs = ""
-        appName = ""
-
-    # code to be simplified, but added filename in the appName, so repeated UnimacroBringUps (AppBringUp of Dragon)
-    # can refind the opened instance...
-    
-    filename = ''
+        appPath = None
+        appArgs = None
+        appName = None
+    if appName:
+        if filepath:
+            appName = f'{appName} {filepath}'
+    else:
+        appName = filepath
 
     if filepath:
-        filename = Path(filepath).name
-        if filepath.find(' ') > 0 or filepath.find('\\') > 0:
-            filepath = f'""{filepath}""'
-        
+        filepath = f'""{filepath}""'
+        # print(f'filepath unimacroactions: |{filepath}|')
+        if appArgs:
+            #if filepath.find(" ") > 0:
+                # insert DOUBLE DOUBLE QUOTES for vba line recognition
+            filepath = '""'+filepath+'""'
+            print(f'filepath appArgs unimacroactions: |{filepath}|')
 
-    appName = appName or ''
-    if filename:
-        if appName:
-            appName += ' ' + filename
+            appArgs = f'{appArgs} {filepath}'
+            print(f'appArgs unimacroactions: |{appArgs}|')
+            
         else:
-            appName = filename
-
-    if appName and appName.find(' ') > 0:
-        appName = f'""{appName}""'
-
-    appPath = appPath or ''
-
-    if appPath and appPath.find(' ') > 0:
-        appPath = f'""{appPath}""'
-
-    if appPath:
-        if filepath:
-            appPath = f'{appPath} {filepath}'
-    else:
-        appPath = filepath
-
-        # # print(f'filepath unimacroactions: |{filepath}|')
-        # if appArgs:
-        #     appArgs = f'{appArgs} {filepath}'
-        #     print(f'appArgs unimacroactions: |{appArgs}|')
-        # else:
-        #     appArgs = filepath
+            appArgs = filepath
     # for future:
     appWindowStyle = ini.get("bringup %s"% app, "style") or None
     appDirectory = ini.get("bringup %s"% app, "directory") or None
@@ -2112,7 +2085,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
         _appTitle = ini.get("bringup %s"% app, "title") or None
         _appClass = ini.get("bringup %s"% app, "class") or None
         ## TODOQH
-        _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo()
+        _progpath, prog, title, _toporchild, _classname, hndle = uniutils.getProgInfo()
         ## TODOQH
         # progFull, titleFull, hndle = natlink.getCurrentModule()
     
@@ -2127,11 +2100,11 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                 do_RW()
                 hndle = bringups[app][2]
                 if debug: D('hndle to switch to: %s'% hndle)
-                if not unimacroutils.SetForegroundWindow(hndle):
+                if not uniutils.SetForegroundWindow(hndle):
                     print('could not bring to foreground: %s, exit action'% hndle)
                     
                 if do_WTC():
-                    _progpath, prog, title, _toporchild, _classname, hndle = unimacroutils.getProgInfo()
+                    _progpath, prog, title, _toporchild, _classname, hndle = uniutils.getProgInfo()
                     if prog == appName:
                         return 1
             except:
@@ -2139,6 +2112,7 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
                 if debug > 2: D('bringups: %s'% bringups)
                 if debug: D('delete %s from bringups'% app)
                 del bringups[app]
+                
     #    do_RW()
     #    if app in ('voicecode', 'dragonpad'):
     #        raise UnimacroError("Oops, BRINGUP voicecoder should not come here at all, bringing up: %s"% app)
@@ -2146,11 +2120,11 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     #    if appTitle or appClass:
     #        hndle = messagefunctions.findTopWindow(wantedClass=appClass, wantedText=appTitle)
     #        if hndle:
-    #            if not unimacroutils.SetForegroundWindow(hndle):
+    #            if not uniutils.SetForegroundWindow(hndle):
     #                print 'get window %s to foreground failed'% hndle
     #                
-    #            unimacroutils.Wait(0.1)
-    #            prog, title, _topchild, classname, hndle = unimacroutils.getProgInfo()
+    #            uniutils.Wait(0.1)
+    #            prog, title, _topchild, classname, hndle = uniutils.getProgInfo()
     #            progFull, titleFull, hndle2 = natlink.getCurrentModule()
     #            if hndle == hndle2:
     #                #print 'OK, setting |%s|, currentModule: %s'% (app, repr(natlink.getCurrentModule()))
@@ -2161,17 +2135,14 @@ def UnimacroBringUp(app, filepath=None, title=None, extra=None, modInfo=None, pr
     #                #print 'currentModedule: %s'% repr(natlink.getCurrentModule())
     ##do_RW()
     #print 'unimacrobringup: name: %s, app: %s, args: %s (filepath: %s)'% (appName, appPath, appArgs, filepath)
-    result = unimacroutils.AppBringUp(App=appName, Exec=appPath, Args=appArgs,
-                                      windowStyle=appWindowStyle, directory=appDirectory)
-                                      
+    result = uniutils.AppBringUp(appName, appPath, appArgs, appWindowStyle, appDirectory)
     # print("result of UnimacroBringUp:", result)
     if extra:
         doAction(extra)
         
     return result
-
 #    if do_WTC():
-#        prog, title, _topchild, classname, hndle = unimacroutils.getProgInfo()
+#        prog, title, _topchild, classname, hndle = uniutils.getProgInfo()
 #        progFull, titleFull, hndle = natlink.getCurrentModule()
 ###        print 'app: %s, appName: %s, got prog: %s'% (app, appName, prog)
 #        if prog == appName:
@@ -2227,7 +2198,7 @@ def dragonpadBringUp():
     waitSteps = 10
     while i < waitSteps:
         i += 1
-        _progpath, prog, title, _toporchild, _classname, _hndle = unimacroutils.getProgInfo()
+        _progpath, prog, title, _toporchild, _classname, _hndle = uniutils.getProgInfo()
         if windowCorrespondsToApp('dragonpad', 'natspeak', prog, title):
             break
         do_W(sleepTime)
@@ -2244,9 +2215,9 @@ def messagesBringUp():
         do_AHK("showmessageswindow.ahk")
         return 1
     
-    if unimacroutils.switchToWindowWithTitle('Messages from python macros'):
+    if uniutils.switchToWindowWithTitle('Messages from python macros'):
         return 1
-    if not unimacroutils.switchToWindowWithTitle('Messages from python macros'):
+    if not uniutils.switchToWindowWithTitle('Messages from python macros'):
         raise ActionError("cannot bring messages window to front")
     return 1
 
@@ -2275,16 +2246,16 @@ def getPathOfOpenFile():
     used for switching from eg pythonwin to emacs and back
     """
     fileName = None
-    progInfo = unimacroutils.getProgInfo()
+    progInfo = uniutils.getProgInfo()
     _progpath, prog, title, _toporchild, _classname, _hndle = progInfo
     
     if prog == 'pythonwin':
         doKeystroke("{ctrl+r}")
         doAction("W")
-        unimacroutils.saveClipboard()
+        uniutils.saveClipboard()
         doKeystroke("{ctrl+c}{esc}")
-        fileName = unimacroutils.getClipboard()
-        unimacroutils.restoreClipboard()
+        fileName = uniutils.getClipboard()
+        uniutils.restoreClipboard()
         return fileName
     if prog == 'emacs':
         # get from voicecode window title the filename part:
@@ -2294,12 +2265,12 @@ def getPathOfOpenFile():
             return
         # get from minibuffer the folder name:
         doKeystroke("{ctrl+x}{ctrl+w}")
-        unimacroutils.saveClipboard()
+        uniutils.saveClipboard()
         doKeystroke("{shift+exthome}{alt+w}")
         doKeystroke("{ctrl+g}")
-        # folder = unimacroutils.getClipboard()
-        fileName = os.path.join(unimacroutils.getClipboard(), fileName)
-        unimacroutils.restoreClipboard()
+        # folder = uniutils.getClipboard()
+        fileName = os.path.join(uniutils.getClipboard(), fileName)
+        uniutils.restoreClipboard()
         return fileName
     if prog == 'uedit32':
         # get from window title bar:

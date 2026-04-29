@@ -5,7 +5,7 @@ This module provides the different classes to base a program specific actionscla
 """
 #pylint:disable=C0116, W0201
 from dtactions import messagefunctions as mess
-from dtactions import unimacroutils
+from dtactions import uniutils
 
 class AllActions:
     """base class for all actions that run in unimacroactionclasses
@@ -16,12 +16,12 @@ class AllActions:
     # init same as reset:        
     def reset(self, progInfo=None):
         if progInfo is None:
-            progInfo = unimacroutils.getProgInfo()
+            progInfo = uniutils.getProgInfo()
         self.progInfo = progInfo
         
     def update(self, newProgInfo=None):
         if newProgInfo is None:
-            newProgInfo = unimacroutils.getProgInfo()
+            newProgInfo = uniutils.getProgInfo()
         if newProgInfo == self.progInfo:
             return
         # print('allactions: new prog info, overload for your specific program: %s'% self.prog)
@@ -107,7 +107,7 @@ class MessageActions(AllActions):
         if not handle:
             return
         mess.setEditText(handle, "")
-        newProgInfo = unimacroutils.getProgInfo()
+        newProgInfo = uniutils.getProgInfo()
         self.update(newProgInfo)
         
     def getSelection(self, handle=None):

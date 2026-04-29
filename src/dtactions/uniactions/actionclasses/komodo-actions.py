@@ -8,7 +8,7 @@ import time
 
 import natlink
 # from dtactions import messagefunctions as mf
-from dtactions.unimacroactionclasses.actionbases import AllActions
+from dtactions.uniactions.actionclasses.actionbases import AllActions
 # from dtactions.unimacro.unimacroactions import doAction as action
 from dtactions.sendkeys import sendkeys as keystroke
 
@@ -67,10 +67,10 @@ class KomodoActions(AllActions):
     #     """
     #     print('metaaction_makeunicodestrings, for Komodo')
     #     sendkeys("{ctrl+c}")
-    #     t = unimacroutils.getClipboard()
+    #     t = uniutils.getClipboard()
     #     print(f'in: {t}')
     #     t = replaceStringToUnicode(t)
-    #     unimacroutils.setClipboard(t)
+    #     uniutils.setClipboard(t)
     #     sendkeys("{ctrl+v}{down}")
 
 def _test():

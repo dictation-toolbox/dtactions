@@ -154,3 +154,4 @@ cython_debug/
 .rst
 *.orig
 /.merge_file_*
+/src/dtactions/*.ini

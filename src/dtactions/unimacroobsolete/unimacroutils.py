@@ -1,5 +1,5 @@
 #
-# unimacroutils.py (in dtactions/unimacro)
+# uniutils.py (in dtactions/unimacro)
 # was module natlinkutilsqh.py in unimacro
 #
 #  Quintijn Hoogenboom
@@ -1171,7 +1171,7 @@ def setTrayIcon(state=None, toolTip=None, comingFrom=None):
     #     func = comingFrom
     # elif comingFrom:
     #     func = None
-    #     #print 'unimacroutils.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
+    #     #print 'uniutils.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
     # else:
     #     func = None
     func = None    

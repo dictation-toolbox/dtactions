@@ -1,5 +1,6 @@
-"""utility functions from Quintijn, used in unimacro and in local programs.
-   in python3 also the path module as subclass of the standard path class
+"""utility functions from Quintijn, used in unimacro, dtactions
+
+   Note: this one is a stripped version of Quintijn's local version
 """
 #pylint:disable=C0116, C0302,  W0613, R0912, R0914, R0915, R0911, W0702, C0209, W0719
 import unicodedata
@@ -890,8 +891,9 @@ def generate_alternatives(s):
     m = reAltenativePaths.match(s)
     if m:
         alternatives = s[1:-1].split("|")
-        for item in alternatives:
-            yield item
+        yield from alternatives
+        # for item in alternatives:
+        #     yield item
     else:
         yield s
         

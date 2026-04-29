@@ -5,8 +5,8 @@ now works with copy and so getting the wanted contents of text around the cursor
 """
 #pylint:disable=C0209
 import time
-from dtactions.unimacroactionclasses.actionbases import AllActions
-from dtactions import unimacroutils
+from dtactions.actionclasses.actionbases import AllActions
+from dtactions import uniutils
 from dtactions.sendkeys import sendkeys
 
 class FrescobaldiActions(AllActions):
@@ -16,10 +16,10 @@ class FrescobaldiActions(AllActions):
     def hasSelection(self):
         """returns the text if text is selected, otherwise None
         """
-        unimacroutils.saveClipboard()
+        uniutils.saveClipboard()
         self.playString("{ctrl+c}")
-        t = unimacroutils.getClipboard() or None
-        unimacroutils.restoreClipboard()
+        t = uniutils.getClipboard() or None
+        uniutils.restoreClipboard()
         return t
 
     def playString(self, t):
@@ -32,7 +32,7 @@ class FrescobaldiActions(AllActions):
         """
         for _ in range(5):
             time.sleep(sleep)
-            clip = unimacroutils.getClipboard()
+            clip = uniutils.getClipboard()
             if clip:
                 return clip
         print('got nothing on clipboard')
@@ -43,7 +43,7 @@ class FrescobaldiActions(AllActions):
         assume no selection active.
         normally return cursor in same position
         """
-        unimacroutils.saveClipboard()
+        uniutils.saveClipboard()
         self.playString("{left %s}"% n)
         self.playString("{shift+right %s}"% (n*2,))
         time.sleep(sleep)
@@ -51,7 +51,7 @@ class FrescobaldiActions(AllActions):
         result = self.getClipboard(sleep=sleep)
         self.playString("{left}{right %s}"% n)
         time.sleep(sleep)
-        unimacroutils.restoreClipboard()
+        uniutils.restoreClipboard()
         if not result:
             print('nothing on clipboard')
             return ""
@@ -73,8 +73,8 @@ class FrescobaldiActions(AllActions):
         n > 1, take more lines down for a larger range
         """
         self.playString("{shift+down %s}{ctrl+c}"% n)
-        unimacroutils.Wait()        
-        result = unimacroutils.getClipboard()
+        uniutils.Wait()        
+        result = uniutils.getClipboard()
         nup = result.count('\n')
         if nup:
             self.playString("{shift+up %s}"% nup)
@@ -86,8 +86,8 @@ class FrescobaldiActions(AllActions):
         more lines possible, if n > 1
         """
         self.playString("{shift+up %s}{ctrl+c}"% n)
-        unimacroutils.Wait()        
-        result = unimacroutils.getClipboard()
+        uniutils.Wait()        
+        result = uniutils.getClipboard()
         ndown = result.count('\n')
         if ndown:
             self.playString("{shift+down %s}"% ndown)

@@ -44,7 +44,7 @@ from dtactions.sendkeys import sendkeys
 this_path = Path(__file__).parent
 
 sampleAhkDirectory = this_path/'samples'/'autohotkey'
-# TODO: fix this again, but first unimacroactions!
+# TODO: fix this again, but first unimacroactions! LONG TERM WISH!!
 # checkDirectory(sampleAhkDirectory)
 
 ahkexe = None
@@ -599,7 +599,7 @@ def GetAhkScriptFolder():
         return ahkscriptfolder
 
     scriptfolder = Path.home()/".autohotkey"
-    # TODO: check ahk checkDirectory function
+    # TODO: check ahk checkDirectory function  !! LONG TERM WISH!!
     # checkDirectory(scriptfolder, create=True)
     ahkscriptfolder = scriptfolder
     copySampleAhkScripts(sampleAhkDirectory, ahkscriptfolder)

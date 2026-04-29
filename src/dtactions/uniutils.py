@@ -1,5 +1,5 @@
 #
-# unimacroutils.py (in dtactions/unimacro)
+# uniutils.py (in dtactions/unimacro)
 # was module natlinkutilsqh.py in unimacro
 #
 #  Quintijn Hoogenboom
@@ -650,6 +650,8 @@ def doMouse(absorrel, screenorwindow, xpos, ypos, mouse='left', nClick=1, modifi
     global mouseState
     hndle = natlink.getCurrentModule()[2]
     rect = None
+    # just for sure, to get a start value:
+    xMin, yMin, xMax, yMax = 0, 0, 1000, 1000
     if hndle:
         rect = win32gui.GetWindowRect(hndle)
     xold,yold = natlink.getCursorPos()
@@ -1172,7 +1174,7 @@ def setTrayIcon(state=None, toolTip=None, comingFrom=None):
     #     func = comingFrom
     # elif comingFrom:
     #     func = None
-    #     #print 'unimacroutils.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
+    #     #print 'uniutils.setTrayIcon, comingFrom not of correct type (%s): %s'% (comingFrom, type(comingFrom))
     # else:
     #     func = None
     func = None    

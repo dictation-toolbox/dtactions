@@ -9,10 +9,10 @@ import copy
 import locale
 from collections import UserDict
 from pathlib import Path
-
-from dtactions import utilsqh
-
+# import sys, pprint
+# pprint.pprint(sys.path)
 from natlinkcore import readwritefile
+from dtactions import utilsqh   ## TODO emergency why is import utilsqh failing from unimacro _control?
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -1649,21 +1649,6 @@ empty, o, f, F, False, false, Onwaar, o, none -->> False
         >>> ini.get(['pref'], 'k')
         ''
         
-        We can also extract a list of all possible keys,
-        and also ordered in a dictionary, leaving out doubles.
-        >>> L = ini.getSectionsWithPrefix('pref') # with all sections with prefix pref
-        >>> ini.get(L)
-        ['key', 'k', 'l', 'm']
-        >>> ini.getKeysOrderedFromSections(L)
-        {'pref eggs': ['key', 'k'], 'pref faa': [], 'pref foo': [], 'pref f': ['l'], 'pref': ['m']}
-        >>> L = ini.getSectionsWithPrefix('pref', 'this foo and another thing') # with selection
-        >>> L
-        ['pref foo', 'pref f', 'pref']
-        >>> ini.get(L)
-        ['key', 'l', 'm']
-        >>> ini.getKeysOrderedFromSections(L)
-        {'pref foo': ['key'], 'pref f': ['l'], 'pref': ['m']}
-
         And format this dictionary into a long string:
 
         >>> ini.formatKeysOrderedFromSections(L)
@@ -2008,7 +1993,7 @@ def formatReverseNumbersDict(D):
     keys.sort()
     # print 'items: %s'% items
     it = utilsqh.peek_ahead(keys)
-    kPrev = None
+    kPrev, knext = None, None
     L = []
     increment = 1
     for k in it:
